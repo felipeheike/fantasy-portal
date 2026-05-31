@@ -1,0 +1,119 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Dices } from 'lucide-react';
+
+interface DiceRollerProps {
+  onRollComplete: (result: number) => void;
+  isLoading?: boolean;
+}
+
+export default function DiceRoller({ onRollComplete, isLoading }: DiceRollerProps) {
+  const [isRolling, setIsRolling] = useState(false);
+  const [result, setResult] = useState<number | null>(null);
+  const [hasTriggered, setHasTriggered] = useState(false);
+  
+  const rollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const completionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (rollTimeoutRef.current) clearTimeout(rollTimeoutRef.current);
+      if (completionTimeoutRef.current) clearTimeout(completionTimeoutRef.current);
+    };
+  }, []);
+
+  const handleRoll = () => {
+    if (isRolling || isLoading || hasTriggered) return;
+    
+    setIsRolling(true);
+    setResult(null);
+    setHasTriggered(false);
+
+    // Dramatic roll duration
+    rollTimeoutRef.current = setTimeout(() => {
+      const newResult = Math.floor(Math.random() * 10) + 1; // D10 System
+      setResult(newResult);
+      setIsRolling(false); // Stop animation
+      
+      // Give the user a moment to see the result before sending
+      completionTimeoutRef.current = setTimeout(() => {
+        setHasTriggered(true);
+        onRollComplete(newResult);
+      }, 1500);
+    }, 1200);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-6 p-8 bg-zinc-900/60 border border-zinc-800 rounded-[40px] backdrop-blur-xl shadow-2xl relative overflow-hidden">
+      <div className="relative">
+        {/* Decorative background glow */}
+        <div className={`absolute inset-0 bg-primary/20 blur-[60px] rounded-full transition-opacity duration-500 ${isRolling ? 'opacity-100' : 'opacity-0'}`} />
+        
+        <motion.div
+          animate={isRolling ? {
+            rotate: [0, 90, 180, 270, 360],
+            scale: [1, 1.2, 0.9, 1.1, 1],
+            y: [0, -20, 10, -5, 0]
+          } : {}}
+          transition={{ duration: 1, ease: "easeInOut" }}
+          onClick={handleRoll}
+          className={`w-32 h-32 rounded-3xl border-2 flex items-center justify-center relative z-10 transition-all ${
+            isRolling 
+              ? 'bg-primary border-primary shadow-[0_0_50px_rgba(245,158,11,0.5)]' 
+              : hasTriggered || isLoading
+                ? 'bg-zinc-900 border-zinc-800 opacity-50 cursor-not-allowed'
+                : 'bg-zinc-950 border-zinc-800 hover:border-primary/50 group cursor-pointer'
+          }`}
+        >
+          {isRolling ? (
+            <Dices className="w-16 h-16 text-zinc-950 animate-bounce" />
+          ) : result !== null ? (
+            <span className="text-5xl font-black text-primary italic drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">
+              {result}
+            </span>
+          ) : (
+            <Sparkles className={`w-16 h-16 transition-colors ${hasTriggered || isLoading ? 'text-zinc-700' : 'text-zinc-800 group-hover:text-primary'}`} />
+          )}
+        </motion.div>
+      </div>
+
+      <div className="text-center space-y-2 relative z-10">
+        <h3 className="text-xs font-black uppercase tracking-[0.4em] text-zinc-500">
+          {isRolling ? 'Consultando o Destino...' : result !== null ? 'Sorte Manifestada!' : 'Toque para Rolar'}
+        </h3>
+        <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest max-w-[200px]">
+          {result !== null 
+            ? `Seu valor: ${result}. Aguarde a resolução...` 
+            : 'Um valor alto garante sucesso crítico, um baixo pode ser fatal.'}
+        </p>
+      </div>
+
+      {/* Numerical particles around the dice */}
+      <AnimatePresence>
+        {isRolling && (
+          <div className="absolute inset-0 pointer-events-none">
+             {[...Array(6)].map((_, i) => (
+               <motion.span
+                 key={i}
+                 initial={{ opacity: 0, x: 0, y: 0 }}
+                 animate={{ 
+                   y: [0, (Math.random() - 0.5) * 200], 
+                   x: [0, (Math.random() - 0.5) * 200],
+                   opacity: [0, 1, 0],
+                   scale: [0.5, 1.5, 0.5]
+                 }}
+                 transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                 className="absolute top-1/2 left-1/2 text-primary font-black text-sm"
+               >
+                 {Math.floor(Math.random() * 10) + 1}
+               </motion.span>
+             ))}
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Player {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  status    Json      // Stores HP, SP, Combat Power, Skills, Moral
+  inventory Json      // Stores items and equipment
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  journeys  Journey[]
+}
+
+model Journey {
+  id        String   @id @default(cuid())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id])
+  genre     String
+  status    String   @default("active") // active, completed, dead
+  history   Json     // Stores the narrative sequence and decisions
+  flags     Json     // Stores game world state changes
+  settings  Json?    // UI/UX preferences (images, audio, etc)
+  memories  Json?    // World Knowledge Graph memories
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  assets    Asset[]
+}
+
+model Asset {
+  id        String   @id @default(cuid())
+  journeyId String
+  journey   Journey  @relation(fields: [journeyId], references: [id])
+  url       String
+  type      String   // AI_GENERATED, PLAYER_UPLOAD
+  metadata  Json?    // prompt, dimensions, etc.
+  createdAt DateTime @default(now())
+}

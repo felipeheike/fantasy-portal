@@ -1,0 +1,306 @@
+'use client';
+
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useGameStore } from '@/store/gameStore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { NarrativeScene, NarrativeOption, TacticalOptions, InventoryItem } from '@/types';
+import DiceRoller from './DiceRoller';
+import { 
+  Send, 
+  Sword, 
+  Shield, 
+  Target, 
+  Package, 
+  Sparkles,
+  ChevronRight,
+  MessageSquare,
+  Lock,
+  Unlock,
+  Filter
+} from 'lucide-react';
+
+interface ActionOrchestratorProps {
+  scene: NarrativeScene | null;
+  onAction: (action: string) => void;
+  isLoading: boolean;
+}
+
+export default function ActionOrchestrator({ scene, onAction, isLoading }: ActionOrchestratorProps) {
+  const { status, setLockedItem, inventory } = useGameStore();
+  const [inputText, setInputText] = useState('');
+  const [selectedTactical, setSelectedTactical] = useState<{
+    actionId?: string;
+    actionLabel?: string;
+    target?: string;
+    item?: string;
+    skill?: string;
+  }>({});
+
+  const handleSendText = useCallback(() => {
+    if (inputText.trim()) {
+      onAction(inputText);
+      // Removed setInputText('') to avoid data loss on failure
+    }
+  }, [inputText, onAction]);
+
+  const handleSendTactical = useCallback(() => {
+    if (selectedTactical.actionLabel && selectedTactical.target) {
+      let summary = `Eu escolho ${selectedTactical.actionLabel} no ${selectedTactical.target}`;
+      if (selectedTactical.item) summary += ` usando ${selectedTactical.item}`;
+      if (selectedTactical.skill) summary += ` e ativando ${selectedTactical.skill}`;
+      summary += '.';
+      onAction(summary);
+      setSelectedTactical({});
+      setLockedItem(null);
+    }
+  }, [selectedTactical, onAction, setLockedItem]);
+
+  const handleDiceRoll = useCallback((result: number) => {
+    onAction(`RESULTADO DO DADO: ${result}. Narre o desfecho da minha ação anterior considerando este valor de sorte (1-10).`);
+  }, [onAction]);
+
+  // Derived state for validation
+  const selectedActionData = useMemo(() => 
+    scene?.tacticalOptions?.actions.find(a => a.id === selectedTactical.actionId),
+    [scene, selectedTactical.actionId]
+  );
+
+  const isActionValid = useMemo(() => {
+    if (!selectedTactical.actionLabel || !selectedTactical.target) return false;
+    if (selectedActionData?.requiresItem && !selectedTactical.item) return false;
+    return true;
+  }, [selectedTactical, selectedActionData]);
+
+  const filteredItems = useMemo(() => {
+    const rawItems = scene?.tacticalOptions?.availableItems || [];
+    if (!selectedActionData?.itemType) return rawItems;
+    
+    // Attempt to filter based on item metadata in store
+    return rawItems.filter(itemName => {
+      const itemData = inventory.find(i => i.name === itemName);
+      return !itemData || itemData.type === selectedActionData.itemType;
+    });
+  }, [scene, selectedActionData, inventory]);
+
+  // Clear tactical selection when scene changes
+  useEffect(() => {
+    setSelectedTactical({});
+    setInputText('');
+    setLockedItem(null);
+  }, [scene?.sceneId, setLockedItem]);
+
+  if ((!scene && !isLoading) || scene?.isGameOver || status.hp <= 0) return null;
+
+  const renderInterpretative = () => (
+    <div className="flex gap-4 items-center bg-zinc-900/60 p-2 rounded-2xl border border-zinc-800 focus-within:border-primary/50 transition-all backdrop-blur-md shadow-2xl">
+      <div className="p-3 text-zinc-500">
+        <MessageSquare className="w-5 h-5" />
+      </div>
+      <input 
+        type="text"
+        placeholder="Escreva seu destino..."
+        className="flex-1 bg-transparent border-none outline-none text-zinc-200 placeholder:text-zinc-600 font-serif italic"
+        value={inputText}
+        onChange={(e) => setInputText(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSendText()}
+        disabled={isLoading}
+      />
+      <button 
+        onClick={handleSendText}
+        disabled={isLoading || !inputText.trim()}
+        className="p-3 bg-primary text-zinc-950 rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+      >
+        <Send className="w-5 h-5" />
+      </button>
+    </div>
+  );
+
+  const renderOptions = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {scene?.options?.map((option, index) => (
+        <motion.button
+          key={option.id + index}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.1 }}
+          onClick={() => onAction(option.label)}
+          disabled={isLoading}
+          className="flex items-center justify-between p-5 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-primary/40 hover:bg-zinc-800/80 transition-all group"
+        >
+          <span className="text-zinc-300 font-bold tracking-tight">{option.label}</span>
+          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-primary transition-colors" />
+        </motion.button>
+      ))}
+    </div>
+  );
+
+  const renderTactical = () => (
+    <div className="space-y-6 bg-zinc-900/40 p-6 rounded-3xl border border-zinc-800/50 backdrop-blur-md relative overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Actions Column */}
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+            <Sword className="w-3 h-3" /> Ação
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {scene?.tacticalOptions?.actions.map(a => (
+              <button 
+                key={a.id}
+                onClick={() => setSelectedTactical(prev => ({ ...prev, actionId: a.id, actionLabel: a.label, item: undefined }))}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all relative ${
+                  selectedTactical.actionId === a.id 
+                  ? 'bg-primary border-primary text-zinc-950' 
+                  : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                }`}
+              >
+                {a.label}
+                {a.requiresItem && <Lock className="absolute -top-1 -right-1 w-2.5 h-2.5 text-orange-500 fill-current" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Targets Column */}
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+            <Target className="w-3 h-3" /> Alvo
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {scene?.tacticalOptions?.targets.map(t => (
+              <button 
+                key={t.id}
+                onClick={() => setSelectedTactical(prev => ({ ...prev, target: t.label }))}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
+                  selectedTactical.target === t.label 
+                  ? 'bg-primary border-primary text-zinc-950' 
+                  : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Items Column */}
+        <div className={`space-y-2 transition-all ${selectedActionData?.requiresItem && !selectedTactical.item ? 'ring-2 ring-orange-500/20 rounded-xl p-2 -m-2 bg-orange-500/5' : ''}`}>
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+            <Package className="w-3 h-3" /> Item
+            {selectedActionData?.requiresItem && <span className="text-[7px] text-orange-500 animate-pulse">(Obrigatório)</span>}
+          </label>
+          <div className="flex flex-wrap gap-2">
+             {!selectedActionData?.requiresItem && (
+               <button 
+                  onClick={() => {
+                    setSelectedTactical(prev => ({ ...prev, item: undefined }));
+                    setLockedItem(null);
+                  }}
+                  className={`px-3 py-2 rounded-lg text-[10px] font-bold border ${!selectedTactical.item ? 'border-zinc-500 text-zinc-200' : 'border-zinc-800 text-zinc-600'}`}
+                >
+                  Nenhum
+                </button>
+             )}
+            {filteredItems.map((i, idx) => (
+              <button 
+                key={i + idx}
+                onClick={() => {
+                  setSelectedTactical(prev => ({ ...prev, item: i, skill: undefined }));
+                  setLockedItem(i);
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
+                  selectedTactical.item === i 
+                  ? 'bg-primary border-primary text-zinc-950' 
+                  : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                }`}
+              >
+                {i}
+              </button>
+            ))}
+            {filteredItems.length === 0 && (
+              <p className="text-[8px] text-zinc-700 italic ml-2">Nenhum item compatível</p>
+            )}
+          </div>
+        </div>
+
+        {/* Skills Column */}
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3" /> Habilidade
+          </label>
+          <div className="flex flex-wrap gap-2">
+             <button 
+                onClick={() => {
+                  setSelectedTactical(prev => ({ ...prev, skill: undefined }));
+                }}
+                className={`px-3 py-2 rounded-lg text-[10px] font-bold border ${!selectedTactical.skill ? 'border-zinc-500 text-zinc-200' : 'border-zinc-800 text-zinc-600'}`}
+              >
+                Nenhuma
+              </button>
+            {scene?.tacticalOptions?.availableSkills?.map((s, idx) => (
+              <button 
+                key={s + idx}
+                onClick={() => {
+                  setSelectedTactical(prev => ({ ...prev, skill: s, item: undefined }));
+                  setLockedItem(null);
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
+                  selectedTactical.skill === s 
+                  ? 'bg-primary border-primary text-zinc-950' 
+                  : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-zinc-800 flex justify-center">
+         <button 
+            disabled={!isActionValid || isLoading}
+            onClick={handleSendTactical}
+            className={`flex items-center gap-3 px-10 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-[0_0_30px_rgba(255,255,255,0.05)] ${
+              isActionValid 
+              ? 'bg-zinc-100 text-zinc-950 hover:bg-primary' 
+              : 'bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50'
+            }`}
+         >
+           {selectedActionData?.requiresItem && !selectedTactical.item ? 'Selecione um Item' : 'Executar Ação'}
+         </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed bottom-0 left-0 w-full p-8 z-40 bg-gradient-to-t from-zinc-950 via-zinc-950/90 to-transparent">
+      <div className="max-w-4xl mx-auto">
+        <AnimatePresence mode="wait">
+          {isLoading ? (
+             <motion.div 
+               key="loading"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="flex justify-center p-8"
+             >
+               <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+             </motion.div>
+          ) : (
+            <motion.div
+              key={scene?.sceneId || 'empty'}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {scene?.requiresRoll ? (
+                 <div className="flex justify-center">
+                    <DiceRoller onRollComplete={handleDiceRoll} isLoading={isLoading} />
+                 </div>
+              ) : scene?.tacticalOptions ? renderTactical() : scene?.options?.length ? renderOptions() : renderInterpretative()}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
