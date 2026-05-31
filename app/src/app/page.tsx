@@ -10,6 +10,7 @@ import SkillsPanel from '@/components/game/SkillsPanel';
 import InfluencePanel from '@/components/game/InfluencePanel';
 import NotificationsPanel from '@/components/game/NotificationsPanel';
 import StatusLogPanel from '@/components/game/StatusLogPanel';
+import InquiryPanel from '@/components/game/InquiryPanel';
 import ForcePasswordChangeModal from '@/components/game/ForcePasswordChangeModal';
 import JourneySetup from '@/components/game/JourneySetup';
 import MainMenu from '@/components/game/MainMenu';
@@ -21,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { NarrativeScene, NarrativeOption, StatusLogEntry } from '@/types';
-import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, ShieldCheck, Eye, X } from 'lucide-react';
+import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, ShieldCheck, Eye, X, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const sceneSchema = z.object({
@@ -112,6 +113,7 @@ export default function GamePage() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isHPLogOpen, setIsHPLogOpen] = useState(false);
   const [isSPLogOpen, setIsSPLogOpen] = useState(false);
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [persistentError, setPersistentError] = useState<string | null>(null);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
@@ -482,23 +484,37 @@ export default function GamePage() {
       />
 
       <main className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-36' : 'pt-24'} transition-all duration-300`}>
-        <div className={`absolute ${impersonatedPlayerId ? 'top-16' : 'top-4'} left-4 z-50 flex gap-2 transition-all duration-300`}>
-          {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
-            <button 
-              onClick={() => router.push('/admin/dashboard')}
-              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
-              title="Câmara do Mestre (Admin)"
-            >
-              <ShieldCheck className="w-5 h-5" />
-            </button>
-          )}
+        <div className={`absolute ${impersonatedPlayerId ? 'top-16' : 'top-4'} left-4 z-50 flex flex-col gap-2 transition-all duration-300`}>
+          <div className="flex gap-2">
+            {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
+              <button 
+                onClick={() => router.push('/admin/dashboard')}
+                className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
+                title="Câmara do Mestre (Admin)"
+              >
+                <ShieldCheck className="w-5 h-5" />
+              </button>
+            )}
 
+            <button 
+              onClick={() => setIsDetailsOpen(true)}
+              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
+              title="Detalhes da Jornada"
+            >
+              <Settings2 className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Inquiry Button */}
           <button 
-            onClick={() => setIsDetailsOpen(true)}
-            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
-            title="Detalhes da Jornada"
+            onClick={() => setIsInquiryOpen(true)}
+            className="p-4 bg-primary text-zinc-950 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] group relative"
+            title="Questionar o Mestre (Pontos de Visão)"
           >
-            <Settings2 className="w-5 h-5" />
+             <HelpCircle className="w-6 h-6" />
+             <span className="absolute -top-1 -right-1 w-5 h-5 bg-zinc-950 text-primary text-[10px] font-black rounded-full flex items-center justify-center border border-primary/50">
+               {status.insightPoints}
+             </span>
           </button>
         </div>
 
@@ -595,6 +611,7 @@ export default function GamePage() {
       <NotificationsPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
       <StatusLogPanel type="hp" isOpen={isHPLogOpen} onClose={() => setIsHPLogOpen(false)} />
       <StatusLogPanel type="sp" isOpen={isSPLogOpen} onClose={() => setIsSPLogOpen(false)} />
+      <InquiryPanel isOpen={isInquiryOpen} onClose={() => setIsInquiryOpen(false)} />
       <JourneyDetailsModal 
         isOpen={isDetailsOpen} 
         onClose={() => setIsDetailsOpen(false)} 

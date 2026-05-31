@@ -42,6 +42,7 @@ interface GameState {
   addNotification: (notification: Omit<GameNotification, 'id' | 'timestamp' | 'read'>) => void;
   markNotificationsAsRead: () => void;
   clearNotifications: () => void;
+  useInsightPoint: () => void;
   startImpersonation: (id: string, name: string) => void;
   stopImpersonation: () => void;
   resetGame: () => void;
@@ -56,6 +57,7 @@ const initialStatus: PlayerStatus = {
   moral: 0,
   skills: [],
   reputations: {},
+  insightPoints: 3,
 };
 
 export const INVENTORY_CAPACITY = 10;
@@ -125,7 +127,8 @@ export const useGameStore = create<GameState>()(
           currentScene: loadedHistory.length > 0 ? loadedHistory[loadedHistory.length - 1] : null,
           status: {
             ...loadedStatus,
-            reputations: loadedStatus.reputations || {}
+            reputations: loadedStatus.reputations || {},
+            insightPoints: loadedStatus.insightPoints ?? initialStatus.insightPoints
           },
           inventory: deduplicatedInventory,
           flags: data.flags || {},
@@ -331,6 +334,10 @@ export const useGameStore = create<GameState>()(
 
       markNotificationsAsRead: () => set((state) => ({ notificationHistory: state.notificationHistory.map(n => ({ ...n, read: true })) })),
       clearNotifications: () => set({ notificationHistory: [] }),
+
+      useInsightPoint: () => set((state) => ({
+        status: { ...state.status, insightPoints: Math.max(0, state.status.insightPoints - 1) }
+      })),
 
       startImpersonation: (id, name) => set({ impersonatedPlayerId: id, impersonatedPlayerName: name }),
       stopImpersonation: () => set({ impersonatedPlayerId: null, impersonatedPlayerName: null }),
