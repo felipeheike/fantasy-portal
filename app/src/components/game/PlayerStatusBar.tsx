@@ -23,6 +23,8 @@ interface PlayerStatusBarProps {
   onToggleInfluence: () => void;
   onToggleNotifications: () => void;
   onToggleSettings: () => void;
+  onToggleHPLog: () => void; // New
+  onToggleSPLog: () => void; // New
   onLogout: () => void;
 }
 
@@ -32,6 +34,8 @@ export default function PlayerStatusBar({
   onToggleInfluence,
   onToggleNotifications,
   onToggleSettings,
+  onToggleHPLog,
+  onToggleSPLog,
   onLogout
 }: PlayerStatusBarProps) {
   const { status, inventory, notificationHistory } = useGameStore();
@@ -54,8 +58,11 @@ export default function PlayerStatusBar({
     >
       {/* Left Section: Stats & Reputation */}
       <div className="flex items-center gap-8">
-        {/* HP Bar */}
-        <div className="flex flex-col gap-2 group">
+        {/* HP Bar - Clicável */}
+        <button 
+          onClick={onToggleHPLog}
+          className="flex flex-col gap-2 group cursor-pointer hover:scale-105 transition-transform"
+        >
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1.5">
               <Heart className={`w-3.5 h-3.5 ${isCritical ? 'text-red-500 animate-pulse' : 'text-red-400'}`} />
@@ -73,10 +80,13 @@ export default function PlayerStatusBar({
               <div className="absolute top-0 left-0 w-full h-1/2 bg-white/10 rounded-t-full" />
             </motion.div>
           </div>
-        </div>
+        </button>
 
-        {/* SP Bar */}
-        <div className="flex flex-col gap-2 group">
+        {/* SP Bar - Clicável */}
+        <button 
+          onClick={onToggleSPLog}
+          className="flex flex-col gap-2 group cursor-pointer hover:scale-105 transition-transform"
+        >
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 text-blue-500 group-hover:text-blue-400 transition-colors" />
@@ -94,7 +104,7 @@ export default function PlayerStatusBar({
               <div className="absolute top-0 left-0 w-full h-1/2 bg-white/10 rounded-t-full" />
             </motion.div>
           </div>
-        </div>
+        </button>
 
         <div className="w-px h-10 bg-zinc-800 mx-2" />
 

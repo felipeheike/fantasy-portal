@@ -120,3 +120,12 @@ export interface GameNotification {
   timestamp: number;
   read: boolean;
 }
+
+export interface StatusLogEntry {
+  id: string;
+  type: 'hp' | 'sp';
+  amount: number; // Positive for gain, negative for loss
+  source: string; // "Monster name", "Item name", "Action name"
+  timestamp: number;
+  sceneId?: string;
+}

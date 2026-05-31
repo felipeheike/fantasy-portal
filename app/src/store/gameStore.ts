@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { PlayerStatus, InventoryItem, NarrativeScene, JourneySettings, GameNotification } from '@/types';
+import { PlayerStatus, InventoryItem, NarrativeScene, JourneySettings, GameNotification, StatusLogEntry } from '@/types';
 
 interface GameState {
   status: PlayerStatus;
@@ -11,7 +11,8 @@ interface GameState {
   currentJourneyId: string | null;
   flags: Record<string, any>; // World Knowledge Graph
   memories: string[]; // Key lore points
-  notificationHistory: GameNotification[]; // New: Log of all events
+  notificationHistory: GameNotification[]; // Log of all events
+  statusHistory: StatusLogEntry[]; // New: Battle log for HP/SP
   isGameStarted: boolean;
   isSetupMode: boolean;
   hasHydrated: boolean;
@@ -31,7 +32,7 @@ interface GameState {
   removeItem: (itemId: string) => void;
   discardItem: (itemId: string) => void;
   setLockedItem: (itemName: string | null) => void;
-  completeScene: (scene: NarrativeScene, statusChanges?: Partial<PlayerStatus>) => void;
+  completeScene: (scene: NarrativeScene, statusChanges?: any) => void;
   setPendingChoice: (choice: string) => void;
   updateSceneImage: (sceneId: string, imageUrl: string) => void;
   updateSceneAudio: (sceneId: string, audioUrl: string) => void;
@@ -55,6 +56,7 @@ const initialStatus: PlayerStatus = {
 
 export const INVENTORY_CAPACITY = 10;
 export const MAX_NOTIFICATIONS = 50;
+export const MAX_LOG_ENTRIES = 100;
 
 export const useGameStore = create<GameState>()(
   persist(
@@ -68,6 +70,7 @@ export const useGameStore = create<GameState>()(
       flags: {},
       memories: [],
       notificationHistory: [],
+      statusHistory: [],
       isGameStarted: false,
       isSetupMode: false,
       hasHydrated: false,
@@ -86,8 +89,6 @@ export const useGameStore = create<GameState>()(
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
         const loadedHistory = data.history || [];
-        
-        // Data usually comes from the 'player' relation included in the API
         const playerData = data.player || {};
         const rawInventory = (playerData.inventory || []) as InventoryItem[];
         const deduplicatedInventory = rawInventory.reduce((acc: InventoryItem[], item) => {
@@ -124,6 +125,7 @@ export const useGameStore = create<GameState>()(
           flags: data.flags || {},
           memories: data.memories || [],
           notificationHistory: data.settings?.notificationHistory || [],
+          statusHistory: data.settings?.statusHistory || [],
         });
       },
 
@@ -156,7 +158,6 @@ export const useGameStore = create<GameState>()(
       addItem: (item) =>
         set((state) => {
           const existingIndex = state.inventory.findIndex(i => i.id === item.id);
-          
           if (existingIndex > -1) {
             const updatedInventory = [...state.inventory];
             updatedInventory[existingIndex] = {
@@ -165,12 +166,7 @@ export const useGameStore = create<GameState>()(
             };
             return { inventory: updatedInventory };
           }
-
-          if (state.inventory.length >= INVENTORY_CAPACITY) {
-            console.warn("Inventory full");
-            return state;
-          }
-          
+          if (state.inventory.length >= INVENTORY_CAPACITY) return state;
           return {
             inventory: [...state.inventory, { ...item, quantity: item.quantity || 1 }]
           };
@@ -184,14 +180,7 @@ export const useGameStore = create<GameState>()(
       discardItem: (itemId) =>
         set((state) => {
           const item = state.inventory.find(i => i.id === itemId);
-          if (item?.type === 'quest') {
-            console.warn("Cannot discard quest items");
-            return state;
-          }
-          if (item?.name === state.lockedItemName) {
-            console.warn("Cannot discard item currently in use");
-            return state;
-          }
+          if (item?.type === 'quest' || item?.name === state.lockedItemName) return state;
           return {
             inventory: state.inventory.filter((i) => i.id !== itemId)
           };
@@ -202,15 +191,47 @@ export const useGameStore = create<GameState>()(
       completeScene: (scene, statusChanges) =>
         set((state) => {
           let updatedStatus = { ...state.status };
+          let newLogEntries: StatusLogEntry[] = [];
+
           if (statusChanges) {
-            updatedStatus.hp = statusChanges.hp !== undefined ? Math.max(0, Math.min(state.status.maxHp, statusChanges.hp)) : state.status.hp;
-            updatedStatus.sp = statusChanges.sp !== undefined ? Math.max(0, Math.min(state.status.maxSp, statusChanges.sp)) : state.status.sp;
+            // Detect HP change for Log
+            if (statusChanges.hp !== undefined) {
+              const diff = statusChanges.hp - state.status.hp;
+              if (diff !== 0) {
+                newLogEntries.push({
+                  id: `log-hp-${Date.now()}`,
+                  type: 'hp',
+                  amount: diff,
+                  source: statusChanges.hpSource || (diff < 0 ? "Inimigo Desconhecido" : "Cura"),
+                  timestamp: Date.now(),
+                  sceneId: scene.sceneId
+                });
+              }
+              updatedStatus.hp = Math.max(0, Math.min(state.status.maxHp, statusChanges.hp));
+            }
+
+            // Detect SP change for Log
+            if (statusChanges.sp !== undefined) {
+              const diff = statusChanges.sp - state.status.sp;
+              if (diff !== 0) {
+                newLogEntries.push({
+                  id: `log-sp-${Date.now()}`,
+                  type: 'sp',
+                  amount: diff,
+                  source: statusChanges.spSource || (diff < 0 ? "Ação Exaustiva" : "Recuperação"),
+                  timestamp: Date.now(),
+                  sceneId: scene.sceneId
+                });
+              }
+              updatedStatus.sp = Math.max(0, Math.min(state.status.maxSp, statusChanges.sp));
+            }
+
             updatedStatus.combatPower = statusChanges.combatPower !== undefined ? statusChanges.combatPower : state.status.combatPower;
             updatedStatus.moral = state.status.moral + (statusChanges.moral || 0);
 
-            if ((statusChanges as any).reputations) {
+            if (statusChanges.reputations) {
               const reps = { ...(updatedStatus.reputations || {}) };
-              Object.entries((statusChanges as any).reputations).forEach(([name, val]: [string, any]) => {
+              Object.entries(statusChanges.reputations).forEach(([name, val]: [string, any]) => {
                 reps[name] = (reps[name] || 0) + val;
               });
               updatedStatus.reputations = reps;
@@ -221,9 +242,7 @@ export const useGameStore = create<GameState>()(
           let updatedMemories = [...state.memories];
 
           if (scene.worldUpdate) {
-            if (scene.worldUpdate.flags) {
-              updatedFlags = { ...updatedFlags, ...scene.worldUpdate.flags };
-            }
+            if (scene.worldUpdate.flags) updatedFlags = { ...updatedFlags, ...scene.worldUpdate.flags };
             if (scene.worldUpdate.memories) {
               scene.worldUpdate.memories.forEach(m => {
                 if (!updatedMemories.includes(m)) updatedMemories.push(m);
@@ -246,16 +265,9 @@ export const useGameStore = create<GameState>()(
                 const existingIndex = updatedInventory.findIndex(i => i.id === newItem.id);
                 if (existingIndex > -1) {
                   const currentItem = updatedInventory[existingIndex];
-                  updatedInventory[existingIndex] = {
-                    ...currentItem,
-                    ...newItem,
-                    quantity: currentItem.quantity + (newItem.quantity || 1)
-                  };
+                  updatedInventory[existingIndex] = { ...currentItem, ...newItem, quantity: currentItem.quantity + (newItem.quantity || 1) };
                 } else if (updatedInventory.length < INVENTORY_CAPACITY) {
-                  updatedInventory.push({
-                    ...newItem,
-                    quantity: newItem.quantity || 1
-                  });
+                  updatedInventory.push({ ...newItem, quantity: newItem.quantity || 1 });
                 }
               });
             }
@@ -264,23 +276,14 @@ export const useGameStore = create<GameState>()(
           if (scene.skillChanges) {
             scene.skillChanges.forEach(newSkill => {
               const existingIndex = updatedStatus.skills.findIndex(s => s.id === newSkill.id);
-              if (existingIndex > -1) {
-                updatedStatus.skills[existingIndex] = {
-                  ...updatedStatus.skills[existingIndex],
-                  ...newSkill
-                };
-              } else {
-                updatedStatus.skills.push(newSkill);
-              }
+              if (existingIndex > -1) updatedStatus.skills[existingIndex] = { ...updatedStatus.skills[existingIndex], ...newSkill };
+              else updatedStatus.skills.push(newSkill);
             });
           }
 
           const updatedHistory = [...state.history];
           if (updatedHistory.length > 0 && state.lastPendingChoice) {
-            updatedHistory[updatedHistory.length - 1] = {
-              ...updatedHistory[updatedHistory.length - 1],
-              selectedOption: state.lastPendingChoice
-            };
+            updatedHistory[updatedHistory.length - 1] = { ...updatedHistory[updatedHistory.length - 1], selectedOption: state.lastPendingChoice };
           }
 
           return {
@@ -290,77 +293,40 @@ export const useGameStore = create<GameState>()(
             inventory: updatedInventory,
             flags: updatedFlags,
             memories: updatedMemories,
+            statusHistory: [...newLogEntries, ...state.statusHistory].slice(0, MAX_LOG_ENTRIES),
             lastPendingChoice: null,
             lockedItemName: null
           };
         }),
 
       updateSceneImage: (sceneId, imageUrl) =>
-        set((state) => {
-          const updatedHistory = state.history.map((scene) => 
-            scene.sceneId === sceneId ? { ...scene, imageUrl, imageError: false } : scene
-          );
-          const updatedCurrentScene = state.currentScene?.sceneId === sceneId 
-            ? { ...state.currentScene, imageUrl, imageError: false } 
-            : state.currentScene;
-          
-          return {
-            history: updatedHistory,
-            currentScene: updatedCurrentScene
-          };
-        }),
+        set((state) => ({
+          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, imageUrl, imageError: false } : scene),
+          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, imageUrl, imageError: false } : state.currentScene
+        })),
 
       updateSceneAudio: (sceneId, audioUrl) =>
-        set((state) => {
-          const updatedHistory = state.history.map((scene) => 
-            scene.sceneId === sceneId ? { ...scene, audioUrl } : scene
-          );
-          const updatedCurrentScene = state.currentScene?.sceneId === sceneId 
-            ? { ...state.currentScene, audioUrl } 
-            : state.currentScene;
-          
-          return {
-            history: updatedHistory,
-            currentScene: updatedCurrentScene
-          };
-        }),
+        set((state) => ({
+          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, audioUrl } : scene),
+          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, audioUrl } : state.currentScene
+        })),
 
       setImageError: (sceneId, hasError) =>
-        set((state) => {
-          const updatedHistory = state.history.map((scene) => 
-            scene.sceneId === sceneId ? { ...scene, imageError: hasError } : scene
-          );
-          const updatedCurrentScene = state.currentScene?.sceneId === sceneId 
-            ? { ...state.currentScene, imageError: hasError } 
-            : state.currentScene;
-          
-          return {
-            history: updatedHistory,
-            currentScene: updatedCurrentScene
-          };
-        }),
+        set((state) => ({
+          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, imageError: hasError } : scene),
+          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, imageError: hasError } : state.currentScene
+        })),
 
       addNotification: (notification) => 
         set((state) => {
-          const newNotif = {
-            ...notification,
-            id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: Date.now(),
-            read: false
-          };
-          const updatedHistory = [newNotif, ...state.notificationHistory].slice(0, MAX_NOTIFICATIONS);
-          return { notificationHistory: updatedHistory };
+          const newNotif = { ...notification, id: `notif-${Date.now()}`, timestamp: Date.now(), read: false };
+          return { notificationHistory: [newNotif, ...state.notificationHistory].slice(0, MAX_NOTIFICATIONS) };
         }),
 
-      markNotificationsAsRead: () =>
-        set((state) => ({
-          notificationHistory: state.notificationHistory.map(n => ({ ...n, read: true }))
-        })),
-
+      markNotificationsAsRead: () => set((state) => ({ notificationHistory: state.notificationHistory.map(n => ({ ...n, read: true })) })),
       clearNotifications: () => set({ notificationHistory: [] }),
 
       resetGame: () => {
-        console.log("STORE: Resetting Game");
         set({
           status: initialStatus,
           inventory: [],
@@ -371,6 +337,7 @@ export const useGameStore = create<GameState>()(
           flags: {},
           memories: [],
           notificationHistory: [],
+          statusHistory: [],
           isGameStarted: false,
           isSetupMode: false,
           lastPendingChoice: null,
@@ -382,9 +349,7 @@ export const useGameStore = create<GameState>()(
     {
       name: 'fantasy-portal-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
-      },
+      onRehydrateStorage: () => (state) => { state?.setHasHydrated(true); },
       partialize: (state) => ({ 
         currentJourneyId: state.currentJourneyId,
         isGameStarted: state.isGameStarted,
@@ -397,7 +362,8 @@ export const useGameStore = create<GameState>()(
         lastPendingChoice: state.lastPendingChoice,
         flags: state.flags,
         memories: state.memories,
-        notificationHistory: state.notificationHistory
+        notificationHistory: state.notificationHistory,
+        statusHistory: state.statusHistory
       }),
     }
   )

@@ -43,7 +43,9 @@ const sceneSchema = z.object({
   }).optional().describe('Mapa tático para combates ou exploração complexa em grade.'),
   statusChanges: z.object({ 
     hp: z.number().optional(), 
+    hpSource: z.string().optional().describe('Fonte do dano ou cura (ex: "Garras do Lobo", "Poção").'),
     sp: z.number().optional(), 
+    spSource: z.string().optional().describe('Fonte do gasto ou ganho de estamina (ex: "Salto Acrobático", "Descanso").'),
     combatPower: z.number().optional(),
     moral: z.number().optional().describe('Alteração no Karma Global.'),
     reputations: z.record(z.number()).optional().describe('Alterações em reputações locais (NPCs, Cidades).')
@@ -164,6 +166,7 @@ REGRAS TÉCNICAS ABSOLUTAS:
 4. TÁTICA (combined): Ao oferecer 'tacticalOptions', preencha 'availableItems' com os NOMES dos itens na mochila e 'availableSkills' estritamente com os NOMES das habilidades presentes na lista de Habilidades abaixo. Não invente habilidades.
    - REGRAS DE REQUISITO: Classifique cada ação com 'requiresItem: true' se ela depender fisicamente de um item (ex: golpear com arma, usar poção). Defina 'itemType' para orientar a escolha. Use 'requiresItem: false' para ações corporais ou inatas (ex: esquivar, recuar, intimidar).
 5. GESTÃO DE STATUS: Use valores ABSOLUTOS em 'statusChanges' para HP/SP/CombatPower, mas use valores RELATIVOS (+X ou -X) para 'moral'.
+   - REGRAS DE REGISTRO: SEMPRE preencha 'hpSource' ou 'spSource' se houver mudança de vitalidade ou estamina, nomeando o autor do dano ou a ação exaustiva.
 6. INVENTÁRIO: Use 'inventoryChanges' para adicionar/remover itens narrativamente. 
 7. HABILIDADES: Use 'skillChanges' para conceder novas habilidades (level 1) ou evoluir existentes.
 

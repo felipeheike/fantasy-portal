@@ -9,19 +9,14 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    console.log("🔥 LIMPANDO DADOS ANTIGOS...");
-    await prisma.journey.deleteMany({});
-    await prisma.player.deleteMany({});
-
-    console.log("🌱 CRIANDO LEONELSON LENDÁRIO...");
+    console.log("🌱 CRIANDO LEONELSON LENDÁRIO (COM LOGS)...");
 
     const leonelsonId = "default-player-id";
 
-    // 1. Criar o Player do Zero
-    const player = await prisma.player.create({
-      data: {
-        id: leonelsonId,
-        email: "tester@duplecake.com",
+    // 1. Upsert do Player
+    await prisma.player.upsert({
+      where: { id: leonelsonId },
+      update: {
         name: "Leonelson",
         status: {
           hp: 18,
@@ -31,111 +26,55 @@ async function main() {
           combatPower: 15,
           moral: 8,
           skills: [
-            { id: "skill_tracking", name: "Rastreamento Arcano", description: "Capacidade de ler rastros mágicos e prever movimentos de feras.", level: 2, maxLevel: 5 },
-            { id: "skill_medicina", name: "Medicina de Campo", description: "Conhecimento de ervas para estancar sangramentos.", level: 1, maxLevel: 3 }
+            { id: "skill_tracking", name: "Rastreamento Arcano", description: "Capacidade de ler rastros mágicos.", level: 2, maxLevel: 5 },
+            { id: "skill_medicina", name: "Medicina de Campo", description: "Conhecimento de ervas.", level: 1, maxLevel: 3 }
           ],
-          reputations: {
-            "Vila de Alvorada": 15,
-            "Guilda dos Mercadores": 5,
-            "Sombra Rastejante": -10,
-            "Lorde Isanelson": -2
-          }
+          reputations: { "Vila de Alvorada": 15, "Guilda dos Mercadores": 5 }
         },
         inventory: [
-          { id: "rusted_sword", name: "Espada de Ferro Desgastada", type: "weapon", quantity: 1, description: "Uma lâmina confiável, apesar da idade.", durability: 8, maxDurability: 20 },
-          { id: "leather_armor", name: "Couraça de Couro", type: "armor", quantity: 1, description: "Proteção leve para batedores.", durability: 12, maxDurability: 15 },
-          { id: "minor_healing", name: "Frasco de Essência Vital", type: "consumable", quantity: 2, description: "Recupera 5 HP instantaneamente." },
-          { id: "brass_key", name: "Chave de Latão Retorcida", type: "quest", quantity: 1, description: "Abre o portão leste da capela." }
+          { id: "rusted_sword", name: "Espada de Ferro Desgastada", type: "weapon", quantity: 1, description: "Uma lâmina confiável.", durability: 8, maxDurability: 20 },
+          { id: "minor_healing", name: "Frasco de Essência Vital", type: "consumable", quantity: 2, description: "Recupera 5 HP." }
         ]
+      },
+      create: {
+        id: leonelsonId,
+        email: "tester@duplecake.com",
+        name: "Leonelson",
+        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 10, moral: 0, skills: [], reputations: {} },
+        inventory: []
       }
     });
 
-    // 2. Criar a Jornada com Histórico Válido
-    const journey = await prisma.journey.create({
+    // 2. Criar Jornada com Histórico de Status
+    await prisma.journey.deleteMany({ where: { playerId: leonelsonId } });
+    
+    await prisma.journey.create({
       data: {
         id: "journey-leonelson-seed",
         playerId: leonelsonId,
         genre: "fantasy",
         status: "active",
-        history: [
-          {
-            sceneId: "initial_scene",
-            narration: "Leonelson, o herói da lenda, despertou nas ruínas da Capela das Almas Cinzentas. Seu inventário está repleto e suas habilidades despertas.",
-            visualDescription: "Guerreiro gótico nas ruínas",
-            options: [
-              { id: "opt1", label: "Explorar as ruínas" },
-              { id: "opt2", label: "Sair pelo portão" }
-            ],
-            recommendedInputType: "multiple",
-            isGameOver: false
-          }
-        ],
-        flags: {
-          playerName: "Leonelson",
-          journeyLength: "medium",
-          punishSystem: "fail_tolerance_3",
-          visualStyle: "dark-realism",
-          narrativeStyle: "epic",
-          tone: "dark",
-          readStyle: "moderate",
-          enableImages: true,
-          enableAudio: true
-        },
-        memories: [
-          "Leonelson poupou a vida de um sentinela corrompido.",
-          "A chave de latão foi encontrada sob um altar quebrado."
-        ],
+        history: [{ sceneId: "scene_1", narration: "Leonelson desperta...", isGameOver: false }],
+        flags: { playerName: "Leonelson", journeyLength: "medium", enableImages: true, enableAudio: true },
         settings: {
           enableImages: true,
           enableAudio: true,
+          statusHistory: [
+            { id: "hlog-1", type: "hp", amount: -2, source: "Garras do Espectro", timestamp: Date.now() - 500000 },
+            { id: "slog-1", type: "sp", amount: -3, source: "Salto Acrobático", timestamp: Date.now() - 400000 },
+            { id: "hlog-2", type: "hp", amount: 5, source: "Frasco de Essência Vital", timestamp: Date.now() - 300000 }
+          ],
           notificationHistory: [
-            {
-              id: "notif-1",
-              type: "item",
-              title: "✨ Item Encontrado: Espada de Ferro",
-              description: "Uma lâmina robusta encontrada nas ruínas.",
-              timestamp: Date.now() - 3600000,
-              read: true
-            },
-            {
-              id: "notif-2",
-              type: "skill",
-              title: "🔥 Habilidade Despertada: Rastreamento",
-              description: "Você agora pode sentir a presença de feras.",
-              timestamp: Date.now() - 1800000,
-              read: false
-            },
-            {
-              id: "notif-3",
-              type: "reputation",
-              title: "⚖️ Fama aumentada em Vila de Alvorada",
-              description: "Os camponeses agora confiam na sua lâmina. [+15]",
-              timestamp: Date.now() - 600000,
-              read: false
-            },
-            {
-              id: "notif-4",
-              type: "moral",
-              title: "🌟 Ato de Bondade",
-              description: "Sua alma brilha ao ajudar os necessitados.",
-              timestamp: Date.now() - 300000,
-              read: false
-            }
+            { id: "n-1", type: "item", title: "✨ Item: Espada de Ferro", timestamp: Date.now() - 1000000, read: true }
           ]
         }
       }
     });
 
-    console.log("✅ SEED ÉPICO FINALIZADO!");
-    console.log("Player ID:", player.id, "| Nome:", player.name);
-    console.log("Jornada ID:", journey.id, "| Status:", journey.status);
-
-  } catch (e) {
-    console.error("❌ ERRO NO SEED:", e);
+    console.log("✅ Seed Leonelson Concluído!");
   } finally {
     await prisma.$disconnect();
     await pool.end();
   }
 }
-
 main();

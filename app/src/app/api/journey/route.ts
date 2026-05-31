@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const journeys = await prisma.journey.findMany({
-      where: { playerId: 'default-player-id' },
       include: {
         player: true // CRITICAL: Include player status and inventory
       },

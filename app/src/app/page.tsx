@@ -9,6 +9,7 @@ import InventoryPanel from '@/components/game/InventoryPanel';
 import SkillsPanel from '@/components/game/SkillsPanel';
 import InfluencePanel from '@/components/game/InfluencePanel';
 import NotificationsPanel from '@/components/game/NotificationsPanel';
+import StatusLogPanel from '@/components/game/StatusLogPanel';
 import JourneySetup from '@/components/game/JourneySetup';
 import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
@@ -16,8 +17,8 @@ import ScreenEffects from '@/components/game/ScreenEffects';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { NarrativeScene, NarrativeOption } from '@/types';
-import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, Scale } from 'lucide-react';
+import { NarrativeScene, NarrativeOption, StatusLogEntry } from '@/types';
+import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const sceneSchema = z.object({
@@ -59,7 +60,9 @@ const sceneSchema = z.object({
   }).optional(),
   statusChanges: z.object({ 
     hp: z.number().optional(), 
+    hpSource: z.string().optional(),
     sp: z.number().optional(), 
+    spSource: z.string().optional(),
     combatPower: z.number().optional(), 
     moral: z.number().optional(),
     reputations: z.record(z.number()).optional()
@@ -95,6 +98,8 @@ export default function GamePage() {
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isInfluenceOpen, setIsInfluenceOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isHPLogOpen, setIsHPLogOpen] = useState(false);
+  const [isSPLogOpen, setIsSPLogOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [persistentError, setPersistentError] = useState<string | null>(null);
@@ -371,7 +376,6 @@ export default function GamePage() {
 
   useEffect(() => {
     if (currentJourneyId && history.length > 0 && hasHydrated) {
-      // Prevent syncing the exact same state we just loaded or already synced
       const currentStateString = JSON.stringify({ history, status, inventory });
       if (currentStateString === lastSyncedRef.current) return;
 
@@ -393,7 +397,7 @@ export default function GamePage() {
           lastSyncedRef.current = currentStateString;
         })
         .catch(err => console.error("DB_SYNC_ERR:", err));
-      }, 3000); // Increased debounce to be safe
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [history, status, inventory, currentJourneyId, flags, memories, settings, hasHydrated]);
@@ -428,6 +432,8 @@ export default function GamePage() {
         onToggleInfluence={() => setIsInfluenceOpen(true)}
         onToggleNotifications={() => setIsNotificationsOpen(true)}
         onToggleSettings={() => setIsDetailsOpen(true)}
+        onToggleHPLog={() => setIsHPLogOpen(true)}
+        onToggleSPLog={() => setIsSPLogOpen(true)}
         onLogout={() => resetGame()}
       />
 
@@ -524,6 +530,8 @@ export default function GamePage() {
       <SkillsPanel isOpen={isSkillsOpen} onClose={() => setIsSkillsOpen(false)} />
       <InfluencePanel isOpen={isInfluenceOpen} onClose={() => setIsInfluenceOpen(false)} />
       <NotificationsPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
+      <StatusLogPanel type="hp" isOpen={isHPLogOpen} onClose={() => setIsHPLogOpen(false)} />
+      <StatusLogPanel type="sp" isOpen={isSPLogOpen} onClose={() => setIsSPLogOpen(false)} />
       <JourneyDetailsModal 
         isOpen={isDetailsOpen} 
         onClose={() => setIsDetailsOpen(false)} 
