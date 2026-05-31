@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   Sparkles,
   LogOut,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,6 +21,10 @@ export default function ForcePasswordChangeModal() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  
   const [isLoading, setIsLoading] = useState(false);
 
   // If the flag is not set, we don't show anything
@@ -90,30 +96,48 @@ export default function ForcePasswordChangeModal() {
           <div className="space-y-4">
              <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Senha Temporária (Recebida do Mestre)</label>
-                <input 
-                  type="password" 
-                  className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                />
+                <div className="relative group">
+                  <input 
+                    type={showCurrentPassword ? "text" : "password"} 
+                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 pr-12 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
              </div>
 
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Nova Senha</label>
-                   <input 
-                     type="password" 
-                     className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
-                     value={newPassword}
-                     onChange={(e) => setNewPassword(e.target.value)}
-                     required
-                   />
+                   <div className="relative group">
+                      <input 
+                        type={showNewPassword ? "text" : "password"} 
+                        className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 pr-10 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                   </div>
                 </div>
                 <div className="space-y-2">
                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Confirmar</label>
                    <input 
-                     type="password" 
+                     type={showNewPassword ? "text" : "password"} 
                      className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
                      value={confirmPassword}
                      onChange={(e) => setConfirmPassword(e.target.value)}

@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Sparkles, Mail, Lock, User, UserPlus, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Mail, Lock, User, UserPlus, ArrowLeft, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
@@ -86,7 +87,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary transition-colors" />
               <input 
                 type="text" 
                 placeholder="Seu nome de herói"
@@ -98,7 +99,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary transition-colors" />
               <input 
                 type="email" 
                 placeholder="Seu email"
@@ -110,15 +111,23 @@ export default function RegisterPage() {
             </div>
 
             <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary transition-colors" />
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"} 
                 placeholder="Sua senha secreta"
-                className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
+                className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
+                title={showPassword ? "Ocultar senha" : "Ver senha"}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 

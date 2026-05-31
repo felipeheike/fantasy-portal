@@ -16,7 +16,9 @@ import {
   Fingerprint,
   RefreshCcw,
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,6 +36,10 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'identity' | 'security'>('identity');
 
@@ -50,6 +56,8 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
     }
   }, [isOpen, impersonatedPlayerId, impersonatedPlayerName, session]);
 
@@ -80,7 +88,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
         body: JSON.stringify({ 
           name, 
           email, 
-          currentPassword: activeTab === 'security' || email !== session?.user?.email ? currentPassword : undefined,
+          currentPassword: activeTab === 'security' || (email !== session?.user?.email && !impersonatedPlayerId) ? currentPassword : undefined,
           newPassword: activeTab === 'security' ? newPassword : undefined
         }),
       });
@@ -210,28 +218,44 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                        <div className="relative group">
                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-red-500 transition-colors" />
                           <input 
-                            type="password" 
+                            type={showCurrentPassword ? "text" : "password"} 
                             placeholder="••••••••"
-                            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-red-500 transition-all"
+                            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 pr-12 text-sm text-zinc-100 outline-none focus:border-red-500 transition-all"
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
+                          >
+                            {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Nova Senha</label>
-                          <input 
-                            type="password" 
-                            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                          />
+                          <div className="relative group">
+                            <input 
+                              type={showNewPassword ? "text" : "password"} 
+                              className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pr-10 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
+                            >
+                              {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Confirmar</label>
                           <input 
-                            type="password" 
+                            type={showNewPassword ? "text" : "password"} 
                             className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -248,13 +272,20 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                     <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-orange-500 transition-colors" />
                         <input 
-                          type="password" 
+                          type={showCurrentPassword ? "text" : "password"} 
                           placeholder="Sua senha atual"
-                          className="w-full bg-zinc-900 border-2 border-orange-900/30 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-orange-500 transition-all"
+                          className="w-full bg-zinc-900 border-2 border-orange-900/30 rounded-2xl p-4 pl-12 pr-12 text-sm text-zinc-100 outline-none focus:border-orange-500 transition-all"
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
+                        >
+                          {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
                     </div>
                   </div>
                 )}
