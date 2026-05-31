@@ -484,38 +484,46 @@ export default function GamePage() {
       />
 
       <main className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-36' : 'pt-24'} transition-all duration-300`}>
-        <div className={`absolute ${impersonatedPlayerId ? 'top-16' : 'top-4'} left-4 z-50 flex flex-col gap-2 transition-all duration-300`}>
-          <div className="flex gap-2">
-            {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
-              <button 
-                onClick={() => router.push('/admin/dashboard')}
-                className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
-                title="Câmara do Mestre (Admin)"
-              >
-                <ShieldCheck className="w-5 h-5" />
-              </button>
-            )}
-
+        {/* Top Actions Hub */}
+        <div className={`absolute ${impersonatedPlayerId ? 'top-20' : 'top-8'} left-10 z-50 flex gap-2 transition-all duration-300`}>
+          {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
-              onClick={() => setIsDetailsOpen(true)}
-              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
-              title="Detalhes da Jornada"
+              onClick={() => router.push('/admin/dashboard')}
+              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
+              title="Câmara do Mestre (Admin)"
             >
-              <Settings2 className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" />
             </button>
-          </div>
+          )}
 
-          {/* Inquiry Button */}
           <button 
-            onClick={() => setIsInquiryOpen(true)}
-            className="p-4 bg-primary text-zinc-950 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] group relative"
-            title="Questionar o Mestre (Pontos de Visão)"
+            onClick={() => setIsDetailsOpen(true)}
+            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
+            title="Detalhes da Jornada"
           >
-             <HelpCircle className="w-6 h-6" />
-             <span className="absolute -top-1 -right-1 w-5 h-5 bg-zinc-950 text-primary text-[10px] font-black rounded-full flex items-center justify-center border border-primary/50">
-               {status.insightPoints}
-             </span>
+            <Settings2 className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Insight Hub (Questioning) - Floating above Export Hub */}
+        <div className="fixed bottom-32 right-10 z-50 flex flex-col items-center gap-4">
+           <AnimatePresence>
+             {!isGameOver && history.length > 0 && (
+               <motion.button 
+                 initial={{ scale: 0, rotate: -45 }}
+                 animate={{ scale: 1, rotate: 0 }}
+                 exit={{ scale: 0, rotate: 45 }}
+                 onClick={() => setIsInquiryOpen(true)}
+                 className="p-5 bg-primary text-zinc-950 rounded-[28px] hover:scale-110 active:scale-95 transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] group relative border-4 border-zinc-950"
+                 title="Questionar o Mestre (Pontos de Visão)"
+               >
+                  <HelpCircle className="w-8 h-8" />
+                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-zinc-950 text-primary text-[12px] font-black rounded-full flex items-center justify-center border-2 border-primary/50 shadow-lg">
+                    {status.insightPoints}
+                  </span>
+               </motion.button>
+             )}
+           </AnimatePresence>
         </div>
 
         {persistentError && (
