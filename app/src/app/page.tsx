@@ -197,43 +197,97 @@ export default function GamePage() {
           return;
         }
 
-        // CRITICAL: Ensure we clear the choice association logic
+        // --- DETECT CHANGES FOR NOTIFICATIONS ---
+        const currentInventory = [...useGameStore.getState().inventory];
+        const currentStatus = { ...useGameStore.getState().status };
+        const currentReputations = { ...(currentStatus.reputations || {}) };
+
+        // 1. Check for removed items (Consumption or Breaking)
+        if (scene.inventoryChanges?.removed?.length) {
+          scene.inventoryChanges.removed.forEach(nameToRemove => {
+             const item = currentInventory.find(i => 
+               i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 
+               nameToRemove.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+             );
+             if (item) {
+               if (item.type === 'consumable') {
+                 toast(`🧪 ${item.name} consumido(a).`);
+               } else if (item.type === 'weapon' || item.type === 'armor') {
+                 toast.error(`⚔️ Sua ${item.name} se quebrou!`, {
+                   description: "O item foi removido do seu inventário."
+                 });
+               } else {
+                 toast(`🎒 Item removido: ${item.name}`);
+               }
+             }
+          });
+        }
+
+        // 2. Check for added items
+        if (scene.inventoryChanges?.added?.length) {
+          scene.inventoryChanges.added.forEach(item => {
+            toast.success(`✨ Item Encontrado: ${item.name}`, {
+              description: item.description,
+              icon: <Package className="w-4 h-4" />
+            });
+          });
+        }
+
+        // 3. Check for Reputation Changes
+        if (scene.statusChanges?.reputations) {
+          Object.entries(scene.statusChanges.reputations).forEach(([name, value]) => {
+            const val = value as number;
+            if (val > 0) {
+              toast.success(`⚖️ Fama aumentada em ${name}`, {
+                description: `Sua reputação subiu [+${val}]`
+              });
+            } else if (val < 0) {
+              toast.error(`⚖️ Fama diminuída em ${name}`, {
+                description: `Sua reputação caiu [${val}]`
+              });
+            }
+          });
+        }
+
+        // 4. Check for Global Moral (Karma)
+        if (scene.statusChanges?.moral) {
+           const val = scene.statusChanges.moral;
+           if (val > 0) toast("🌟 Sua alma brilha com um ato de bondade.", { icon: <Sparkles className="w-4 h-4 text-primary" /> });
+           else if (val < 0) toast("🌑 Uma sombra escurece seu coração.", { icon: <ShieldAlert className="w-4 h-4 text-purple-500" /> });
+        }
+
+        // 5. Check for World Memories
+        if (scene.worldUpdate?.memories?.length) {
+          scene.worldUpdate.memories.forEach(m => {
+            toast(`📜 Fato registrado: ${m.substring(0, 40)}...`, {
+              description: "Sua lenda foi atualizada com uma nova memória."
+            });
+          });
+        }
+
+        // 6. Critical Status Alerts
+        if (scene.statusChanges?.hp !== undefined && scene.statusChanges.hp <= currentStatus.maxHp * 0.25 && scene.statusChanges.hp > 0) {
+           toast.error("🩸 Vitalidade Crítica!", { description: "Você está à beira da morte!" });
+        }
+        if (scene.statusChanges?.sp !== undefined && scene.statusChanges.sp === 0) {
+           toast.warning("😫 Exaustão Total!", { description: "Você gastou todo o seu fôlego." });
+        }
+
+        // --- APPLY CHANGES ---
         completeScene(scene, scene.statusChanges);
         console.log("LOG: completeScene called for ID:", scene.sceneId);
 
-        // ASYNC: Trigger image generation
+        // ASYNC: Trigger image and audio
         if (settings?.enableImages && scene.visualDescription && scene.sceneId && scene.sceneId !== 'undefined') {
           generateSceneImage(scene.sceneId, scene.visualDescription);
         }
-
-        // ASYNC: Trigger audio generation for narration
         if (settings?.enableAudio && scene.narration && scene.sceneId && scene.sceneId !== 'undefined') {
           generateSceneAudio(scene.sceneId, scene.narration);
         }
 
-        // TOAST: Notify about items and skills
-        if (scene.inventoryChanges?.added?.length) {
-          scene.inventoryChanges.added.forEach(item => {
-            toast.success(`Item Encontrado: ${item.name}`, {
-              description: item.description,
-              icon: <Package className="w-4 h-4 text-emerald-500" />
-            });
-          });
-        }
-
-        if (scene.skillChanges?.length) {
-          scene.skillChanges.forEach(skill => {
-            toast.info(`Habilidade Despertada: ${skill.name}`, {
-              description: `Nível ${skill.level}: ${skill.description}`,
-              icon: <Sparkles className="w-4 h-4 text-amber-500" />
-            });
-          });
-        }
-
         setPersistentError(null);
       } else {
-        // SILENT FAILURE CASE: Object is undefined but stream finished
-        console.error("!!! AI Stream finished but object is undefined. This usually means a schema mismatch or early cutoff.");
+        console.error("!!! AI Stream finished but object is undefined.");
         setPersistentError("O Portal não conseguiu materializar esta cena. Verifique o limite de cota do Gemini.");
       }
     },
