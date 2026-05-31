@@ -487,7 +487,7 @@ export default function GamePage() {
         className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-36' : 'pt-24'} ${isInquiryOpen ? 'pl-[448px]' : 'pl-0'} transition-all duration-500 ease-in-out`}
       >
         {/* Top Actions Hub */}
-        <div className={`absolute ${impersonatedPlayerId ? 'top-20' : 'top-8'} left-10 z-50 flex gap-2 transition-all duration-300`}>
+        <div className={`absolute ${impersonatedPlayerId ? 'top-40' : 'top-28'} ${isInquiryOpen ? 'left-[468px]' : 'left-10'} z-50 flex gap-2 transition-all duration-500 ease-in-out`}>
           {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
