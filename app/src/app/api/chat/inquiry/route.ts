@@ -44,6 +44,22 @@ ${history.slice(-3).map((h: any) => h.narration).join('\n---\n')}
 
   } catch (error: any) {
     console.error('INQUIRY_API_FAILURE:', error);
-    return NextResponse.json({ error: 'O Mestre não conseguiu sussurrar uma resposta.' }, { status: 500 });
+
+    const isQuotaError = 
+      error?.message?.includes('429') || 
+      error?.status === 429 || 
+      error?.message?.includes('quota') ||
+      error?.message?.includes('limit') ||
+      error?.response?.status === 429;
+
+    return NextResponse.json(
+      { 
+        error: isQuotaError ? 'LIMITE_COTA' : 'ERRO_MESTRE',
+        message: isQuotaError 
+          ? 'O Mestre está exausto. Aguarde alguns segundos para obter sua intuição.' 
+          : 'O Mestre não conseguiu sussurrar uma resposta.'
+      }, 
+      { status: isQuotaError ? 429 : 500 }
+    );
   }
 }

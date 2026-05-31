@@ -14,7 +14,9 @@ import {
   Info,
   Droplets,
   FlaskConical,
-  Zap
+  Zap,
+  AlertCircle,
+  RefreshCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,8 +38,10 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
   } = useGameStore();
 
   const [question, setQuestion] = useState('');
+  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [inquiryError, setInquiryError] = useState<string | null>(null);
 
   const wisdomItems = inventory.filter(i => 
     i.type === 'consumable' && 
@@ -46,24 +50,28 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
      i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('elixir'))
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!question || status.insightPoints <= 0) return;
+  const handleSubmit = async (e?: React.FormEvent, retryText?: string) => {
+    e?.preventDefault();
+    const currentQ = retryText || question;
+    if (!currentQ || status.insightPoints <= 0) return;
 
     setIsLoading(true);
     setAnswer(null);
+    setLastQuestion(null);
+    setInquiryError(null);
 
     try {
       const res = await fetch('/api/chat/inquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, currentScene, history }),
+        body: JSON.stringify({ question: currentQ, currentScene, history }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
         setAnswer(data.answer);
+        setLastQuestion(currentQ);
         useInsightPoint();
         addNotification({
           type: 'info',
@@ -72,7 +80,11 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
         });
         setQuestion('');
       } else {
-        toast.error(data.error || 'O mestre se recusa a responder agora.');
+        if (data.error === 'LIMITE_COTA') {
+          setInquiryError('LIMITE_COTA');
+        } else {
+          toast.error(data.error || 'O mestre se recusa a responder agora.');
+        }
       }
     } catch (err) {
       toast.error('Erro de conexão com o mestre.');
@@ -174,18 +186,53 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
 
               {/* Chat Area */}
               <div className="space-y-6">
+                 {/* Quota Error UI */}
+                 {inquiryError === 'LIMITE_COTA' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-6 bg-red-950/40 border border-red-500/30 rounded-3xl backdrop-blur-md flex flex-col gap-4 text-red-200 shadow-xl"
+                    >
+                       <div className="flex items-center gap-3">
+                          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                          <div className="flex-1">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-0.5">Mestre Exausto</p>
+                             <p className="text-xs">O mestre está meditando. Aguarde alguns instantes para receber sua intuição.</p>
+                          </div>
+                       </div>
+                       <button 
+                         onClick={() => handleSubmit(undefined, question)}
+                         className="flex items-center justify-center gap-2 w-full py-3 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-400 transition-all active:scale-95"
+                       >
+                          <RefreshCcw className="w-3.5 h-3.5" /> Tentar Novamente
+                       </button>
+                    </motion.div>
+                 )}
+
+                 {lastQuestion && (
+                   <motion.div 
+                     initial={{ opacity: 0, x: 20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     className="p-5 bg-zinc-900 border border-zinc-800 rounded-[24px] rounded-tr-none ml-8 text-xs text-zinc-400 relative"
+                   >
+                      <div className="absolute -top-3 right-6 px-3 py-1 bg-zinc-800 text-zinc-500 text-[8px] font-black uppercase tracking-widest rounded-full border border-zinc-700">Sua Dúvida</div>
+                      "{lastQuestion}"
+                   </motion.div>
+                 )}
+
                  {answer && (
                    <motion.div 
-                     initial={{ opacity: 0, y: 10 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     className="p-6 bg-zinc-900/50 border border-primary/20 rounded-[32px] font-serif italic text-zinc-300 relative"
+                     initial={{ opacity: 0, x: -20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     transition={{ delay: 0.2 }}
+                     className="p-6 bg-primary/5 border border-primary/20 rounded-[32px] rounded-tl-none mr-8 font-serif italic text-zinc-300 relative"
                    >
                       <div className="absolute -top-3 left-6 px-3 py-1 bg-primary text-zinc-950 text-[9px] font-black uppercase tracking-widest rounded-full">Intuição</div>
                       {answer}
                    </motion.div>
                  )}
 
-                 {status.insightPoints <= 0 && !answer && (
+                 {status.insightPoints <= 0 && !answer && !inquiryError && (
                    <div className="space-y-8">
                      <div className="p-10 border-2 border-dashed border-zinc-900 rounded-[40px] text-center space-y-4 opacity-50">
                         <HelpCircle className="w-12 h-12 text-zinc-700 mx-auto" />
@@ -245,7 +292,10 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                     placeholder={status.insightPoints > 0 ? "O que deseja questionar ao mestre?" : "Sem cargas disponíveis..."}
                     className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-3xl p-6 pr-16 text-sm text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-primary transition-all resize-none h-32 disabled:opacity-50"
                     value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
+                    onChange={(e) => {
+                      setQuestion(e.target.value);
+                      if (inquiryError) setInquiryError(null);
+                    }}
                     disabled={isLoading || status.insightPoints <= 0}
                   />
                   <button 
