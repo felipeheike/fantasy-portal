@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2 } from 'lucide-react';
+import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2, LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 import JourneyDetailsModal from './JourneyDetailsModal';
 
 export default function MainMenu() {
@@ -72,8 +73,15 @@ export default function MainMenu() {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4"
+          className="text-center space-y-4 relative"
         >
+          <button 
+            onClick={() => signOut()}
+            className="absolute -top-16 right-0 p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-600 hover:text-red-500 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl"
+          >
+            <LogOut className="w-4 h-4" /> Sair da Conta
+          </button>
+
           <div className="inline-block p-4 bg-primary/10 rounded-[32px] border border-primary/20 mb-4 shadow-[0_0_50px_rgba(245,158,11,0.1)]">
              <Sparkles className="w-12 h-12 text-primary fill-primary/20" />
           </div>

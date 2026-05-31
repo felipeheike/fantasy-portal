@@ -15,10 +15,12 @@ import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
 import ScreenEffects from '@/components/game/ScreenEffects';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { NarrativeScene, NarrativeOption, StatusLogEntry } from '@/types';
-import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert } from 'lucide-react';
+import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const sceneSchema = z.object({
@@ -86,6 +88,15 @@ const sceneSchema = z.object({
 });
 
 export default function GamePage() {
+  const { data: session, status: authStatus } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (authStatus === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [authStatus, router]);
+
   const {
     status, completeScene, currentScene, isGameStarted,
     settings, currentJourneyId, setJourneyId, history,
@@ -101,7 +112,6 @@ export default function GamePage() {
   const [isHPLogOpen, setIsHPLogOpen] = useState(false);
   const [isSPLogOpen, setIsSPLogOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
   const [persistentError, setPersistentError] = useState<string | null>(null);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
   const [aiModels, setAiModels] = useState<{ text?: string, image?: string }>({});
@@ -347,7 +357,7 @@ export default function GamePage() {
 
   // DB Record Creation & Persistence Sync
   useEffect(() => {
-    if (isGameStarted && !currentJourneyId && !creationInProgress.current) {
+    if (isGameStarted && !currentJourneyId && !creationInProgress.current && session?.user) {
       console.log("FLOW: Creating new DB record...");
       creationInProgress.current = true;
       fetch('/api/journey', {
@@ -355,7 +365,7 @@ export default function GamePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           ...settings, 
-          playerName: settings?.playerName || 'Viajante'
+          playerName: settings?.playerName || session.user.name || 'Viajante'
         })
       })
       .then(async r => {
@@ -369,13 +379,13 @@ export default function GamePage() {
         creationInProgress.current = false;
       });
     }
-  }, [isGameStarted, currentJourneyId, settings, setJourneyId]);
+  }, [isGameStarted, currentJourneyId, settings, setJourneyId, session]);
 
   // Sync state to DB on changes
   const lastSyncedRef = useRef<string>('');
 
   useEffect(() => {
-    if (currentJourneyId && history.length > 0 && hasHydrated) {
+    if (currentJourneyId && history.length > 0 && hasHydrated && authStatus === 'authenticated') {
       const currentStateString = JSON.stringify({ history, status, inventory });
       if (currentStateString === lastSyncedRef.current) return;
 
@@ -400,7 +410,7 @@ export default function GamePage() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [history, status, inventory, currentJourneyId, flags, memories, settings, hasHydrated]);
+  }, [history, status, inventory, currentJourneyId, flags, memories, settings, hasHydrated, authStatus]);
 
   // Auto-trigger first scene
   useEffect(() => {
@@ -410,7 +420,7 @@ export default function GamePage() {
     }
   }, [isGameStarted, currentJourneyId, history.length, isLoading, object, triggerAI, settings?.playerName]);
 
-  if (!hasHydrated) return null;
+  if (!hasHydrated || authStatus === 'loading') return null;
 
   if (!isGameStarted) {
     return (
@@ -434,11 +444,30 @@ export default function GamePage() {
         onToggleSettings={() => setIsDetailsOpen(true)}
         onToggleHPLog={() => setIsHPLogOpen(true)}
         onToggleSPLog={() => setIsSPLogOpen(true)}
-        onLogout={() => resetGame()}
+        onLogout={() => signOut()}
       />
 
       <main className="flex-1 flex flex-col relative z-20 pt-24">
-        {/* Error notifications */}
+        <div className="absolute top-4 left-4 z-50 flex gap-2">
+          {session?.user && (session.user as any).role === 'ADMIN' && (
+            <button 
+              onClick={() => router.push('/admin/dashboard')}
+              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
+              title="Câmara do Mestre (Admin)"
+            >
+              <ShieldCheck className="w-5 h-5" />
+            </button>
+          )}
+
+          <button 
+            onClick={() => setIsDetailsOpen(true)}
+            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
+            title="Detalhes da Jornada"
+          >
+            <Settings2 className="w-5 h-5" />
+          </button>
+        </div>
+
         {persistentError && (
           <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md">
             <motion.div 

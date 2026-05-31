@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import bcrypt from 'bcrypt';
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -9,15 +10,40 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    console.log("🌱 CRIANDO LEONELSON LENDÁRIO (COM LOGS)...");
+    console.log("🌱 INICIANDO SEED ÉPICO E ADMINISTRATIVO...");
+
+    const passwordHash = await bcrypt.hash('adventure123', 10);
+    const adminHash = await bcrypt.hash('adminportal', 10);
+
+    // 1. Criar ou Atualizar Admin Mestre
+    await prisma.player.upsert({
+      where: { email: "admin@fantasyportal.com" },
+      update: {
+        role: "ADMIN",
+        accountStatus: "ACTIVE",
+        passwordHash: adminHash
+      },
+      create: {
+        email: "admin@fantasyportal.com",
+        name: "Mestre do Portal",
+        passwordHash: adminHash,
+        role: "ADMIN",
+        accountStatus: "ACTIVE",
+        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 30, moral: 0, skills: [], reputations: {} },
+        inventory: []
+      }
+    });
 
     const leonelsonId = "default-player-id";
 
-    // 1. Upsert do Player
+    // 2. Atualizar Leonelson com Auth
     await prisma.player.upsert({
       where: { id: leonelsonId },
       update: {
         name: "Leonelson",
+        passwordHash: passwordHash,
+        role: "PLAYER",
+        accountStatus: "ACTIVE",
         status: {
           hp: 18,
           maxHp: 20,
@@ -40,14 +66,16 @@ async function main() {
         id: leonelsonId,
         email: "tester@duplecake.com",
         name: "Leonelson",
+        passwordHash: passwordHash,
+        role: "PLAYER",
+        accountStatus: "ACTIVE",
         status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 10, moral: 0, skills: [], reputations: {} },
         inventory: []
       }
     });
 
-    // 2. Criar Jornada com Histórico de Status
+    // 3. Criar Jornada Leonelson
     await prisma.journey.deleteMany({ where: { playerId: leonelsonId } });
-    
     await prisma.journey.create({
       data: {
         id: "journey-leonelson-seed",
@@ -71,7 +99,9 @@ async function main() {
       }
     });
 
-    console.log("✅ Seed Leonelson Concluído!");
+    console.log("✅ Seed Épico e Admin Concluído!");
+  } catch (e) {
+    console.error("❌ ERRO NO SEED:", e);
   } finally {
     await prisma.$disconnect();
     await pool.end();

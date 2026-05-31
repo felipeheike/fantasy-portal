@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
     const journeys = await prisma.journey.findMany({
+      where: { playerId: (session.user as any).id },
       include: {
-        player: true // CRITICAL: Include player status and inventory
+        player: true
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -18,21 +24,20 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    console.log("POST /api/journey - Request Body:", JSON.stringify(body, null, 2));
-    
-    const { genre, journeyLength, punishSystem, visualStyle, narrativeStyle, tone, readStyle, playerName } = body;
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-    console.log("POST /api/journey - Creating journey for player:", playerName);
+    const body = await req.json();
+    const { genre, journeyLength, punishSystem, visualStyle, narrativeStyle, tone, readStyle, playerName } = body;
 
     const journey = await prisma.journey.create({
       data: {
-        playerId: 'default-player-id',
+        playerId: (session.user as any).id,
         genre: genre || 'fantasy',
         status: 'active',
         history: [],
         flags: { 
-          playerName: playerName || 'Desconhecido',
+          playerName: playerName || session.user?.name || 'Aventureiro',
           journeyLength,
           punishSystem,
           visualStyle,
@@ -48,14 +53,9 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log("POST /api/journey - Success! ID:", journey.id);
     return NextResponse.json(journey);
   } catch (error: any) {
     console.error('!!! FAILED TO CREATE JOURNEY !!!', error);
-    return NextResponse.json({ 
-      error: 'Failed to create journey', 
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create journey' }, { status: 500 });
   }
 }

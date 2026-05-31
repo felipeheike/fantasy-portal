@@ -10,14 +10,17 @@ datasource db {
 }
 
 model Player {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String?
-  status    Json      // Stores HP, SP, Combat Power, Skills, Moral
-  inventory Json      // Stores items and equipment
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  journeys  Journey[]
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?   // Hash da senha (Opcional para compatibilidade inicial)
+  role          String    @default("PLAYER") // ADMIN, PLAYER
+  accountStatus String    @default("PENDING") // PENDING, ACTIVE, INACTIVE
+  name          String?
+  status        Json      // Stores HP, SP, Combat Power, Skills, Moral
+  inventory     Json      // Stores items and equipment
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  journeys      Journey[]
 }
 
 model Journey {
