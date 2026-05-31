@@ -71,11 +71,11 @@ export default function SkillsPanel({ isOpen, onClose }: SkillsPanelProps) {
           />
 
           <motion.div
-            initial={{ x: '-100%' }}
+            initial={{ x: '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
+            exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-full max-w-md bg-zinc-900 border-r border-zinc-800 shadow-2xl z-[70] flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-zinc-900 border-l border-zinc-800 shadow-2xl z-[70] flex flex-col"
           >
             {/* Header */}
             <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50 backdrop-blur-md">

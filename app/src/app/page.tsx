@@ -13,9 +13,10 @@ import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
 import ScreenEffects from '@/components/game/ScreenEffects';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { NarrativeScene, NarrativeOption } from '@/types';
-import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette } from 'lucide-react';
+import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const sceneSchema = z.object({
@@ -98,6 +99,14 @@ export default function GamePage() {
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
   const [aiModels, setAiModels] = useState<{ text?: string, image?: string }>({});
   const startTimeRef = useRef<number | null>(null);
+
+  // Reset semaphores when game is not started (to allow fresh starts)
+  useEffect(() => {
+    if (!isGameStarted) {
+      initialTriggerDone.current = false;
+      creationInProgress.current = false;
+    }
+  }, [isGameStarted]);
 
   // Fetch AI status for the footer
   useEffect(() => {
@@ -202,7 +211,30 @@ export default function GamePage() {
           generateSceneAudio(scene.sceneId, scene.narration);
         }
 
+        // TOAST: Notify about items and skills
+        if (scene.inventoryChanges?.added?.length) {
+          scene.inventoryChanges.added.forEach(item => {
+            toast.success(`Item Encontrado: ${item.name}`, {
+              description: item.description,
+              icon: <Package className="w-4 h-4 text-emerald-500" />
+            });
+          });
+        }
+
+        if (scene.skillChanges?.length) {
+          scene.skillChanges.forEach(skill => {
+            toast.info(`Habilidade Despertada: ${skill.name}`, {
+              description: `Nível ${skill.level}: ${skill.description}`,
+              icon: <Sparkles className="w-4 h-4 text-amber-500" />
+            });
+          });
+        }
+
         setPersistentError(null);
+      } else {
+        // SILENT FAILURE CASE: Object is undefined but stream finished
+        console.error("!!! AI Stream finished but object is undefined. This usually means a schema mismatch or early cutoff.");
+        setPersistentError("O Portal não conseguiu materializar esta cena. Verifique o limite de cota do Gemini.");
       }
     },
     onError: (err) => {
@@ -312,27 +344,12 @@ export default function GamePage() {
         onToggleInventory={() => setIsInventoryOpen(true)} 
         onToggleSkills={() => setIsSkillsOpen(true)}
         onToggleInfluence={() => setIsInfluenceOpen(true)}
+        onToggleSettings={() => setIsDetailsOpen(true)}
+        onLogout={() => resetGame()}
       />
 
-      <main className="flex-1 flex flex-col relative z-20">
-        <div className="absolute top-4 left-4 z-50 flex gap-2">
-          <button 
-            onClick={() => setIsDetailsOpen(true)}
-            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
-            title="Detalhes da Jornada"
-          >
-            <Settings2 className="w-5 h-5" />
-          </button>
-          
-          <button 
-            onClick={() => resetGame()}
-            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-red-500 transition-all shadow-xl"
-            title="Sair para o Menu"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-
+      <main className="flex-1 flex flex-col relative z-20 pt-24">
+        {/* Error notifications */}
         {persistentError && (
           <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md">
             <motion.div 
@@ -397,7 +414,15 @@ export default function GamePage() {
                  transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
                  className="w-20 h-20 border-t-4 border-primary rounded-full shadow-[0_0_50px_rgba(245,158,11,0.2)]"
                />
-               <p className="text-zinc-500 font-serif italic text-xl animate-pulse">Invocando o Destino...</p>
+               <div className="text-center space-y-4">
+                 <p className="text-zinc-500 font-serif italic text-xl animate-pulse">Invocando o Destino...</p>
+                 <button 
+                   onClick={() => triggerAI(`Inicie a jornada para ${settings?.playerName}`)}
+                   className="flex items-center gap-2 mx-auto px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-primary hover:border-primary/50 transition-all font-black uppercase tracking-widest text-[10px]"
+                 >
+                   <RefreshCcw className="w-4 h-4" /> Tentar Novamente
+                 </button>
+               </div>
             </motion.div>
           )}
         </AnimatePresence>

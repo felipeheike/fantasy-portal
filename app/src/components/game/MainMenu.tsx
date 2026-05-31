@@ -33,7 +33,7 @@ export default function MainMenu() {
 
   const handleNewGame = () => {
     resetGame();
-    startGame();
+    useGameStore.getState().setSetupMode(true);
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {

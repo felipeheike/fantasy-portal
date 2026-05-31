@@ -12,6 +12,7 @@ interface GameState {
   flags: Record<string, any>; // World Knowledge Graph
   memories: string[]; // Key lore points
   isGameStarted: boolean;
+  isSetupMode: boolean;
   hasHydrated: boolean;
   lastPendingChoice: string | null;
   lockedItemName: string | null;
@@ -19,6 +20,7 @@ interface GameState {
   // Actions
   setHasHydrated: (state: boolean) => void;
   setSettings: (settings: JourneySettings) => void;
+  setSetupMode: (state: boolean) => void;
   updateSettings: (settings: Partial<JourneySettings>) => void;
   setJourneyId: (id: string) => void;
   startGame: () => void;
@@ -61,17 +63,19 @@ export const useGameStore = create<GameState>()(
       flags: {},
       memories: [],
       isGameStarted: false,
+      isSetupMode: false,
       hasHydrated: false,
       lastPendingChoice: null,
       lockedItemName: null,
 
       setHasHydrated: (state) => set({ hasHydrated: state }),
       setSettings: (settings) => set({ settings }),
+      setSetupMode: (state) => set({ isSetupMode: state }),
       updateSettings: (newSettings) => set((state) => ({
         settings: state.settings ? { ...state.settings, ...newSettings } : null
       })),
       setJourneyId: (id) => set({ currentJourneyId: id }),
-      startGame: () => set({ isGameStarted: true }),
+      startGame: () => set({ isGameStarted: true, isSetupMode: false }),
 
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
@@ -95,6 +99,7 @@ export const useGameStore = create<GameState>()(
         set({
           currentJourneyId: id,
           isGameStarted: true,
+          isSetupMode: false,
           settings: {
             playerName: data.name || data.flags?.playerName,
             genre: data.genre,
@@ -341,6 +346,7 @@ export const useGameStore = create<GameState>()(
           flags: {},
           memories: [],
           isGameStarted: false,
+          isSetupMode: false,
           lastPendingChoice: null,
           lockedItemName: null,
           hasHydrated: true,
@@ -356,6 +362,7 @@ export const useGameStore = create<GameState>()(
       partialize: (state) => ({ 
         currentJourneyId: state.currentJourneyId,
         isGameStarted: state.isGameStarted,
+        isSetupMode: state.isSetupMode,
         settings: state.settings,
         status: state.status,
         inventory: state.inventory,

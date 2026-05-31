@@ -3,13 +3,14 @@
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useRef } from 'react';
+
 export default function ScreenEffects() {
   const { status } = useGameStore();
   const [showDamageFlash, setShowDamageFlash] = useState(false);
   const [showStaminaVignette, setShowStaminaVignette] = useState(false);
   const [showKarmaPlus, setShowKarmaPlus] = useState(false);
   const [showKarmaMinus, setShowKarmaMinus] = useState(false);
-
+  
   const prevHpRef = useRef(status.hp);
   const prevSpRef = useRef(status.sp);
   const prevMoralRef = useRef(status.moral);
@@ -60,41 +61,17 @@ export default function ScreenEffects() {
     <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
       <AnimatePresence>
         {/* Damage Flash - Impacto imediato */}
-...
-        {/* Stamina Effort Vignette - Fôlego gasto (Azul/Ciano) */}
-        {showStaminaVignette && (
+        {showDamageFlash && (
           <motion.div
-            key="stamina-vignette"
+            key="damage-flash"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
+            animate={{ opacity: 0.3 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 shadow-[inset_0_0_100px_rgba(6,182,212,0.4)]"
+            className="absolute inset-0 bg-red-600 mix-blend-overlay"
           />
         )}
 
-        {/* Positive Karma Gain - Dourado etéreo */}
-        {showKarmaPlus && (
-          <motion.div
-            key="karma-plus"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.4, 0] }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-gradient-to-b from-amber-400/20 via-white/5 to-transparent mix-blend-screen"
-          />
-        )}
-
-        {/* Negative Karma Loss - Roxo Sombrio */}
-        {showKarmaMinus && (
-          <motion.div
-            key="karma-minus"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 shadow-[inset_0_0_200px_rgba(88,28,135,0.7)] mix-blend-multiply"
-          />
-        )}
-      </AnimatePresence>
-
+        {/* Damage Vignette - Borda de sangue no impacto */}
         {showDamageFlash && (
           <motion.div
             key="damage-vignette"
@@ -130,6 +107,28 @@ export default function ScreenEffects() {
             animate={{ opacity: 0.6 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 shadow-[inset_0_0_100px_rgba(6,182,212,0.4)]"
+          />
+        )}
+
+        {/* Positive Karma Gain - Dourado etéreo */}
+        {showKarmaPlus && (
+          <motion.div
+            key="karma-plus"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.4, 0] }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gradient-to-b from-amber-400/20 via-white/5 to-transparent mix-blend-screen"
+          />
+        )}
+
+        {/* Negative Karma Loss - Roxo Sombrio */}
+        {showKarmaMinus && (
+          <motion.div
+            key="karma-minus"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 shadow-[inset_0_0_200px_rgba(88,28,135,0.7)] mix-blend-multiply"
           />
         )}
       </AnimatePresence>

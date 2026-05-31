@@ -61,7 +61,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
 
   // Derived state for validation
   const selectedActionData = useMemo(() => 
-    scene?.tacticalOptions?.actions.find(a => a.id === selectedTactical.actionId),
+    scene?.tacticalOptions?.actions?.find(a => a.id === selectedTactical.actionId),
     [scene, selectedTactical.actionId]
   );
 
