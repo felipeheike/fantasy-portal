@@ -44,6 +44,7 @@ const initialStatus: PlayerStatus = {
   combatPower: 10,
   moral: 0,
   skills: [],
+  reputations: {},
 };
 
 export const INVENTORY_CAPACITY = 10;
@@ -82,13 +83,14 @@ export const useGameStore = create<GameState>()(
           const existing = acc.find(i => i.id === item.id);
           if (existing) {
             existing.quantity += (item.quantity || 1);
-            // Merge other properties if needed (durability, etc)
             if (item.durability !== undefined) existing.durability = item.durability;
           } else {
             acc.push({ ...item, quantity: item.quantity || 1 });
           }
           return acc;
         }, []);
+
+        const loadedStatus = data.playerStatus || initialStatus;
 
         set({
           currentJourneyId: id,
@@ -102,7 +104,10 @@ export const useGameStore = create<GameState>()(
           } as JourneySettings,
           history: loadedHistory,
           currentScene: loadedHistory.length > 0 ? loadedHistory[loadedHistory.length - 1] : null,
-          status: data.playerStatus || initialStatus,
+          status: {
+            ...loadedStatus,
+            reputations: loadedStatus.reputations || {}
+          },
           inventory: deduplicatedInventory,
           flags: data.flags || {},
           memories: data.memories || [],
@@ -114,13 +119,21 @@ export const useGameStore = create<GameState>()(
           const newHp = Math.max(0, Math.min(state.status.maxHp, (changes.hp !== undefined ? changes.hp : state.status.hp)));
           const newSp = Math.max(0, Math.min(state.status.maxSp, (changes.sp !== undefined ? changes.sp : state.status.sp)));
           
+          let updatedReputations = { ...(state.status.reputations || {}) };
+          if ((changes as any).reputations) {
+            Object.entries((changes as any).reputations).forEach(([name, value]: [string, any]) => {
+              updatedReputations[name] = (updatedReputations[name] || 0) + value;
+            });
+          }
+
           return {
             status: { 
               ...state.status, 
               ...changes,
               hp: newHp,
               sp: newSp,
-              moral: state.status.moral + (changes.moral || 0)
+              moral: state.status.moral + (changes.moral || 0),
+              reputations: updatedReputations
             }
           };
         }),
@@ -178,16 +191,22 @@ export const useGameStore = create<GameState>()(
         set((state) => {
           let updatedStatus = { ...state.status };
           if (statusChanges) {
-            // Treat statusChanges as the NEW ABSOLUTE values for HP/SP if provided
             updatedStatus.hp = statusChanges.hp !== undefined ? Math.max(0, Math.min(state.status.maxHp, statusChanges.hp)) : state.status.hp;
             updatedStatus.sp = statusChanges.sp !== undefined ? Math.max(0, Math.min(state.status.maxSp, statusChanges.sp)) : state.status.sp;
             updatedStatus.combatPower = statusChanges.combatPower !== undefined ? statusChanges.combatPower : state.status.combatPower;
-            
-            // MORAL IS RELATIVE (Accumulative)
             updatedStatus.moral = state.status.moral + (statusChanges.moral || 0);
+
+            // Granular Reputations from AI
+            if ((statusChanges as any).reputations) {
+              const reps = { ...(updatedStatus.reputations || {}) };
+              Object.entries((statusChanges as any).reputations).forEach(([name, val]: [string, any]) => {
+                reps[name] = (reps[name] || 0) + val;
+              });
+              updatedStatus.reputations = reps;
+            }
           }
           
-          // Process flags and memories (World Knowledge Graph)
+          // Process flags and memories
           let updatedFlags = { ...state.flags };
           let updatedMemories = [...state.memories];
 
@@ -196,7 +215,6 @@ export const useGameStore = create<GameState>()(
               updatedFlags = { ...updatedFlags, ...scene.worldUpdate.flags };
             }
             if (scene.worldUpdate.memories) {
-              // Add only new memories
               scene.worldUpdate.memories.forEach(m => {
                 if (!updatedMemories.includes(m)) updatedMemories.push(m);
               });
@@ -206,19 +224,15 @@ export const useGameStore = create<GameState>()(
           // Process inventory changes
           let updatedInventory = [...state.inventory];
           if (scene.inventoryChanges) {
-            // Remove items
             if (scene.inventoryChanges.removed) {
               updatedInventory = updatedInventory.filter(item => 
                 !scene.inventoryChanges!.removed.includes(item.id)
               );
             }
-            
-            // Add or update items
             if (scene.inventoryChanges.added) {
               scene.inventoryChanges.added.forEach(newItem => {
                 const existingIndex = updatedInventory.findIndex(i => i.id === newItem.id);
                 if (existingIndex > -1) {
-                  // Merge properties and stack quantity
                   const currentItem = updatedInventory[existingIndex];
                   updatedInventory[existingIndex] = {
                     ...currentItem,
@@ -240,19 +254,16 @@ export const useGameStore = create<GameState>()(
             scene.skillChanges.forEach(newSkill => {
               const existingIndex = updatedStatus.skills.findIndex(s => s.id === newSkill.id);
               if (existingIndex > -1) {
-                // Update existing skill
                 updatedStatus.skills[existingIndex] = {
                   ...updatedStatus.skills[existingIndex],
                   ...newSkill
                 };
               } else {
-                // Add new skill
                 updatedStatus.skills.push(newSkill);
               }
             });
           }
 
-          // If we have a history, the choice was made for the PREVIOUS scene
           const updatedHistory = [...state.history];
           if (updatedHistory.length > 0 && state.lastPendingChoice) {
             updatedHistory[updatedHistory.length - 1] = {

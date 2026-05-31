@@ -7,6 +7,7 @@ import ActionOrchestrator from '@/components/game/ActionOrchestrator';
 import PlayerStatusBar from '@/components/game/PlayerStatusBar';
 import InventoryPanel from '@/components/game/InventoryPanel';
 import SkillsPanel from '@/components/game/SkillsPanel';
+import InfluencePanel from '@/components/game/InfluencePanel';
 import JourneySetup from '@/components/game/JourneySetup';
 import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
@@ -27,7 +28,13 @@ const sceneSchema = z.object({
   recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative']),
   options: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
   tacticalOptions: z.object({
-    actions: z.array(z.object({ id: z.string(), label: z.string(), group: z.enum(['offensive', 'defensive']) })),
+    actions: z.array(z.object({ 
+      id: z.string(), 
+      label: z.string(), 
+      group: z.enum(['offensive', 'defensive']),
+      requiresItem: z.boolean().optional(),
+      itemType: z.enum(['weapon', 'armor', 'consumable', 'quest']).optional()
+    })),
     targets: z.array(z.object({ id: z.string(), label: z.string(), description: z.string().optional() })),
     availableItems: z.array(z.string()).optional(),
     availableSkills: z.array(z.string()).optional()
@@ -48,7 +55,13 @@ const sceneSchema = z.object({
       position: z.object({ x: z.number(), y: z.number() })
     })).optional()
   }).optional(),
-  statusChanges: z.object({ hp: z.number().optional(), sp: z.number().optional(), combatPower: z.number().optional(), moral: z.number().optional() }).optional(),
+  statusChanges: z.object({ 
+    hp: z.number().optional(), 
+    sp: z.number().optional(), 
+    combatPower: z.number().optional(), 
+    moral: z.number().optional(),
+    reputations: z.record(z.number()).optional()
+  }).optional(),
   inventoryChanges: z.object({
     added: z.array(z.object({
       id: z.string(),
@@ -58,6 +71,10 @@ const sceneSchema = z.object({
       type: z.enum(['weapon', 'armor', 'consumable', 'quest'])
     })).optional(),
     removed: z.array(z.string()).optional()
+  }).optional(),
+  worldUpdate: z.object({
+    flags: z.record(z.any()).optional(),
+    memories: z.array(z.string()).optional()
   }).optional(),
   isGameOver: z.boolean(),
   requiresRoll: z.boolean().optional(),
@@ -74,6 +91,7 @@ export default function GamePage() {
 
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [isInfluenceOpen, setIsInfluenceOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [persistentError, setPersistentError] = useState<string | null>(null);
@@ -130,7 +148,7 @@ export default function GamePage() {
       console.error("IMAGE_GEN_ERR:", e);
       setImageError(sceneId, true);
     });
-  }, [updateSceneImage, setImageError]);
+  }, [currentJourneyId, updateSceneImage, setImageError]);
 
   const generateSceneAudio = useCallback((sceneId: string, text: string) => {
     fetch('/api/audio', {
@@ -187,7 +205,6 @@ export default function GamePage() {
         setPersistentError(null);
       }
     },
-
     onError: (err) => {
       console.error("LOG: useObject Error Callback:", err);
       const msg = err.message || "";
@@ -206,66 +223,48 @@ export default function GamePage() {
     const scene = (object as unknown as NarrativeScene) || currentScene;
     console.log(`LOG: Triggering AI [Prompt: ${prompt}] [Current Scene: ${scene?.sceneId}]`);
 
-    // Build context-aware history for Gemini
-    // We only send the text narration and the user's explicit choice
-    const messageHistory = history.map(s => ([
-      { role: 'assistant' as const, content: s.narration },
-      { role: 'user' as const, content: s.selectedOption || 'Avançar' }
-    ])).flat();
+    if (prompt) setPendingChoice(prompt);
 
-    // Add current prompt
-    const messages = [...messageHistory, { role: 'user' as const, content: prompt }].slice(-14);
+    const messages = [
+      ...history.map(s => ([
+        { role: 'assistant' as const, content: s.narration },
+        { role: 'user' as const, content: s.selectedOption || '' }
+      ])).flat(),
+      { role: 'user' as const, content: prompt }
+    ].filter(m => m.content);
 
-    setPendingChoice(prompt); // Link this prompt to the CURRENT scene being completed
     submit({ messages, playerContext });
-  }, [isLoading, submit, playerContext, setPendingChoice, history, object, currentScene]);
+  }, [isLoading, history, currentScene, object, playerContext, submit, setPendingChoice]);
 
-  // EFFECT 1: RESTORE SESSION (Runs only once on load if needed)
+  // DB Record Creation & Persistence Sync
   useEffect(() => {
-    if (hasHydrated && isGameStarted && currentJourneyId && history.length === 0 && !isRestoring) {
-      console.log("FLOW: Checking for history in DB...");
-      setIsRestoring(true);
-      fetch(`/api/journey`)
-        .then(r => r.json())
-        .then(journeys => {
-          const current = journeys.find((j: any) => j.id === currentJourneyId);
-          if (current && current.history?.length > 0) {
-            console.log("FLOW: History found, loading state.");
-            loadJourney(current.id, current);
-            initialTriggerDone.current = true; // Mark as done since we have history
-          }
-          setIsRestoring(false);
-        })
-        .catch(() => setIsRestoring(false));
-    }
-  }, [hasHydrated, isGameStarted, currentJourneyId]); // Strict dependencies
-
-  // EFFECT 2: CREATE NEW JOURNEY (Runs only if NO ID exists)
-  useEffect(() => {
-    if (hasHydrated && isGameStarted && settings && !currentJourneyId && !creationInProgress.current) {
+    if (isGameStarted && !currentJourneyId && !creationInProgress.current) {
       console.log("FLOW: Creating new DB record...");
       creationInProgress.current = true;
       fetch('/api/journey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify({ 
+          ...settings, 
+          playerName: settings?.playerName || 'Viajante'
+        })
       })
-      .then(r => r.json())
-      .then(data => {
-        setJourneyId(data.id);
+      .then(async r => {
+        const data = await r.json();
+        if (r.ok) {
+          setJourneyId(data.id);
+          console.log("FLOW: DB Record Created ID:", data.id);
+        }
+      })
+      .finally(() => {
         creationInProgress.current = false;
-      })
-      .catch((err) => { 
-        console.error("FLOW: Create journey failed", err);
-        creationInProgress.current = false; 
       });
     }
-  }, [hasHydrated, isGameStarted, settings, currentJourneyId, setJourneyId]);
+  }, [isGameStarted, currentJourneyId, settings, setJourneyId]);
 
-  // EFFECT 3: DB PERSISTENCE (Saves progress)
+  // Sync state to DB on changes
   useEffect(() => {
-    if (hasHydrated && currentJourneyId && !isLoading && !isRestoring && history.length > 0) {
-      // Small debounce to avoid intermediate state syncing
+    if (currentJourneyId && history.length > 0) {
       const timer = setTimeout(() => {
         console.log("DB_SYNC: Sending update to server...");
         fetch(`/api/journey/${currentJourneyId}`, {
@@ -279,43 +278,27 @@ export default function GamePage() {
             memories,
             settings 
           })
-        })
-        .then(async r => {
-          if (!r.ok) {
-            const err = await r.json();
-            console.error("Sync Failed:", err);
-          } else {
-            console.log("DB_SYNC: Success");
-          }
-        })
-        .catch(e => console.error("Sync Error", e));
-      }, 1000);
+        });
+      }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [history, status, inventory, currentJourneyId, hasHydrated, isLoading, isRestoring]);
+  }, [history, status, inventory, currentJourneyId, flags, memories, settings]);
 
-  // EFFECT 5: LOGGING (Must be before early returns)
+  // Auto-trigger first scene
   useEffect(() => {
-    const scene = (object as unknown as NarrativeScene) || currentScene;
-    if (scene) {
-      console.log(`LOG: Current Scene: ${scene.sceneId} | RequiresRoll: ${scene.requiresRoll}`);
+    if (isGameStarted && currentJourneyId && history.length === 0 && !isLoading && !object && !initialTriggerDone.current) {
+      initialTriggerDone.current = true;
+      triggerAI(`Inicie a jornada para ${settings?.playerName}`);
     }
-  }, [object, currentScene]);
-
-  useEffect(() => {
-    if (error) {
-      console.error("LOG: Portal API Error:", error);
-    }
-  }, [error]);
+  }, [isGameStarted, currentJourneyId, history.length, isLoading, object, triggerAI, settings?.playerName]);
 
   if (!hasHydrated) return null;
-  if (!isGameStarted) return <MainMenu />;
-  if (isGameStarted && !settings) return <JourneySetup />;
 
-  if (isRestoring) {
+  if (!isGameStarted) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950">
-        <div className="text-zinc-500 animate-pulse font-serif italic text-xl">Retornando ao Portal...</div>
+      <div className="h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-10 font-sans selection:bg-primary/30">
+        <MainMenu />
+        <JourneySetup />
       </div>
     );
   }
@@ -325,33 +308,61 @@ export default function GamePage() {
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-zinc-50 overflow-hidden font-sans relative">
       <ScreenEffects />
-      <PlayerStatusBar onToggleInventory={() => setIsInventoryOpen(true)} onToggleSkills={() => setIsSkillsOpen(true)} />
+      <PlayerStatusBar 
+        onToggleInventory={() => setIsInventoryOpen(true)} 
+        onToggleSkills={() => setIsSkillsOpen(true)}
+        onToggleInfluence={() => setIsInfluenceOpen(true)}
+      />
 
       <main className="flex-1 flex flex-col relative z-20">
         <div className="absolute top-4 left-4 z-50 flex gap-2">
           <button 
-            onClick={() => { 
-              stop(); 
-              initialTriggerDone.current = false; 
-              creationInProgress.current = false;
-              resetGame(); 
-            }} 
-            className="p-2 bg-zinc-900/50 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-all group"
-            title="Sair da Jornada"
+            onClick={() => setIsDetailsOpen(true)}
+            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
+            title="Detalhes da Jornada"
           >
-            <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <Settings2 className="w-5 h-5" />
           </button>
           
           <button 
-            onClick={() => setIsDetailsOpen(true)} 
-            className="p-2 bg-zinc-900/50 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-all group"
-            title="Detalhes do Destino"
+            onClick={() => resetGame()}
+            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-red-500 transition-all shadow-xl"
+            title="Sair para o Menu"
           >
-            <Settings2 className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Removed fixed game over overlay to allow history review */}
+        {persistentError && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md">
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mx-6 p-4 bg-red-950/80 border border-red-500/50 rounded-2xl backdrop-blur-xl flex items-center gap-4 text-red-200 shadow-2xl"
+            >
+               <AlertCircle className="w-6 h-6 shrink-0" />
+               <div className="flex-1 text-sm">
+                  <p className="font-black uppercase tracking-widest text-[10px] mb-1">Perturbação no Portal</p>
+                  {persistentError === 'LIMITE_COTA' 
+                    ? 'O Mestre está exausto. Aguarde alguns segundos para continuar sua lenda.'
+                    : persistentError
+                  }
+               </div>
+               {persistentError === 'LIMITE_COTA' && (
+                  <button 
+                    onClick={() => {
+                      setPersistentError(null);
+                      const lastChoice = useGameStore.getState().lastPendingChoice;
+                      if (lastChoice) triggerAI(lastChoice);
+                    }}
+                    className="p-2 bg-red-500 text-white rounded-lg text-xs font-black uppercase"
+                  >
+                    Tentar
+                  </button>
+               )}
+            </motion.div>
+          </div>
+        )}
 
         <NarrativePanel onRetryImage={(sceneId, prompt) => generateSceneImage(sceneId, prompt)} />
         
@@ -372,25 +383,21 @@ export default function GamePage() {
              </div>
            )}
         </div>
-        
-        {/* Visual Fade to prevent text clashing with fixed bottom elements */}
+
         <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-30 pointer-events-none" />
         
         <AnimatePresence>
           {history.length === 0 && !isLoading && !object && (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.1 }}
-              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+              className="fixed inset-0 z-40 bg-zinc-950 flex flex-col items-center justify-center gap-6"
             >
-               <button 
-                 onClick={() => triggerAI(`Inicie a jornada para ${settings?.playerName}`)}
-                 className="flex items-center gap-3 bg-primary text-zinc-950 px-10 py-5 rounded-3xl font-black uppercase tracking-[0.2em] shadow-[0_0_50px_rgba(245,158,11,0.2)] pointer-events-auto hover:scale-105 active:scale-95 transition-all"
-               >
-                 <Sparkles className="w-6 h-6 fill-current" />
-                 Invocar Destino
-               </button>
+               <motion.div 
+                 animate={{ rotate: 360 }}
+                 transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
+                 className="w-20 h-20 border-t-4 border-primary rounded-full shadow-[0_0_50px_rgba(245,158,11,0.2)]"
+               />
+               <p className="text-zinc-500 font-serif italic text-xl animate-pulse">Invocando o Destino...</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -402,49 +409,20 @@ export default function GamePage() {
             isLoading={isLoading} 
           />
         )}
-
-        {persistentError && (
-          <div className="fixed inset-x-0 bottom-32 z-[100] flex justify-center px-4 pointer-events-none">
-            <motion.div 
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="bg-red-600/90 backdrop-blur-xl border border-red-500/50 p-6 rounded-[32px] flex flex-col gap-4 shadow-[0_20px_50px_rgba(220,38,38,0.5)] pointer-events-auto max-w-sm w-full"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center shrink-0">
-                  <AlertCircle className="w-6 h-6 text-white" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black uppercase tracking-tighter text-white">
-                    {persistentError === 'LIMITE_COTA' ? 'Limite de Cota Alcançado' : 'Portal Instável'}
-                  </h3>
-                  <p className="text-[11px] font-bold text-red-100 leading-relaxed">
-                    {persistentError === 'LIMITE_COTA' 
-                      ? 'O Mestre de Jogo (Gemini) atingiu o limite de requisições diárias da sua chave. Tente novamente em 24h ou faça o upgrade do seu plano no Google AI Studio.' 
-                      : persistentError}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setPersistentError(null)}
-                className="w-full bg-white text-red-600 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-zinc-100 transition-all"
-              >
-                Entendido
-              </button>
-            </motion.div>
-          </div>
-        )}
       </main>
 
+      {/* Modals & Panels */}
       <InventoryPanel isOpen={isInventoryOpen} onClose={() => setIsInventoryOpen(false)} />
       <SkillsPanel isOpen={isSkillsOpen} onClose={() => setIsSkillsOpen(false)} />
+      <InfluencePanel isOpen={isInfluenceOpen} onClose={() => setIsInfluenceOpen(false)} />
       <JourneyDetailsModal 
         isOpen={isDetailsOpen} 
         onClose={() => setIsDetailsOpen(false)} 
-        settings={settings} 
+        settings={settings}
         historyCount={history.length}
       />
-      
+
+      {/* Global Visual Overlays */}
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[url('/noise.svg')] mix-blend-soft-light z-0" />
       <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-zinc-950/80 z-1" />
     </div>

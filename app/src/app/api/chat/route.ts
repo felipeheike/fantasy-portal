@@ -45,7 +45,8 @@ const sceneSchema = z.object({
     hp: z.number().optional(), 
     sp: z.number().optional(), 
     combatPower: z.number().optional(),
-    moral: z.number().optional().describe('Alteração no Karma/Moral do jogador. Valores negativos para ações malignas, positivos para heróicas.')
+    moral: z.number().optional().describe('Alteração no Karma Global.'),
+    reputations: z.record(z.number()).optional().describe('Alterações em reputações locais (NPCs, Cidades).')
   }).optional(),
   inventoryChanges: z.object({
     added: z.array(z.object({
@@ -140,9 +141,10 @@ SISTEMA DE MEMÓRIA E MUNDO (WORLD KNOWLEDGE GRAPH):
 - Reaja às flags atuais: ${JSON.stringify(playerContext?.flags || {})}.
 
 SISTEMA DE EFEITO BORBOLETA (BUTTERFLY EFFECT):
-- Use 'statusChanges.moral' para rastrear o alinhamento do jogador. 
-- Ações nobres aumentam a moral, ações cruéis a diminuem.
-- O mundo e NPCs devem reagir à moral acumulada (${playerContext?.status?.moral || 0}).
+- Use 'statusChanges.moral' para rastrear o alinhamento GLOBAL do jogador (média). 
+- Use 'statusChanges.reputations' (Record<string, number>) para rastrear a fama com NPCs específicos, Cidades ou Facções (ex: {"Vila de Alvorada": +5, "Lorde Isanelson": -2}).
+- Ações nobres aumentam a moral e ativam feedback DOURADO. Ações cruéis as diminuem e ativam feedback ROXO.
+- O mundo e NPCs devem reagir à moral acumulada e às reputações locais.
 
 SISTEMA DE PAISAGENS SONORAS:
 - Preencha 'audioDescription' com uma descrição rica do ambiente sonoro (ex: "vento uivante misturado com o som de correntes arrastando").

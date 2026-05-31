@@ -7,6 +7,7 @@ export interface PlayerStatus {
   moral: number; // For "Butterfly Effect"
   alignment?: string; // e.g., "Lawful Good", "Chaotic Evil"
   skills: Skill[];
+  reputations?: Record<string, number>; // New: Granular Karma
 }
 
 export interface Skill {
