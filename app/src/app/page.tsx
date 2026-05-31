@@ -10,6 +10,7 @@ import SkillsPanel from '@/components/game/SkillsPanel';
 import InfluencePanel from '@/components/game/InfluencePanel';
 import NotificationsPanel from '@/components/game/NotificationsPanel';
 import StatusLogPanel from '@/components/game/StatusLogPanel';
+import ForcePasswordChangeModal from '@/components/game/ForcePasswordChangeModal';
 import JourneySetup from '@/components/game/JourneySetup';
 import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
@@ -427,6 +428,7 @@ export default function GamePage() {
   if (!isGameStarted) {
     return (
       <div className="h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-10 font-sans selection:bg-primary/30">
+        <ForcePasswordChangeModal />
         <MainMenu />
         <JourneySetup />
       </div>
@@ -438,6 +440,7 @@ export default function GamePage() {
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-zinc-50 overflow-hidden font-sans relative">
       <ScreenEffects />
+      <ForcePasswordChangeModal />
       
       {/* Impersonation Banner */}
       <AnimatePresence>

@@ -51,6 +51,7 @@ export async function PUT(req: Request) {
 
       if (isPasswordChanging) {
         updates.passwordHash = await bcrypt.hash(newPassword, 10);
+        updates.forcePasswordChange = false; // Reset the flag
       }
     }
 

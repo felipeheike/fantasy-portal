@@ -125,14 +125,12 @@ export default function MainMenu() {
               </button>
             )}
 
-            {!impersonatedPlayerId && (
-              <button 
-                onClick={() => setIsProfileOpen(true)}
-                className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
-              >
-                <User className="w-4 h-4 group-hover:scale-110 transition-transform" /> Identidade
-              </button>
-            )}
+            <button 
+              onClick={() => setIsProfileOpen(true)}
+              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
+            >
+              <User className="w-4 h-4 group-hover:scale-110 transition-transform" /> Identidade
+            </button>
 
             <button 
               onClick={() => signOut()}

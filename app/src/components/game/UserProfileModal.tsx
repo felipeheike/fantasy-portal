@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, 
@@ -14,7 +15,8 @@ import {
   CheckCircle2,
   Fingerprint,
   RefreshCcw,
-  Sparkles
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,16 +27,35 @@ interface UserProfileModalProps {
 
 export default function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const { data: session, update: updateSession } = useSession();
-  const [name, setName] = useState(session?.user?.name || '');
-  const [email, setEmail] = useState(session?.user?.email || '');
+  const { impersonatedPlayerId, impersonatedPlayerName } = useGameStore();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'identity' | 'security'>('identity');
 
+  // Sync state with session or impersonation when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (impersonatedPlayerId) {
+        setName(impersonatedPlayerName || 'Aventureiro Supervisionado');
+        setEmail('E-mail oculto em supervisão');
+      } else {
+        setName(session?.user?.name || '');
+        setEmail(session?.user?.email || '');
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  }, [isOpen, impersonatedPlayerId, impersonatedPlayerName, session]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (impersonatedPlayerId) return; // Block submission in supervision mode
 
     if (activeTab === 'security') {
       if (!currentPassword) {
@@ -132,13 +153,15 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                  Identidade
                  {activeTab === 'identity' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
                </button>
-               <button 
-                 onClick={() => setActiveTab('security')}
-                 className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === 'security' ? 'text-primary' : 'text-zinc-600 hover:text-zinc-400'}`}
-               >
-                 Segurança
-                 {activeTab === 'security' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
-               </button>
+               {!impersonatedPlayerId && (
+                 <button 
+                   onClick={() => setActiveTab('security')}
+                   className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === 'security' ? 'text-primary' : 'text-zinc-600 hover:text-zinc-400'}`}
+                 >
+                   Segurança
+                   {activeTab === 'security' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
+                 </button>
+               )}
             </div>
 
             {/* Form */}
@@ -152,9 +175,10 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary transition-colors" />
                           <input 
                             type="text" 
-                            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-primary transition-all"
+                            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-primary transition-all disabled:opacity-50"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            disabled={!!impersonatedPlayerId}
                             required
                           />
                        </div>
@@ -165,13 +189,14 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary transition-colors" />
                           <input 
                             type="email" 
-                            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-primary transition-all"
+                            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-primary transition-all disabled:opacity-50"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            disabled={!!impersonatedPlayerId}
                             required
                           />
                        </div>
-                       {email !== session?.user?.email && (
+                       {email !== session?.user?.email && !impersonatedPlayerId && (
                          <p className="text-[9px] text-orange-500 font-bold uppercase tracking-widest mt-2 flex items-center gap-1">
                            <AlertCircle className="w-3 h-3" /> Alterar e-mail exigirá confirmação de senha e novo login.
                          </p>
@@ -217,7 +242,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                 )}
 
                 {/* If identity changing email, show password field too */}
-                {activeTab === 'identity' && email !== session?.user?.email && (
+                {activeTab === 'identity' && email !== session?.user?.email && !impersonatedPlayerId && (
                   <div className="space-y-2 pt-4 border-t border-zinc-900">
                     <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-4 italic">Confirme sua senha para validar o novo email</label>
                     <div className="relative group">
@@ -235,15 +260,25 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                 )}
               </div>
 
-              <div className="pt-4">
-                 <button 
-                   type="submit"
-                   disabled={isLoading}
-                   className="w-full flex items-center justify-center gap-3 bg-white text-zinc-950 px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-primary transition-all disabled:opacity-50 disabled:grayscale"
-                 >
-                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ShieldCheck className="w-5 h-5" /> Selar Alterações</>}
-                 </button>
-              </div>
+              {!impersonatedPlayerId && (
+                <div className="pt-4">
+                   <button 
+                     type="submit"
+                     disabled={isLoading}
+                     className="w-full flex items-center justify-center gap-3 bg-white text-zinc-950 px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-primary transition-all disabled:opacity-50 disabled:grayscale"
+                   >
+                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ShieldCheck className="w-5 h-5" /> Selar Alterações</>}
+                   </button>
+                </div>
+              )}
+
+              {impersonatedPlayerId && (
+                <div className="pt-4 p-6 bg-orange-500/10 border border-orange-500/20 rounded-2xl">
+                   <p className="text-[10px] text-orange-500 font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                      <ShieldAlert className="w-4 h-4" /> Visualização restrita ao mestre
+                   </p>
+                </div>
+              )}
             </form>
 
             {/* Footer Lore */}

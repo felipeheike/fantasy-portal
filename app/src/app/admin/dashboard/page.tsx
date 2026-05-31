@@ -21,7 +21,8 @@ import {
   Sparkles,
   Loader2,
   MoreVertical,
-  Eye
+  Eye,
+  Key
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -74,6 +75,33 @@ export default function AdminDashboard() {
       }
     } catch (e) {
       toast.error('Erro de conexão com o mestre.');
+    }
+  };
+
+  const handleResetPassword = async (id: string, name: string) => {
+    if (!confirm(`Deseja resetar a senha de ${name}? Uma senha temporária será gerada.`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/players/${id}/reset-password`, { method: 'POST' });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Senha Resetada!', {
+          description: `Nova senha para ${name}: ${data.tempPassword}`,
+          duration: 30000,
+          action: {
+            label: 'Copiar',
+            onClick: () => {
+              navigator.clipboard.writeText(data.tempPassword);
+              toast.success('Senha copiada!');
+            }
+          }
+        });
+      } else {
+        toast.error('Falha ao resetar senha.', { description: data.error });
+      }
+    } catch (e) {
+      toast.error('Erro de conexão.');
     }
   };
 
@@ -245,6 +273,14 @@ export default function AdminDashboard() {
                              <ShieldMinus className="w-3.5 h-3.5" /> Revogar
                           </button>
                        )}
+
+                       <button 
+                          onClick={() => handleResetPassword(player.id, player.name)}
+                          className="p-3 bg-zinc-900 border border-zinc-800 text-amber-500/50 hover:text-amber-400 hover:bg-amber-500/10 transition-all rounded-2xl ml-2"
+                          title="Resetar Senha"
+                       >
+                          <Key className="w-4 h-4" />
+                       </button>
 
                        <button 
                           onClick={() => deletePlayer(player.id)}

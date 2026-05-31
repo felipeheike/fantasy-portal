@@ -34,7 +34,8 @@ export const authOptions: NextAuthOptions = {
           email: player.email,
           name: player.name,
           role: player.role,
-          accountStatus: player.accountStatus
+          accountStatus: player.accountStatus,
+          forcePasswordChange: player.forcePasswordChange
         };
       }
     })
@@ -45,6 +46,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role;
         token.accountStatus = (user as any).accountStatus;
+        token.forcePasswordChange = (user as any).forcePasswordChange;
       }
       return token;
     },
@@ -53,6 +55,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).accountStatus = token.accountStatus;
+        (session.user as any).forcePasswordChange = token.forcePasswordChange;
       }
       return session;
     }

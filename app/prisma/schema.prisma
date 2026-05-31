@@ -15,6 +15,7 @@ model Player {
   passwordHash  String?   // Hash da senha (Opcional para compatibilidade inicial)
   role          String    @default("PLAYER") // ADMIN, PLAYER
   accountStatus String    @default("PENDING") // PENDING, ACTIVE, INACTIVE
+  forcePasswordChange Boolean @default(false) // Marcador para troca obrigatória
   name          String?
   status        Json      // Stores HP, SP, Combat Power, Skills, Moral
   inventory     Json      // Stores items and equipment
