@@ -43,6 +43,7 @@ interface GameState {
   markNotificationsAsRead: () => void;
   clearNotifications: () => void;
   useInsightPoint: () => void;
+  addInquiryToCurrentScene: (question: string, answer: string) => void;
   restoreInsightWithPotion: (potionId: string) => boolean;
   restoreInsightWithSacrifice: () => boolean;
   startImpersonation: (id: string, name: string) => void;
@@ -342,6 +343,25 @@ export const useGameStore = create<GameState>()(
       useInsightPoint: () => set((state) => ({
         status: { ...state.status, insightPoints: Math.max(0, state.status.insightPoints - 1) }
       })),
+
+      addInquiryToCurrentScene: (question, answer) => set((state) => {
+        if (!state.currentScene) return state;
+        
+        const newInquiry = { question, answer, timestamp: Date.now() };
+        const updatedInquiries = [...(state.currentScene.inquiries || []), newInquiry];
+        
+        const updatedScene = { ...state.currentScene, inquiries: updatedInquiries };
+        const updatedHistory = [...state.history];
+        
+        if (updatedHistory.length > 0) {
+          updatedHistory[updatedHistory.length - 1] = updatedScene;
+        }
+
+        return {
+          currentScene: updatedScene,
+          history: updatedHistory
+        };
+      }),
 
       restoreInsightWithPotion: (potionId) => {
         const state = get();

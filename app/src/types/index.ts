@@ -73,6 +73,7 @@ export interface NarrativeScene {
   isGameOver: boolean;
   requiresRoll?: boolean; // New for dice roll mechanics
   imageError?: boolean;
+  inquiries?: { question: string; answer: string; timestamp: number }[]; // New: Persist inquiries per scene
 }
 
 export interface TacticalMap {
