@@ -1,2 +1,22 @@
+# AI & Operations (Personal)
+Prompts/
+actions/
+
+# Tests & Simulations
+test-*.mjs
+app/test-*.mjs
+api-simulation.mjs
+find_clarify.ts
+
+# Environment & Secrets
+app/.env
+app/.env.local
+
+# Database & Infrastructure
 app/database/
+
+# Dependencies & Build
+node_modules/
+app/node_modules/
 app/.next/
+.DS_Store
