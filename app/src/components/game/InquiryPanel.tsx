@@ -70,7 +70,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140]"
+            className="fixed inset-0 bg-black/60 z-[140]"
           />
 
           <motion.div
@@ -78,7 +78,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-full max-w-lg bg-zinc-950 border-r border-zinc-800 shadow-2xl z-[150] flex flex-col"
+            className="fixed left-0 top-0 h-full w-full max-w-md bg-zinc-950 border-r border-zinc-800 shadow-2xl z-[150] flex flex-col"
           >
             {/* Header */}
             <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30">

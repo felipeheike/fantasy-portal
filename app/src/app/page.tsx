@@ -483,7 +483,9 @@ export default function GamePage() {
         onLogout={() => resetGame()}
       />
 
-      <main className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-36' : 'pt-24'} transition-all duration-300`}>
+      <main 
+        className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-36' : 'pt-24'} ${isInquiryOpen ? 'pl-[448px]' : 'pl-0'} transition-all duration-500 ease-in-out`}
+      >
         {/* Top Actions Hub */}
         <div className={`absolute ${impersonatedPlayerId ? 'top-20' : 'top-8'} left-10 z-50 flex gap-2 transition-all duration-300`}>
           {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
