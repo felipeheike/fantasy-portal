@@ -11,7 +11,10 @@ import {
   MessageSquare, 
   Eye,
   Loader2,
-  Info
+  Info,
+  Droplets,
+  FlaskConical,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,10 +24,27 @@ interface InquiryPanelProps {
 }
 
 export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
-  const { status, currentScene, history, useInsightPoint, addNotification } = useGameStore();
+  const { 
+    status, 
+    inventory,
+    currentScene, 
+    history, 
+    useInsightPoint, 
+    restoreInsightWithPotion, 
+    restoreInsightWithSacrifice,
+    addNotification 
+  } = useGameStore();
+
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const wisdomItems = inventory.filter(i => 
+    i.type === 'consumable' && 
+    (i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('sabedoria') || 
+     i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('visao') ||
+     i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('elixir'))
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +78,43 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
       toast.error('Erro de conexão com o mestre.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSacrifice = () => {
+    if (status.hp < 5) {
+      toast.error("Sua vitalidade está baixa demais para este sacrifício.");
+      return;
+    }
+
+    if (confirm("Você deseja sacrificar -4 HP em troca de um vislumbre do destino?")) {
+      const success = restoreInsightWithSacrifice();
+      if (success) {
+        toast.error("Sacrifício Realizado", {
+          description: "O sangue foi derramado. Sua visão se expande brevemente. [-4 HP]",
+          icon: <Droplets className="w-4 h-4 text-red-500" />
+        });
+        addNotification({
+          type: 'status',
+          title: '🩸 Sacrifício de Sangue',
+          description: 'Você trocou parte de sua vida por um Ponto de Visão.'
+        });
+      }
+    }
+  };
+
+  const handlePotion = (potionId: string, potionName: string) => {
+    const success = restoreInsightWithPotion(potionId);
+    if (success) {
+      toast.success("Mente Expandida", {
+        description: `Você consumiu ${potionName}. [+2 Pontos de Visão]`,
+        icon: <Sparkles className="w-4 h-4 text-primary" />
+      });
+      addNotification({
+        type: 'item',
+        title: '🧪 Poção Consumida',
+        description: `O ${potionName} restaurou suas cargas de visão.`
+      });
     }
   };
 
@@ -108,7 +165,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                  </div>
                  <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Pontos de Visão</p>
-                    <h3 className="text-3xl font-black text-white">{status.insightPoints} / 3</h3>
+                    <h3 className="text-3xl font-black text-white">{status.insightPoints}</h3>
                  </div>
                  <div className="text-right max-w-[120px]">
                     <p className="text-[9px] text-zinc-600 font-serif italic leading-tight">Gaste pontos para obter intuições sobre a cena.</p>
@@ -129,9 +186,53 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                  )}
 
                  {status.insightPoints <= 0 && !answer && (
-                   <div className="p-10 border-2 border-dashed border-zinc-900 rounded-[40px] text-center space-y-4 opacity-50">
-                      <HelpCircle className="w-12 h-12 text-zinc-700 mx-auto" />
-                      <p className="text-zinc-500 font-serif italic">Suas cargas de visão se esgotaram. O mestre agora se cala diante de suas dúvidas...</p>
+                   <div className="space-y-8">
+                     <div className="p-10 border-2 border-dashed border-zinc-900 rounded-[40px] text-center space-y-4 opacity-50">
+                        <HelpCircle className="w-12 h-12 text-zinc-700 mx-auto" />
+                        <p className="text-zinc-500 font-serif italic">Suas cargas de visão se esgotaram. O mestre agora se cala...</p>
+                     </div>
+
+                     {/* Restoration Rituals */}
+                     <div className="space-y-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 ml-4">Rituais de Restauração</h3>
+                        
+                        {/* Sacrifice Ritual */}
+                        <button 
+                          onClick={handleSacrifice}
+                          className="w-full p-6 bg-red-950/20 border border-red-900/30 hover:border-red-500 transition-all rounded-[32px] flex items-center justify-between group"
+                        >
+                           <div className="flex items-center gap-4 text-left">
+                              <div className="p-3 bg-red-500/10 rounded-2xl text-red-500 group-hover:scale-110 transition-transform">
+                                 <Droplets className="w-5 h-5" />
+                              </div>
+                              <div>
+                                 <h4 className="text-sm font-black text-zinc-100 uppercase tracking-tight">Sacrifício de Sangue</h4>
+                                 <p className="text-[10px] text-zinc-500 font-bold uppercase">Custo: -4 Vitalidade</p>
+                              </div>
+                           </div>
+                           <div className="text-[10px] font-black bg-red-500 text-white px-3 py-1 rounded-full">+1 Carga</div>
+                        </button>
+
+                        {/* Wisdom Potions Ritual */}
+                        {wisdomItems.map(item => (
+                          <button 
+                            key={item.id}
+                            onClick={() => handlePotion(item.id, item.name)}
+                            className="w-full p-6 bg-primary/5 border border-primary/20 hover:border-primary transition-all rounded-[32px] flex items-center justify-between group"
+                          >
+                            <div className="flex items-center gap-4 text-left">
+                                <div className="p-3 bg-primary/10 rounded-2xl text-primary group-hover:scale-110 transition-transform">
+                                   <FlaskConical className="w-5 h-5" />
+                                </div>
+                                <div>
+                                   <h4 className="text-sm font-black text-zinc-100 uppercase tracking-tight">{item.name}</h4>
+                                   <p className="text-[10px] text-zinc-500 font-bold uppercase">Custo: 1 Unidade</p>
+                                </div>
+                            </div>
+                            <div className="text-[10px] font-black bg-primary text-zinc-950 px-3 py-1 rounded-full">+2 Cargas</div>
+                          </button>
+                        ))}
+                     </div>
                    </div>
                  )}
               </div>

@@ -10,7 +10,7 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    console.log("🌱 INICIANDO SEED ÉPICO E ADMINISTRATIVO...");
+    console.log("🌱 INICIANDO SEED ÉPICO E ADMINISTRATIVO (COM PONTOS DE VISÃO)...");
 
     const passwordHash = await bcrypt.hash('adventure123', 10);
     const adminHash = await bcrypt.hash('adminportal', 10);
@@ -21,7 +21,8 @@ async function main() {
       update: {
         role: "ADMIN",
         accountStatus: "ACTIVE",
-        passwordHash: adminHash
+        passwordHash: adminHash,
+        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 30, moral: 0, skills: [], reputations: {}, insightPoints: 5 }
       },
       create: {
         email: "admin@fantasyportal.com",
@@ -29,14 +30,14 @@ async function main() {
         passwordHash: adminHash,
         role: "ADMIN",
         accountStatus: "ACTIVE",
-        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 30, moral: 0, skills: [], reputations: {} },
+        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 30, moral: 0, skills: [], reputations: {}, insightPoints: 5 },
         inventory: []
       }
     });
 
     const leonelsonId = "default-player-id";
 
-    // 2. Atualizar Leonelson com Auth
+    // 2. Atualizar Leonelson com Auth e Pontos de Visão
     await prisma.player.upsert({
       where: { id: leonelsonId },
       update: {
@@ -51,6 +52,7 @@ async function main() {
           maxSp: 15,
           combatPower: 15,
           moral: 8,
+          insightPoints: 5,
           skills: [
             { id: "skill_tracking", name: "Rastreamento Arcano", description: "Capacidade de ler rastros mágicos.", level: 2, maxLevel: 5 },
             { id: "skill_medicina", name: "Medicina de Campo", description: "Conhecimento de ervas.", level: 1, maxLevel: 3 }
@@ -59,7 +61,8 @@ async function main() {
         },
         inventory: [
           { id: "rusted_sword", name: "Espada de Ferro Desgastada", type: "weapon", quantity: 1, description: "Uma lâmina confiável.", durability: 8, maxDurability: 20 },
-          { id: "minor_healing", name: "Frasco de Essência Vital", type: "consumable", quantity: 2, description: "Recupera 5 HP." }
+          { id: "minor_healing", name: "Frasco de Essência Vital", type: "consumable", quantity: 2, description: "Recupera 5 HP." },
+          { id: "wisdom_potion_1", name: "Poção da Sabedoria Ancestral", type: "consumable", quantity: 1, description: "Restaura cargas de visão." }
         ]
       },
       create: {
@@ -69,7 +72,7 @@ async function main() {
         passwordHash: passwordHash,
         role: "PLAYER",
         accountStatus: "ACTIVE",
-        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 10, moral: 0, skills: [], reputations: {} },
+        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 10, moral: 0, skills: [], reputations: {}, insightPoints: 5 },
         inventory: []
       }
     });

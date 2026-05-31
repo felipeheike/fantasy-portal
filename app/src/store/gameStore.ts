@@ -43,10 +43,14 @@ interface GameState {
   markNotificationsAsRead: () => void;
   clearNotifications: () => void;
   useInsightPoint: () => void;
+  restoreInsightWithPotion: (potionId: string) => boolean;
+  restoreInsightWithSacrifice: () => boolean;
   startImpersonation: (id: string, name: string) => void;
   stopImpersonation: () => void;
   resetGame: () => void;
 }
+
+const INITIAL_INSIGHT_POINTS = Number(process.env.NEXT_PUBLIC_INITIAL_INSIGHT_POINTS || 5);
 
 const initialStatus: PlayerStatus = {
   hp: 20,
@@ -57,7 +61,7 @@ const initialStatus: PlayerStatus = {
   moral: 0,
   skills: [],
   reputations: {},
-  insightPoints: 3,
+  insightPoints: INITIAL_INSIGHT_POINTS,
 };
 
 export const INVENTORY_CAPACITY = 10;
@@ -66,7 +70,7 @@ export const MAX_LOG_ENTRIES = 100;
 
 export const useGameStore = create<GameState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       status: initialStatus,
       inventory: [],
       history: [],
@@ -128,7 +132,7 @@ export const useGameStore = create<GameState>()(
           status: {
             ...loadedStatus,
             reputations: loadedStatus.reputations || {},
-            insightPoints: loadedStatus.insightPoints ?? initialStatus.insightPoints
+            insightPoints: loadedStatus.insightPoints ?? INITIAL_INSIGHT_POINTS
           },
           inventory: deduplicatedInventory,
           flags: data.flags || {},
@@ -338,6 +342,48 @@ export const useGameStore = create<GameState>()(
       useInsightPoint: () => set((state) => ({
         status: { ...state.status, insightPoints: Math.max(0, state.status.insightPoints - 1) }
       })),
+
+      restoreInsightWithPotion: (potionId) => {
+        const state = get();
+        const itemIndex = state.inventory.findIndex(i => i.id === potionId);
+        if (itemIndex === -1) return false;
+
+        const updatedInventory = [...state.inventory];
+        const item = updatedInventory[itemIndex];
+        
+        if (item.quantity > 1) {
+          updatedInventory[itemIndex] = { ...item, quantity: item.quantity - 1 };
+        } else {
+          updatedInventory.splice(itemIndex, 1);
+        }
+
+        set({
+          inventory: updatedInventory,
+          status: { ...state.status, insightPoints: state.status.insightPoints + 2 }
+        });
+        return true;
+      },
+
+      restoreInsightWithSacrifice: () => {
+        const state = get();
+        if (state.status.hp < 5) return false;
+
+        const newHp = state.status.hp - 4;
+        const newLogEntry: StatusLogEntry = {
+          id: `log-hp-sacrifice-${Date.now()}`,
+          type: 'hp',
+          amount: -4,
+          source: "Sacrifício por Conhecimento",
+          timestamp: Date.now(),
+          sceneId: state.currentScene?.sceneId
+        };
+
+        set({
+          status: { ...state.status, hp: newHp, insightPoints: state.status.insightPoints + 1 },
+          statusHistory: [newLogEntry, ...state.statusHistory].slice(0, MAX_LOG_ENTRIES)
+        });
+        return true;
+      },
 
       startImpersonation: (id, name) => set({ impersonatedPlayerId: id, impersonatedPlayerName: name }),
       stopImpersonation: () => set({ impersonatedPlayerId: null, impersonatedPlayerName: null }),

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import bcrypt from 'bcrypt';
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -9,7 +10,7 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    console.log("🌑 CRIANDO FELIPELSON INFAME (COM LOGS)...");
+    console.log("🌑 CRIANDO FELIPELSON INFAME (COM PONTOS DE VISÃO)...");
 
     const felipelsonId = "evil-player-id";
 
@@ -25,20 +26,22 @@ async function main() {
           maxSp: 15,
           combatPower: 25,
           moral: -25,
+          insightPoints: 0, // Inicia zerado para testar recuperação
           skills: [
             { id: "skill_intimidacao", name: "Aura de Pavor", description: "Instila terror profundo.", level: 3, maxLevel: 5 }
           ],
           reputations: { "Vila de Alvorada": -30, "Culto das Sombras": 20 }
         },
         inventory: [
-          { id: "cursed_dagger", name: "Adaga Dente de Basilisco", type: "weapon", quantity: 1, description: "Lâmina envenenada.", durability: 15, maxDurability: 15 }
+          { id: "cursed_dagger", name: "Adaga Dente de Basilisco", type: "weapon", quantity: 1, description: "Lâmina envenenada.", durability: 15, maxDurability: 15 },
+          { id: "wisdom_elixir", name: "Elixir da Visão Sombria", type: "consumable", quantity: 1, description: "Restaura cargas de visão via magia negra." }
         ]
       },
       create: {
         id: felipelsonId,
         email: "vilao@duplecake.com",
         name: "Felipelson",
-        status: { hp: 12, maxHp: 20, sp: 5, maxSp: 15, combatPower: 25, moral: -25, skills: [], reputations: {} },
+        status: { hp: 12, maxHp: 20, sp: 5, maxSp: 15, combatPower: 25, moral: -25, skills: [], reputations: {}, insightPoints: 0 },
         inventory: []
       }
     });
