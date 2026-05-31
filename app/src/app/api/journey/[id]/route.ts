@@ -19,11 +19,17 @@ export async function PATCH(
       inventory,
       flags,
       memories,
-      settings
+      settings,
+      impersonatedPlayerId
     } = body;
 
+    // SECURITY: ADMIN can patch anyone, PLAYER can only patch themselves
+    const targetUserId = (session.user as any).role === "ADMIN" && impersonatedPlayerId 
+      ? impersonatedPlayerId 
+      : (session.user as any).id;
+
     const journey = await prisma.journey.update({
-      where: { id, playerId: (session.user as any).id },
+      where: { id, playerId: targetUserId },
       data: {
         history: history || undefined,
         flags: flags || undefined,
@@ -34,7 +40,7 @@ export async function PATCH(
 
     if (playerStatus || inventory) {
       await prisma.player.update({
-        where: { id: (session.user as any).id },
+        where: { id: targetUserId },
         data: {
           status: playerStatus || undefined,
           inventory: inventory || undefined
@@ -57,8 +63,15 @@ export async function DELETE(
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const { id } = await params;
+    const { searchParams } = new URL(req.url);
+    const impersonatedPlayerId = searchParams.get("impersonatedPlayerId");
+
+    const targetUserId = (session.user as any).role === "ADMIN" && impersonatedPlayerId 
+      ? impersonatedPlayerId 
+      : (session.user as any).id;
+
     await prisma.journey.delete({ 
-      where: { id, playerId: (session.user as any).id } 
+      where: { id, playerId: targetUserId } 
     });
     return NextResponse.json({ success: true });
   } catch (error: any) {

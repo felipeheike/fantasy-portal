@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { NarrativeScene, NarrativeOption, StatusLogEntry } from '@/types';
-import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, ShieldCheck, Eye, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const sceneSchema = z.object({
@@ -102,7 +102,7 @@ export default function GamePage() {
     settings, currentJourneyId, setJourneyId, history,
     inventory, resetGame, loadJourney, hasHydrated,
     setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError,
-    flags, memories, addNotification
+    flags, memories, addNotification, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation
   } = useGameStore();
 
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -365,7 +365,8 @@ export default function GamePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           ...settings, 
-          playerName: settings?.playerName || session.user.name || 'Viajante'
+          playerName: settings?.playerName || session.user.name || 'Viajante',
+          impersonatedPlayerId // Pass to API if in supervision mode
         })
       })
       .then(async r => {
@@ -379,7 +380,7 @@ export default function GamePage() {
         creationInProgress.current = false;
       });
     }
-  }, [isGameStarted, currentJourneyId, settings, setJourneyId, session]);
+  }, [isGameStarted, currentJourneyId, settings, setJourneyId, session, impersonatedPlayerId]);
 
   // Sync state to DB on changes
   const lastSyncedRef = useRef<string>('');
@@ -400,7 +401,8 @@ export default function GamePage() {
             inventory,
             flags,
             memories,
-            settings 
+            settings,
+            impersonatedPlayerId // Pass to API if in supervision mode
           })
         })
         .then(() => {
@@ -410,7 +412,7 @@ export default function GamePage() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [history, status, inventory, currentJourneyId, flags, memories, settings, hasHydrated, authStatus]);
+  }, [history, status, inventory, currentJourneyId, flags, memories, settings, hasHydrated, authStatus, impersonatedPlayerId]);
 
   // Auto-trigger first scene
   useEffect(() => {
@@ -436,6 +438,35 @@ export default function GamePage() {
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-zinc-50 overflow-hidden font-sans relative">
       <ScreenEffects />
+      
+      {/* Impersonation Banner */}
+      <AnimatePresence>
+        {impersonatedPlayerId && (
+          <motion.div 
+            initial={{ y: -50 }}
+            animate={{ y: 0 }}
+            exit={{ y: -50 }}
+            className="fixed top-0 left-0 w-full h-12 bg-orange-600 z-[100] flex items-center justify-center gap-4 px-10 border-b border-orange-500/50 shadow-xl"
+          >
+             <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-orange-200" />
+                <span className="text-xs font-black uppercase tracking-widest text-orange-50">
+                  Modo Supervisão: Atuando como <span className="text-white underline decoration-2 underline-offset-4">{impersonatedPlayerName}</span>
+                </span>
+             </div>
+             <button 
+                onClick={() => {
+                  stopImpersonation();
+                  window.location.reload();
+                }}
+                className="flex items-center gap-2 px-4 py-1.5 bg-black/20 hover:bg-black/40 transition-all rounded-full text-[10px] font-black uppercase text-white border border-white/10"
+             >
+                <X className="w-3.5 h-3.5" /> Sair da Supervisão
+             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <PlayerStatusBar 
         onToggleInventory={() => setIsInventoryOpen(true)} 
         onToggleSkills={() => setIsSkillsOpen(true)}
@@ -444,12 +475,12 @@ export default function GamePage() {
         onToggleSettings={() => setIsDetailsOpen(true)}
         onToggleHPLog={() => setIsHPLogOpen(true)}
         onToggleSPLog={() => setIsSPLogOpen(true)}
-        onLogout={() => signOut()}
+        onLogout={() => resetGame()}
       />
 
-      <main className="flex-1 flex flex-col relative z-20 pt-24">
-        <div className="absolute top-4 left-4 z-50 flex gap-2">
-          {session?.user && (session.user as any).role === 'ADMIN' && (
+      <main className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-36' : 'pt-24'} transition-all duration-300`}>
+        <div className={`absolute ${impersonatedPlayerId ? 'top-16' : 'top-4'} left-4 z-50 flex gap-2 transition-all duration-300`}>
+          {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
               className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"

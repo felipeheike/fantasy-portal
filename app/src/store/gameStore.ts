@@ -13,6 +13,8 @@ interface GameState {
   memories: string[]; // Key lore points
   notificationHistory: GameNotification[]; // Log of all events
   statusHistory: StatusLogEntry[]; // New: Battle log for HP/SP
+  impersonatedPlayerId: string | null; // Supervision mode
+  impersonatedPlayerName: string | null; // Supervision feedback
   isGameStarted: boolean;
   isSetupMode: boolean;
   hasHydrated: boolean;
@@ -40,6 +42,8 @@ interface GameState {
   addNotification: (notification: Omit<GameNotification, 'id' | 'timestamp' | 'read'>) => void;
   markNotificationsAsRead: () => void;
   clearNotifications: () => void;
+  startImpersonation: (id: string, name: string) => void;
+  stopImpersonation: () => void;
   resetGame: () => void;
 }
 
@@ -71,6 +75,8 @@ export const useGameStore = create<GameState>()(
       memories: [],
       notificationHistory: [],
       statusHistory: [],
+      impersonatedPlayerId: null,
+      impersonatedPlayerName: null,
       isGameStarted: false,
       isSetupMode: false,
       hasHydrated: false,
@@ -326,6 +332,9 @@ export const useGameStore = create<GameState>()(
       markNotificationsAsRead: () => set((state) => ({ notificationHistory: state.notificationHistory.map(n => ({ ...n, read: true })) })),
       clearNotifications: () => set({ notificationHistory: [] }),
 
+      startImpersonation: (id, name) => set({ impersonatedPlayerId: id, impersonatedPlayerName: name }),
+      stopImpersonation: () => set({ impersonatedPlayerId: null, impersonatedPlayerName: null }),
+
       resetGame: () => {
         set({
           status: initialStatus,
@@ -338,6 +347,8 @@ export const useGameStore = create<GameState>()(
           memories: [],
           notificationHistory: [],
           statusHistory: [],
+          impersonatedPlayerId: null,
+          impersonatedPlayerName: null,
           isGameStarted: false,
           isSetupMode: false,
           lastPendingChoice: null,
@@ -363,7 +374,9 @@ export const useGameStore = create<GameState>()(
         flags: state.flags,
         memories: state.memories,
         notificationHistory: state.notificationHistory,
-        statusHistory: state.statusHistory
+        statusHistory: state.statusHistory,
+        impersonatedPlayerId: state.impersonatedPlayerId,
+        impersonatedPlayerName: state.impersonatedPlayerName
       }),
     }
   )

@@ -3,13 +3,21 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+
+    // SECURITY: Only ADMIN can impersonate other users
+    const targetUserId = (session.user as any).role === 'ADMIN' && userId 
+      ? userId 
+      : (session.user as any).id;
+
     const journeys = await prisma.journey.findMany({
-      where: { playerId: (session.user as any).id },
+      where: { playerId: targetUserId },
       include: {
         player: true
       },
@@ -28,11 +36,16 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { genre, journeyLength, punishSystem, visualStyle, narrativeStyle, tone, readStyle, playerName } = body;
+    const { genre, journeyLength, punishSystem, visualStyle, narrativeStyle, tone, readStyle, playerName, impersonatedPlayerId } = body;
+
+    // SECURITY: Only ADMIN can create journeys for others
+    const targetUserId = (session.user as any).role === 'ADMIN' && impersonatedPlayerId 
+      ? impersonatedPlayerId 
+      : (session.user as any).id;
 
     const journey = await prisma.journey.create({
       data: {
-        playerId: (session.user as any).id,
+        playerId: targetUserId,
         genre: genre || 'fantasy',
         status: 'active',
         history: [],

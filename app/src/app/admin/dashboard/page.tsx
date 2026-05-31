@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
@@ -19,13 +20,15 @@ import {
   ShieldMinus,
   Sparkles,
   Loader2,
-  MoreVertical
+  MoreVertical,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { startImpersonation } = useGameStore();
   const [players, setPlayers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchText] = useState('');
@@ -72,6 +75,12 @@ export default function AdminDashboard() {
     } catch (e) {
       toast.error('Erro de conexão com o mestre.');
     }
+  };
+
+  const handleSupervise = (player: any) => {
+    startImpersonation(player.id, player.name);
+    toast.success(`Iniciando supervisão de ${player.name}`);
+    router.push('/');
   };
 
   const deletePlayer = async (id: string) => {
@@ -208,12 +217,23 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                       {/* Impersonation Button */}
+                       {player.role !== 'ADMIN' && (
+                         <button 
+                            onClick={() => handleSupervise(player)}
+                            className="flex items-center gap-2 px-5 py-3 bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all rounded-2xl text-[10px] font-black uppercase tracking-widest border border-zinc-700"
+                            title="Supervisionar lendas deste jogador"
+                         >
+                            <Eye className="w-3.5 h-3.5" /> Ver Lendas
+                         </button>
+                       )}
+
                        {player.accountStatus !== 'ACTIVE' && (
                           <button 
                             onClick={() => updatePlayerStatus(player.id, 'ACTIVE')}
-                            className="flex items-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-950 hover:bg-green-500 transition-all rounded-2xl text-[10px] font-black uppercase tracking-widest"
+                            className="flex items-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-950 hover:bg-green-500 transition-all rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl"
                           >
-                             <CheckCircle2 className="w-3.5 h-3.5" /> Aprovar Acesso
+                             <CheckCircle2 className="w-3.5 h-3.5" /> Aprovar
                           </button>
                        )}
                        
@@ -222,7 +242,7 @@ export default function AdminDashboard() {
                             onClick={() => updatePlayerStatus(player.id, 'INACTIVE')}
                             className="flex items-center gap-2 px-6 py-3 bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-500 hover:border-red-500/50 transition-all rounded-2xl text-[10px] font-black uppercase tracking-widest"
                           >
-                             <ShieldMinus className="w-3.5 h-3.5" /> Revogar Acesso
+                             <ShieldMinus className="w-3.5 h-3.5" /> Revogar
                           </button>
                        )}
 

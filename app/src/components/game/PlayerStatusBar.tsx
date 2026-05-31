@@ -23,8 +23,8 @@ interface PlayerStatusBarProps {
   onToggleInfluence: () => void;
   onToggleNotifications: () => void;
   onToggleSettings: () => void;
-  onToggleHPLog: () => void; // New
-  onToggleSPLog: () => void; // New
+  onToggleHPLog: () => void;
+  onToggleSPLog: () => void;
   onLogout: () => void;
 }
 
@@ -38,7 +38,7 @@ export default function PlayerStatusBar({
   onToggleSPLog,
   onLogout
 }: PlayerStatusBarProps) {
-  const { status, inventory, notificationHistory } = useGameStore();
+  const { status, inventory, notificationHistory, impersonatedPlayerId } = useGameStore();
   const [isCritical, setIsCritical] = useState(false);
 
   const unreadCount = notificationHistory.filter(n => !n.read).length;
@@ -54,7 +54,7 @@ export default function PlayerStatusBar({
     <motion.div 
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="fixed top-0 left-0 w-full h-24 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/50 z-50 flex items-center justify-between px-10 shadow-[0_10px_50px_rgba(0,0,0,0.5)]"
+      className={`fixed ${impersonatedPlayerId ? 'top-12' : 'top-0'} left-0 w-full h-24 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/50 z-50 flex items-center justify-between px-10 shadow-[0_10px_50px_rgba(0,0,0,0.5)] transition-all duration-300`}
     >
       {/* Left Section: Stats & Reputation */}
       <div className="flex items-center gap-8">
@@ -162,7 +162,7 @@ export default function PlayerStatusBar({
                  initial={{ scale: 0 }}
                  animate={{ scale: 1 }}
                  exit={{ scale: 0 }}
-                 className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-zinc-900 shadow-lg"
+                 className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-zinc-950 shadow-lg"
                />
              )}
            </AnimatePresence>
@@ -216,7 +216,7 @@ export default function PlayerStatusBar({
         {/* Logout */}
         <button 
           onClick={onLogout}
-          className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-red-500 hover:border-red-500/50 transition-all shadow-xl group"
+          className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-600 hover:text-red-500 hover:border-red-500/50 transition-all shadow-xl group"
           title="Sair da Jornada"
         >
           <LogOut className="w-5 h-5 transition-transform group-hover:translate-x-1" />

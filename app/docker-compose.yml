@@ -11,10 +11,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://fp_user:fp_password@db_postgres:5432/fantasy_portal_db?schema=public
-      - REDIS_URL=redis://cache_redis:6379
+    env_file:
+      - .env
     command: sh -c "npm install && npm run dev"
     restart: unless-stopped
     networks:
