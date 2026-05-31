@@ -3,18 +3,24 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2, LogOut, ShieldCheck, Eye, X } from 'lucide-react';
+import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2, LogOut, ShieldCheck, Eye, X, User } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import JourneyDetailsModal from './JourneyDetailsModal';
+import UserProfileModal from './UserProfileModal';
 
 export default function MainMenu() {
   const { data: session } = useSession();
   const router = useRouter();
-  const { hasHydrated, loadJourney, resetGame, startGame, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation } = useGameStore();
+  const { 
+    hasHydrated, loadJourney, resetGame, startGame, 
+    impersonatedPlayerId, impersonatedPlayerName, stopImpersonation 
+  } = useGameStore();
+  
   const [journeys, setJourneys] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJourneyForSettings, setSelectedJourneyForSettings] = useState<any | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const fetchJourneys = useCallback(async () => {
     if (!hasHydrated) return;
@@ -116,6 +122,15 @@ export default function MainMenu() {
                 className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
               >
                 <ShieldCheck className="w-4 h-4 group-hover:scale-110 transition-transform" /> Câmara do Mestre
+              </button>
+            )}
+
+            {!impersonatedPlayerId && (
+              <button 
+                onClick={() => setIsProfileOpen(true)}
+                className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
+              >
+                <User className="w-4 h-4 group-hover:scale-110 transition-transform" /> Identidade
               </button>
             )}
 
@@ -242,6 +257,12 @@ export default function MainMenu() {
           </div>
         </div>
       </div>
+
+      {/* User Profile Modal */}
+      <UserProfileModal 
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+      />
 
       {/* Details/Settings Modal for Menu */}
       <JourneyDetailsModal 

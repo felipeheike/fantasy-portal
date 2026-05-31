@@ -336,7 +336,7 @@ export const useGameStore = create<GameState>()(
       stopImpersonation: () => set({ impersonatedPlayerId: null, impersonatedPlayerName: null }),
 
       resetGame: () => {
-        set({
+        set((state) => ({
           status: initialStatus,
           inventory: [],
           history: [],
@@ -347,14 +347,15 @@ export const useGameStore = create<GameState>()(
           memories: [],
           notificationHistory: [],
           statusHistory: [],
-          impersonatedPlayerId: null,
-          impersonatedPlayerName: null,
+          // Preserve supervision mode
+          impersonatedPlayerId: state.impersonatedPlayerId,
+          impersonatedPlayerName: state.impersonatedPlayerName,
           isGameStarted: false,
           isSetupMode: false,
           lastPendingChoice: null,
           lockedItemName: null,
           hasHydrated: true,
-        });
+        }));
       },
     }),
     {
