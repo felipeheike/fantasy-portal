@@ -48,6 +48,13 @@ export default function MainMenu() {
     }
   };
 
+  const handleHardReset = () => {
+    if (confirm('ISSO APAGARÁ O CACHE LOCAL DO SEU NAVEGADOR. Use apenas se os dados parecerem incorretos ou se o jogo estiver travado. As jornadas no servidor serão preservadas. Continuar?')) {
+      localStorage.removeItem('fantasy-portal-storage');
+      window.location.reload();
+    }
+  };
+
   const openSettings = (journey: any, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedJourneyForSettings(journey);
@@ -121,51 +128,63 @@ export default function MainMenu() {
                  <p className="text-zinc-500 font-serif italic text-lg">Nenhuma alma atravessou este portal ainda...</p>
               </div>
             ) : (
-              <AnimatePresence>
-                {journeys.map((j, i) => (
-                  <motion.div
-                    key={j.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    onClick={() => loadJourney(j.id, j)}
-                    className="p-6 bg-zinc-900/50 border border-zinc-800 hover:border-primary/40 hover:bg-zinc-800/80 rounded-3xl transition-all group cursor-pointer flex items-center justify-between"
+              <div className="space-y-4">
+                <AnimatePresence>
+                  {journeys.map((j, i) => (
+                    <motion.div
+                      key={j.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      onClick={() => loadJourney(j.id, j)}
+                      className="p-6 bg-zinc-900/50 border border-zinc-800 hover:border-primary/40 hover:bg-zinc-800/80 rounded-3xl transition-all group cursor-pointer flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                            <Swords className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h4 className="text-xl font-black text-zinc-200 tracking-tight">{j.flags?.playerName || j.name || 'Herói Sem Nome'}</h4>
+                            <div className="flex items-center gap-3 text-[10px] uppercase font-bold text-zinc-600 mt-1">
+                              <span className="text-primary">{j.genre}</span>
+                              <span className="w-1 h-1 bg-zinc-800 rounded-full" />
+                              <span>{new Date(j.updatedAt).toLocaleDateString()}</span>
+                              <span className="w-1 h-1 bg-zinc-800 rounded-full" />
+                              <span>{j.history?.length || 0} Passos</span>
+                            </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={(e) => openSettings(j, e)}
+                          className="p-3 bg-zinc-950 rounded-xl text-zinc-600 hover:text-zinc-200 hover:bg-zinc-800 transition-all border border-zinc-800"
+                          title="Configurações da Sessão"
+                        >
+                          <Settings2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => handleDelete(j.id, e)}
+                          className="p-3 bg-zinc-950 rounded-xl text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all border border-zinc-800"
+                          title="Apagar Registro"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                
+                {/* Troubleshooting Button */}
+                <div className="pt-10 flex justify-center">
+                  <button 
+                    onClick={handleHardReset}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-950/20 text-red-500/50 hover:bg-red-500 hover:text-white transition-all rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20"
                   >
-                    <div className="flex items-center gap-6">
-                       <div className="w-14 h-14 bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                          <Swords className="w-6 h-6" />
-                       </div>
-                       <div>
-                          <h4 className="text-xl font-black text-zinc-200 tracking-tight">{j.flags?.playerName || j.name || 'Herói Sem Nome'}</h4>
-                          <div className="flex items-center gap-3 text-[10px] uppercase font-bold text-zinc-600 mt-1">
-                             <span className="text-primary">{j.genre}</span>
-                             <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                             <span>{new Date(j.updatedAt).toLocaleDateString()}</span>
-                             <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                             <span>{j.history?.length || 0} Passos</span>
-                          </div>
-                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={(e) => openSettings(j, e)}
-                        className="p-3 bg-zinc-950 rounded-xl text-zinc-600 hover:text-zinc-200 hover:bg-zinc-800 transition-all border border-zinc-800"
-                        title="Configurações da Sessão"
-                      >
-                        <Settings2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={(e) => handleDelete(j.id, e)}
-                        className="p-3 bg-zinc-950 rounded-xl text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all border border-zinc-800"
-                        title="Apagar Registro"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                    <Trash2 className="w-3 h-3" /> Limpar Memória do Navegador (Cache)
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -176,7 +195,7 @@ export default function MainMenu() {
         isOpen={!!selectedJourneyForSettings}
         onClose={() => {
           setSelectedJourneyForSettings(null);
-          fetchJourneys(); // Refresh to pick up updated settings if they were saved (though currently they persist only on load)
+          fetchJourneys(); 
         }}
         settings={selectedJourneyForSettings?.settings || selectedJourneyForSettings?.flags}
         historyCount={selectedJourneyForSettings?.history?.length || 0}

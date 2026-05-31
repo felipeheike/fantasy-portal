@@ -367,8 +367,14 @@ export default function GamePage() {
   }, [isGameStarted, currentJourneyId, settings, setJourneyId]);
 
   // Sync state to DB on changes
+  const lastSyncedRef = useRef<string>('');
+
   useEffect(() => {
-    if (currentJourneyId && history.length > 0) {
+    if (currentJourneyId && history.length > 0 && hasHydrated) {
+      // Prevent syncing the exact same state we just loaded or already synced
+      const currentStateString = JSON.stringify({ history, status, inventory });
+      if (currentStateString === lastSyncedRef.current) return;
+
       const timer = setTimeout(() => {
         console.log("DB_SYNC: Sending update to server...");
         fetch(`/api/journey/${currentJourneyId}`, {
@@ -382,11 +388,15 @@ export default function GamePage() {
             memories,
             settings 
           })
-        });
-      }, 2000);
+        })
+        .then(() => {
+          lastSyncedRef.current = currentStateString;
+        })
+        .catch(err => console.error("DB_SYNC_ERR:", err));
+      }, 3000); // Increased debounce to be safe
       return () => clearTimeout(timer);
     }
-  }, [history, status, inventory, currentJourneyId, flags, memories, settings]);
+  }, [history, status, inventory, currentJourneyId, flags, memories, settings, hasHydrated]);
 
   // Auto-trigger first scene
   useEffect(() => {
