@@ -8,6 +8,7 @@ import PlayerStatusBar from '@/components/game/PlayerStatusBar';
 import InventoryPanel from '@/components/game/InventoryPanel';
 import SkillsPanel from '@/components/game/SkillsPanel';
 import InfluencePanel from '@/components/game/InfluencePanel';
+import NotificationsPanel from '@/components/game/NotificationsPanel';
 import JourneySetup from '@/components/game/JourneySetup';
 import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
@@ -16,7 +17,7 @@ import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { NarrativeScene, NarrativeOption } from '@/types';
-import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw } from 'lucide-react';
+import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, Scale } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const sceneSchema = z.object({
@@ -87,12 +88,13 @@ export default function GamePage() {
     settings, currentJourneyId, setJourneyId, history,
     inventory, resetGame, loadJourney, hasHydrated,
     setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError,
-    flags, memories
+    flags, memories, addNotification
   } = useGameStore();
 
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isInfluenceOpen, setIsInfluenceOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [persistentError, setPersistentError] = useState<string | null>(null);
@@ -200,7 +202,6 @@ export default function GamePage() {
         // --- DETECT CHANGES FOR NOTIFICATIONS ---
         const currentInventory = [...useGameStore.getState().inventory];
         const currentStatus = { ...useGameStore.getState().status };
-        const currentReputations = { ...(currentStatus.reputations || {}) };
 
         // 1. Check for removed items (Consumption or Breaking)
         if (scene.inventoryChanges?.removed?.length) {
@@ -211,13 +212,17 @@ export default function GamePage() {
              );
              if (item) {
                if (item.type === 'consumable') {
-                 toast(`🧪 ${item.name} consumido(a).`);
+                 const title = `🧪 ${item.name} consumido(a)`;
+                 toast(title);
+                 addNotification({ type: 'item', title, description: `Efeito aplicado conforme narração.` });
                } else if (item.type === 'weapon' || item.type === 'armor') {
-                 toast.error(`⚔️ Sua ${item.name} se quebrou!`, {
-                   description: "O item foi removido do seu inventário."
-                 });
+                 const title = `⚔️ Sua ${item.name} se quebrou!`;
+                 toast.error(title, { description: "O item foi removido do seu inventário." });
+                 addNotification({ type: 'status', title, description: `O equipamento atingiu o limite de durabilidade.` });
                } else {
-                 toast(`🎒 Item removido: ${item.name}`);
+                 const title = `🎒 Item removido: ${item.name}`;
+                 toast(title);
+                 addNotification({ type: 'item', title });
                }
              }
           });
@@ -226,10 +231,12 @@ export default function GamePage() {
         // 2. Check for added items
         if (scene.inventoryChanges?.added?.length) {
           scene.inventoryChanges.added.forEach(item => {
-            toast.success(`✨ Item Encontrado: ${item.name}`, {
+            const title = `✨ Item Encontrado: ${item.name}`;
+            toast.success(title, {
               description: item.description,
-              icon: <Package className="w-4 h-4" />
+              icon: <Package className="w-4 h-4 text-emerald-500" />
             });
+            addNotification({ type: 'item', title, description: item.description });
           });
         }
 
@@ -238,13 +245,13 @@ export default function GamePage() {
           Object.entries(scene.statusChanges.reputations).forEach(([name, value]) => {
             const val = value as number;
             if (val > 0) {
-              toast.success(`⚖️ Fama aumentada em ${name}`, {
-                description: `Sua reputação subiu [+${val}]`
-              });
+              const title = `⚖️ Fama aumentada em ${name}`;
+              toast.success(title, { description: `Sua reputação subiu [+${val}]` });
+              addNotification({ type: 'reputation', title, description: `Reputação local: +${val}` });
             } else if (val < 0) {
-              toast.error(`⚖️ Fama diminuída em ${name}`, {
-                description: `Sua reputação caiu [${val}]`
-              });
+              const title = `⚖️ Fama diminuída em ${name}`;
+              toast.error(title, { description: `Sua reputação caiu [${val}]` });
+              addNotification({ type: 'reputation', title, description: `Reputação local: ${val}` });
             }
           });
         }
@@ -252,25 +259,36 @@ export default function GamePage() {
         // 4. Check for Global Moral (Karma)
         if (scene.statusChanges?.moral) {
            const val = scene.statusChanges.moral;
-           if (val > 0) toast("🌟 Sua alma brilha com um ato de bondade.", { icon: <Sparkles className="w-4 h-4 text-primary" /> });
-           else if (val < 0) toast("🌑 Uma sombra escurece seu coração.", { icon: <ShieldAlert className="w-4 h-4 text-purple-500" /> });
+           if (val > 0) {
+             const title = "🌟 Ato de Bondade";
+             toast(title, { icon: <Sparkles className="w-4 h-4 text-primary" />, description: "Sua alma brilha." });
+             addNotification({ type: 'moral', title, description: "Seu alinhamento moral subiu." });
+           } else if (val < 0) {
+             const title = "🌑 Ato de Crueldade";
+             toast(title, { icon: <ShieldAlert className="w-4 h-4 text-purple-500" />, description: "Uma sombra escurece seu coração." });
+             addNotification({ type: 'moral', title, description: "Seu alinhamento moral caiu." });
+           }
         }
 
         // 5. Check for World Memories
         if (scene.worldUpdate?.memories?.length) {
           scene.worldUpdate.memories.forEach(m => {
-            toast(`📜 Fato registrado: ${m.substring(0, 40)}...`, {
-              description: "Sua lenda foi atualizada com uma nova memória."
-            });
+            const title = "📜 Memória Gravada";
+            toast(title, { description: `${m.substring(0, 40)}...` });
+            addNotification({ type: 'memory', title, description: m });
           });
         }
 
         // 6. Critical Status Alerts
         if (scene.statusChanges?.hp !== undefined && scene.statusChanges.hp <= currentStatus.maxHp * 0.25 && scene.statusChanges.hp > 0) {
-           toast.error("🩸 Vitalidade Crítica!", { description: "Você está à beira da morte!" });
+           const title = "🩸 Vitalidade Crítica!";
+           toast.error(title, { description: "Você está à beira da morte!" });
+           addNotification({ type: 'status', title, description: "Seu HP está muito baixo." });
         }
         if (scene.statusChanges?.sp !== undefined && scene.statusChanges.sp === 0) {
-           toast.warning("😫 Exaustão Total!", { description: "Você gastou todo o seu fôlego." });
+           const title = "😫 Exaustão Total!";
+           toast.warning(title, { description: "Você gastou todo o seu fôlego." });
+           addNotification({ type: 'status', title, description: "Sua estamina chegou a zero." });
         }
 
         // --- APPLY CHANGES ---
@@ -398,6 +416,7 @@ export default function GamePage() {
         onToggleInventory={() => setIsInventoryOpen(true)} 
         onToggleSkills={() => setIsSkillsOpen(true)}
         onToggleInfluence={() => setIsInfluenceOpen(true)}
+        onToggleNotifications={() => setIsNotificationsOpen(true)}
         onToggleSettings={() => setIsDetailsOpen(true)}
         onLogout={() => resetGame()}
       />
@@ -494,6 +513,7 @@ export default function GamePage() {
       <InventoryPanel isOpen={isInventoryOpen} onClose={() => setIsInventoryOpen(false)} />
       <SkillsPanel isOpen={isSkillsOpen} onClose={() => setIsSkillsOpen(false)} />
       <InfluencePanel isOpen={isInfluenceOpen} onClose={() => setIsInfluenceOpen(false)} />
+      <NotificationsPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
       <JourneyDetailsModal 
         isOpen={isDetailsOpen} 
         onClose={() => setIsDetailsOpen(false)} 

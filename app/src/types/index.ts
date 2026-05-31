@@ -112,8 +112,11 @@ export interface TacticalOptions {
   availableSkills?: string[]; // IDs from skills
 }
 
-export interface NarrativeOption {
+export interface GameNotification {
   id: string;
-  label: string;
-  type: 'binary' | 'ternary' | 'quaternary' | 'composite' | 'interpretative' | 'combined';
+  type: 'item' | 'skill' | 'reputation' | 'moral' | 'memory' | 'status' | 'info';
+  title: string;
+  description?: string;
+  timestamp: number;
+  read: boolean;
 }

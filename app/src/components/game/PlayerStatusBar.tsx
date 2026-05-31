@@ -12,7 +12,8 @@ import {
   ShieldCheck, 
   Settings2, 
   LogOut,
-  Swords
+  Swords,
+  Bell
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -20,6 +21,7 @@ interface PlayerStatusBarProps {
   onToggleInventory: () => void;
   onToggleSkills: () => void;
   onToggleInfluence: () => void;
+  onToggleNotifications: () => void;
   onToggleSettings: () => void;
   onLogout: () => void;
 }
@@ -28,11 +30,14 @@ export default function PlayerStatusBar({
   onToggleInventory, 
   onToggleSkills, 
   onToggleInfluence,
+  onToggleNotifications,
   onToggleSettings,
   onLogout
 }: PlayerStatusBarProps) {
-  const { status, inventory } = useGameStore();
+  const { status, inventory, notificationHistory } = useGameStore();
   const [isCritical, setIsCritical] = useState(false);
+
+  const unreadCount = notificationHistory.filter(n => !n.read).length;
 
   useEffect(() => {
     setIsCritical(status.hp <= status.maxHp * 0.25);
@@ -134,6 +139,25 @@ export default function PlayerStatusBar({
 
       {/* Right Section: Control Buttons */}
       <div className="flex items-center gap-3">
+        {/* Notifications (Bell) */}
+        <button 
+          onClick={onToggleNotifications}
+          className="relative p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary hover:border-primary/50 transition-all shadow-xl group"
+          title="Histórico de Notificações"
+        >
+          <Bell className="w-5 h-5 transition-transform group-hover:rotate-12" />
+          <AnimatePresence>
+             {unreadCount > 0 && (
+               <motion.span 
+                 initial={{ scale: 0 }}
+                 animate={{ scale: 1 }}
+                 exit={{ scale: 0 }}
+                 className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-zinc-900 shadow-lg"
+               />
+             )}
+           </AnimatePresence>
+        </button>
+
         {/* Settings */}
         <button 
           onClick={onToggleSettings}

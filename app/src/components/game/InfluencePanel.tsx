@@ -1,6 +1,6 @@
 'use client';
 
-import { useGameStore, INVENTORY_CAPACITY } from '@/store/gameStore';
+import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
@@ -13,7 +13,8 @@ import {
   TrendingUp,
   TrendingDown,
   Info,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -25,6 +26,7 @@ interface InfluencePanelProps {
 export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps) {
   const { status } = useGameStore();
   const reputations = status.reputations || {};
+  const globalMoral = status.moral || 0;
   
   // Categorize reputations
   const categorized = Object.entries(reputations).reduce((acc: any, [name, value]) => {
@@ -38,6 +40,8 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
     }
     return acc;
   }, { people: [], places: [], factions: [] });
+
+  const hasGranularReputations = Object.keys(reputations).length > 0;
 
   const renderReputationList = (items: { name: string, value: number }[], icon: any, title: string) => {
     if (items.length === 0) return null;
@@ -100,9 +104,8 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-full max-w-md bg-zinc-900 border-r border-zinc-800 shadow-2xl z-[130] flex flex-col"
+            className="fixed left-0 top-0 h-full w-full max-w-md bg-zinc-950 border-r border-zinc-800 shadow-2xl z-[130] flex flex-col"
           >
-
             {/* Header */}
             <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30 backdrop-blur-md">
               <div className="flex items-center gap-4">
@@ -124,7 +127,52 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-8 space-y-12 custom-scrollbar">
-              {Object.keys(reputations).length === 0 ? (
+              {/* Summary Card - ALWAYS VISIBLE */}
+              <div className="p-8 bg-gradient-to-br from-zinc-800 to-zinc-950 rounded-[40px] border border-zinc-700/50 relative overflow-hidden shadow-2xl">
+                  <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12">
+                    <Scale className="w-40 h-40" />
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-2">Karma Global</p>
+                  <div className="flex items-end gap-3">
+                    <h3 className="text-6xl font-black text-white tracking-tighter">
+                      {status.moral > 0 ? `+${status.moral}` : status.moral}
+                    </h3>
+                    <div className="mb-2">
+                        <p className={`text-xs font-black uppercase tracking-widest ${status.moral > 0 ? 'text-green-500' : status.moral < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                          {status.moral > 15 ? 'Lendário' : status.moral > 5 ? 'Benevolente' : status.moral < -15 ? 'Infame' : status.moral < -5 ? 'Cruel' : 'Neutro'}
+                        </p>
+                        <div className="flex gap-0.5 mt-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className={`w-3 h-1 rounded-full ${i < Math.abs(status.moral) / 4 ? (status.moral > 0 ? 'bg-green-500' : 'bg-red-500') : 'bg-zinc-800'}`} />
+                          ))}
+                        </div>
+                    </div>
+                  </div>
+              </div>
+
+              {!hasGranularReputations && globalMoral !== 0 ? (
+                /* Fallback entry if IA forgot reputations but updated global moral */
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 ml-2 flex items-center gap-2">
+                    <Globe className="w-3 h-3 text-blue-500" /> Reputação Mundial
+                  </h3>
+                  <div className="p-4 bg-zinc-800/40 border border-zinc-700/50 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                       <div className={`p-2 rounded-lg ${globalMoral > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                          {globalMoral > 0 ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                       </div>
+                       <div>
+                          <p className="text-sm font-bold text-zinc-200">Essência da Jornada</p>
+                          <p className="text-[9px] uppercase font-black text-zinc-600">Impacto Geral no Destino</p>
+                       </div>
+                    </div>
+                    <div className="text-right text-xs font-mono font-bold text-zinc-400">
+                      {globalMoral > 0 ? `+${globalMoral}` : globalMoral}
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-zinc-700 italic px-2">Nota: O Narrador ainda não identificou entidades específicas para estas ações.</p>
+                </div>
+              ) : !hasGranularReputations ? (
                 <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
                   <div className="relative mb-6">
                     <Users className="w-20 h-20 text-zinc-700" />
@@ -141,29 +189,6 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
                 </div>
               ) : (
                 <>
-                  {/* Summary Card */}
-                  <div className="p-8 bg-gradient-to-br from-zinc-800 to-zinc-950 rounded-[40px] border border-zinc-700/50 relative overflow-hidden shadow-2xl">
-                     <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12">
-                        <Scale className="w-40 h-40" />
-                     </div>
-                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-2">Karma Global</p>
-                     <div className="flex items-end gap-3">
-                        <h3 className="text-6xl font-black text-white tracking-tighter">
-                          {status.moral > 0 ? `+${status.moral}` : status.moral}
-                        </h3>
-                        <div className="mb-2">
-                           <p className={`text-xs font-black uppercase tracking-widest ${status.moral > 0 ? 'text-green-500' : status.moral < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
-                              {status.moral > 15 ? 'Lendário' : status.moral > 5 ? 'Benevolente' : status.moral < -15 ? 'Infame' : status.moral < -5 ? 'Cruel' : 'Neutro'}
-                           </p>
-                           <div className="flex gap-0.5 mt-1">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className={`w-3 h-1 rounded-full ${i < Math.abs(status.moral) / 4 ? (status.moral > 0 ? 'bg-green-500' : 'bg-red-500') : 'bg-zinc-800'}`} />
-                              ))}
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
                   {renderReputationList(categorized.people, <Users className="w-3.5 h-3.5 text-blue-500" />, "Personagens Conhecidos")}
                   {renderReputationList(categorized.places, <MapPin className="w-3.5 h-3.5 text-emerald-500" />, "Locais e Regiões")}
                   {renderReputationList(categorized.factions, <Flag className="w-3.5 h-3.5 text-purple-500" />, "Facções e Alianças")}

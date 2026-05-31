@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { PlayerStatus, InventoryItem, NarrativeScene, JourneySettings } from '@/types';
+import { PlayerStatus, InventoryItem, NarrativeScene, JourneySettings, GameNotification } from '@/types';
 
 interface GameState {
   status: PlayerStatus;
@@ -11,6 +11,7 @@ interface GameState {
   currentJourneyId: string | null;
   flags: Record<string, any>; // World Knowledge Graph
   memories: string[]; // Key lore points
+  notificationHistory: GameNotification[]; // New: Log of all events
   isGameStarted: boolean;
   isSetupMode: boolean;
   hasHydrated: boolean;
@@ -35,6 +36,9 @@ interface GameState {
   updateSceneImage: (sceneId: string, imageUrl: string) => void;
   updateSceneAudio: (sceneId: string, audioUrl: string) => void;
   setImageError: (sceneId: string, hasError: boolean) => void;
+  addNotification: (notification: Omit<GameNotification, 'id' | 'timestamp' | 'read'>) => void;
+  markNotificationsAsRead: () => void;
+  clearNotifications: () => void;
   resetGame: () => void;
 }
 
@@ -50,6 +54,7 @@ const initialStatus: PlayerStatus = {
 };
 
 export const INVENTORY_CAPACITY = 10;
+export const MAX_NOTIFICATIONS = 50;
 
 export const useGameStore = create<GameState>()(
   persist(
@@ -62,6 +67,7 @@ export const useGameStore = create<GameState>()(
       currentJourneyId: null,
       flags: {},
       memories: [],
+      notificationHistory: [],
       isGameStarted: false,
       isSetupMode: false,
       hasHydrated: false,
@@ -81,8 +87,9 @@ export const useGameStore = create<GameState>()(
         console.log("STORE: Loading Journey", id);
         const loadedHistory = data.history || [];
         
-        // Deduplicate inventory on load to fix existing corruption
-        const rawInventory = (data.inventory || []) as InventoryItem[];
+        // Data usually comes from the 'player' relation included in the API
+        const playerData = data.player || {};
+        const rawInventory = (playerData.inventory || []) as InventoryItem[];
         const deduplicatedInventory = rawInventory.reduce((acc: InventoryItem[], item) => {
           const existing = acc.find(i => i.id === item.id);
           if (existing) {
@@ -94,14 +101,14 @@ export const useGameStore = create<GameState>()(
           return acc;
         }, []);
 
-        const loadedStatus = data.playerStatus || initialStatus;
+        const loadedStatus = playerData.status || initialStatus;
 
         set({
           currentJourneyId: id,
           isGameStarted: true,
           isSetupMode: false,
           settings: {
-            playerName: data.name || data.flags?.playerName,
+            playerName: data.flags?.playerName || playerData.name,
             genre: data.genre,
             ...data.settings,
             enableImages: data.settings?.enableImages ?? data.flags?.enableImages ?? true,
@@ -116,6 +123,7 @@ export const useGameStore = create<GameState>()(
           inventory: deduplicatedInventory,
           flags: data.flags || {},
           memories: data.memories || [],
+          notificationHistory: data.settings?.notificationHistory || [],
         });
       },
 
@@ -150,7 +158,6 @@ export const useGameStore = create<GameState>()(
           const existingIndex = state.inventory.findIndex(i => i.id === item.id);
           
           if (existingIndex > -1) {
-            // Stack item quantity
             const updatedInventory = [...state.inventory];
             updatedInventory[existingIndex] = {
               ...updatedInventory[existingIndex],
@@ -201,7 +208,6 @@ export const useGameStore = create<GameState>()(
             updatedStatus.combatPower = statusChanges.combatPower !== undefined ? statusChanges.combatPower : state.status.combatPower;
             updatedStatus.moral = state.status.moral + (statusChanges.moral || 0);
 
-            // Granular Reputations from AI
             if ((statusChanges as any).reputations) {
               const reps = { ...(updatedStatus.reputations || {}) };
               Object.entries((statusChanges as any).reputations).forEach(([name, val]: [string, any]) => {
@@ -211,7 +217,6 @@ export const useGameStore = create<GameState>()(
             }
           }
           
-          // Process flags and memories
           let updatedFlags = { ...state.flags };
           let updatedMemories = [...state.memories];
 
@@ -226,12 +231,14 @@ export const useGameStore = create<GameState>()(
             }
           }
 
-          // Process inventory changes
           let updatedInventory = [...state.inventory];
           if (scene.inventoryChanges) {
             if (scene.inventoryChanges.removed) {
               updatedInventory = updatedInventory.filter(item => 
-                !scene.inventoryChanges!.removed.includes(item.id)
+                !scene.inventoryChanges!.removed.some(nameToRemove => 
+                  item.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 
+                  nameToRemove.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                )
               );
             }
             if (scene.inventoryChanges.added) {
@@ -254,7 +261,6 @@ export const useGameStore = create<GameState>()(
             }
           }
 
-          // Process skill changes
           if (scene.skillChanges) {
             scene.skillChanges.forEach(newSkill => {
               const existingIndex = updatedStatus.skills.findIndex(s => s.id === newSkill.id);
@@ -334,6 +340,25 @@ export const useGameStore = create<GameState>()(
           };
         }),
 
+      addNotification: (notification) => 
+        set((state) => {
+          const newNotif = {
+            ...notification,
+            id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: Date.now(),
+            read: false
+          };
+          const updatedHistory = [newNotif, ...state.notificationHistory].slice(0, MAX_NOTIFICATIONS);
+          return { notificationHistory: updatedHistory };
+        }),
+
+      markNotificationsAsRead: () =>
+        set((state) => ({
+          notificationHistory: state.notificationHistory.map(n => ({ ...n, read: true }))
+        })),
+
+      clearNotifications: () => set({ notificationHistory: [] }),
+
       resetGame: () => {
         console.log("STORE: Resetting Game");
         set({
@@ -345,6 +370,7 @@ export const useGameStore = create<GameState>()(
           currentJourneyId: null,
           flags: {},
           memories: [],
+          notificationHistory: [],
           isGameStarted: false,
           isSetupMode: false,
           lastPendingChoice: null,
@@ -370,7 +396,8 @@ export const useGameStore = create<GameState>()(
         currentScene: state.currentScene,
         lastPendingChoice: state.lastPendingChoice,
         flags: state.flags,
-        memories: state.memories
+        memories: state.memories,
+        notificationHistory: state.notificationHistory
       }),
     }
   )
