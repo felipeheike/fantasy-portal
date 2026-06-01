@@ -1,0 +1,40 @@
+services:
+  node_app:
+    container_name: fantasy_portal_node_dev
+    # Em desenvolvimento, usamos a imagem base diretamente para agilidade
+    image: node:22-alpine
+    working_dir: /app
+    ports:
+      - "25039:3000"
+    # Mapeamos o código local para hot-reload
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # Sobrescrevemos o comando para rodar o servidor de desenvolvimento
+    command: sh -c "npm install && npx prisma generate && npm run dev"
+    # Adicionamos variáveis extras para dev se necessário
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      - NEXTAUTH_URL=http://localhost:25039
+
+  # PostgreSQL Database (Dev)
+  db_postgres:
+    container_name: fantasy_portal_db_dev
+
+  # Redis Cache (Dev)
+  cache_redis:
+    container_name: fantasy_portal_redis_dev
+
+  # pgAdmin (Dev ports and name)
+  pgadmin:
+    container_name: fantasy_portal_pgadmin_dev
+    ports:
+      - "25040:80"
+
+  # MinIO (Dev ports and name)
+  storage_minio:
+    container_name: fantasy_portal_minio_dev
+    ports:
+      - "25041:9000"
+      - "25042:9001"

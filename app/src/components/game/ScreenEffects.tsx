@@ -88,7 +88,7 @@ export default function ScreenEffects() {
             key="critical-pulse"
             animate={{ 
               opacity: [0.2, 0.5, 0.2],
-              shadow: [
+              boxShadow: [
                 'inset 0 0 100px rgba(220,38,38,0.3)',
                 'inset 0 0 150px rgba(220,38,38,0.5)',
                 'inset 0 0 100px rgba(220,38,38,0.3)'

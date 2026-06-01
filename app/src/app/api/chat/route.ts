@@ -48,7 +48,7 @@ const sceneSchema = z.object({
     spSource: z.string().optional().describe('Fonte do gasto ou ganho de estamina (ex: "Salto Acrobático", "Descanso").'),
     combatPower: z.number().optional(),
     moral: z.number().optional().describe('Alteração no Karma Global.'),
-    reputations: z.record(z.number()).optional().describe('Alterações em reputações locais (NPCs, Cidades).')
+    reputations: z.record(z.string(), z.number()).optional().describe('Alterações em reputações locais (NPCs, Cidades).')
   }).optional(),
   inventoryChanges: z.object({
     added: z.array(z.object({
@@ -71,7 +71,7 @@ const sceneSchema = z.object({
     icon: z.string().optional()
   })).optional(),
   worldUpdate: z.object({
-    flags: z.record(z.any()).optional().describe('Atualização de flags globais do mundo (ex: { "taverna_queimada": true }).'),
+    reputations: z.record(z.string(), z.number()).optional().describe('Atualização de flags globais do mundo (ex: { "taverna_queimada": true }).'),
     memories: z.array(z.string()).optional().describe('Memórias importantes para o World Knowledge Graph.')
   }).optional(),
   isGameOver: z.boolean(),

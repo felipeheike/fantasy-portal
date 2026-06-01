@@ -1,22 +1,23 @@
 version: '3.8'
 
 services:
-  # Next.js Application
+  # Next.js Application (Production by default)
   node_app:
     container_name: fantasy_portal_node
-    image: node:22-alpine
-    working_dir: /app
-    ports:
-      - "25035:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file:
       - .env
-    command: sh -c "npm install && npm run dev"
+    environment:
+      - NODE_ENV=production
+      - WATCHPACK_POLLING=false
     restart: unless-stopped
     networks:
       - duplecake-net
+    depends_on:
+      - db_postgres
+      - cache_redis
 
   # PostgreSQL Database
   db_postgres:
@@ -27,7 +28,7 @@ services:
       POSTGRES_PASSWORD: fp_password
       POSTGRES_DB: fantasy_portal_db
     volumes:
-      - ./database/postgres:/var/lib/postgresql/data
+      - ./database/${FP_ENV:-prd}/postgres:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - duplecake-net
@@ -37,7 +38,7 @@ services:
     container_name: fantasy_portal_redis
     image: redis:7-alpine
     volumes:
-      - ./database/redis:/data
+      - ./database/${FP_ENV:-prd}/redis:/data
     restart: unless-stopped
     networks:
       - duplecake-net
@@ -51,11 +52,9 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: 'True'
-    ports:
-      - "25036:80"
     volumes:
-      - ./database/pgadmin/servers.json:/pgadmin4/servers.json
-      - ./database/pgadmin/pgpass:/var/lib/pgadmin/pgpass
+      - ./database/${FP_ENV:-prd}/pgadmin/servers.json:/pgadmin4/servers.json
+      - ./database/${FP_ENV:-prd}/pgadmin/pgpass:/var/lib/pgadmin/pgpass
     networks:
       - duplecake-net
 
@@ -64,14 +63,11 @@ services:
     container_name: fantasy_portal_minio
     image: minio/minio
     restart: unless-stopped
-    ports:
-      - "25037:9000"
-      - "25038:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
-      - ./database/minio:/data
+      - ./database/${FP_ENV:-prd}/minio:/data
     command: server /data --console-address ":9001"
     networks:
       - duplecake-net

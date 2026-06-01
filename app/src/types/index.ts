@@ -131,3 +131,9 @@ export interface StatusLogEntry {
   timestamp: number;
   sceneId?: string;
 }
+
+export interface NarrativeOption {
+  id: string;
+  label: string;
+  type: 'binary' | 'ternary' | 'quaternary' | 'composite' | 'interpretative' | 'combined';
+}

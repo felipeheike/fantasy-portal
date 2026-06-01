@@ -69,7 +69,7 @@ const sceneSchema = z.object({
     spSource: z.string().optional(),
     combatPower: z.number().optional(), 
     moral: z.number().optional(),
-    reputations: z.record(z.number()).optional()
+    reputations: z.record(z.string(), z.number()).optional()
   }).optional(),
   inventoryChanges: z.object({
     added: z.array(z.object({
@@ -82,7 +82,7 @@ const sceneSchema = z.object({
     removed: z.array(z.string()).optional()
   }).optional(),
   worldUpdate: z.object({
-    flags: z.record(z.any()).optional(),
+    flags: z.record(z.string(), z.any()).optional(),
     memories: z.array(z.string()).optional()
   }).optional(),
   isGameOver: z.boolean(),

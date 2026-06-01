@@ -1,39 +1,70 @@
 SHELL := /bin/bash
-DOCKER_CONTAINER=fantasy_portal_node
-PROJECT_NAME=fantasy-portal
+PROJECT_NAME_DEV=fantasy_dev
+PROJECT_NAME_PRD=fantasy-portal
 
-ls: ls -la
+# Compose commands with environment variables for isolation
+COMPOSE_DEV=FP_ENV=dev docker compose -p $(PROJECT_NAME_DEV) -f docker-compose.yml -f docker-compose.dev.yml
+COMPOSE_PRD=FP_ENV=prd docker compose -p $(PROJECT_NAME_PRD) -f docker-compose.yml -f docker-compose.prd.yml
 
-all: build up
+ls:
+	ls -la
 
-build:
-	docker compose build
+# --- Development Commands ---
+dev:
+	$(COMPOSE_DEV) up -d
 
-up:
-	docker compose up -d
+dev-build:
+	$(COMPOSE_DEV) up -d --build
 
-down:
-	docker compose down
+dev-logs:
+	$(COMPOSE_DEV) logs -f
+
+dev-down:
+	$(COMPOSE_DEV) down
+
+# --- Production Commands ---
+prd:
+	$(COMPOSE_PRD) up -d --build
+
+prd-logs:
+	$(COMPOSE_PRD) logs -f
+
+prd-down:
+	$(COMPOSE_PRD) down
+
+# --- General Commands ---
+up: dev
+
+down: dev-down
 
 stop:
-	docker compose stop
+	$(COMPOSE_DEV) stop
 
 restart:
-	docker compose restart
+	$(COMPOSE_DEV) restart
 
 status:
-	docker compose ps
+	docker ps --filter "name=fantasy"
 
+# Execute into dev container
 p:
-	docker exec -it $(DOCKER_CONTAINER) sh
+	$(COMPOSE_DEV) exec node_app sh
 
-logs:
-	docker compose logs -f
+# Execute into prd container
+pp:
+	$(COMPOSE_PRD) exec node_app sh
 
-clean: down
+clean:
+	$(COMPOSE_DEV) down -v
+	$(COMPOSE_PRD) down -v
 	docker system prune -af
-	docker volume prune -f
 
-# Next.js specific helpers
-init-next:
-	docker exec -it $(DOCKER_CONTAINER) npx create-next-app@latest . --ts --tailwind --eslint --app --src-dir --import-alias "@/*"
+# Next.js specific helpers (using dev by default)
+prisma-gen:
+	$(COMPOSE_DEV) exec node_app npx prisma generate
+
+prisma-seed:
+	$(COMPOSE_DEV) exec node_app npm run prisma:seed
+
+prisma-migrate:
+	$(COMPOSE_DEV) exec node_app npx prisma migrate dev

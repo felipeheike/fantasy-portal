@@ -153,7 +153,7 @@ export default function MainMenu() {
           {/* New Game Card */}
           <motion.button
             whileHover={{ scale: 1.02, translateY: -5 }}
-            whileActive={{ scale: 0.98 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleNewGame}
             className="lg:col-span-1 h-full min-h-[300px] p-10 bg-white rounded-[40px] flex flex-col items-start justify-between text-left group shadow-2xl relative overflow-hidden"
           >

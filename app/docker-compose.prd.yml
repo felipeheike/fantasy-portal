@@ -1,0 +1,16 @@
+services:
+  # Next.js Application (Production ports)
+  node_app:
+    ports:
+      - "25035:3000"
+
+  # pgAdmin for Database Management
+  pgadmin:
+    ports:
+      - "25036:80"
+
+  # MinIO for Blob Storage
+  storage_minio:
+    ports:
+      - "25037:9000"
+      - "25038:9001"

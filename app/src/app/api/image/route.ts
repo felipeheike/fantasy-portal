@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
     // Retornamos a imagem original (binário) para manter compatibilidade com o frontend atual
     // O frontend pode ser atualizado posteriormente para usar assetUrl se preferir
-    return new Response(image.uint8Array, {
+    return new Response(Buffer.from(image.uint8Array), {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=31536000, immutable',
