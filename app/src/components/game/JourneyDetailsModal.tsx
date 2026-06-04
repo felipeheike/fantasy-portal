@@ -16,7 +16,8 @@ import {
   Sparkles,
   Cpu,
   Activity,
-  Zap
+  Zap,
+  Type
 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 
@@ -62,11 +63,28 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
     long: 'Jornada Longa (100+)'
   };
 
+  const narrativeDetailMap: Record<string, string> = {
+    short: 'Curto (1-2 parágrafos)',
+    medium: 'Médio (3-4 parágrafos)',
+    long: 'Longo (5-7 parágrafos)',
+    epic: 'Épico (8+ parágrafos)'
+  };
+
+  const readStyleMap: Record<string, string> = {
+    essential: 'Essencial',
+    fast: 'Rápido',
+    moderate: 'Médio',
+    detailed: 'Detalhado',
+    literary: 'Literário'
+  };
+
   const stats = [
     { label: 'Protagonista', value: settings.playerName, icon: User },
     { label: 'Estilo Visual', value: settings.visualStyle, icon: Palette },
     { label: 'Gênero', value: settings.genre, icon: BookOpen },
     { label: 'Tom Narrativo', value: settings.tone, icon: Target },
+    { label: 'Estilo Literário', value: readStyleMap[settings.readStyle] || settings.readStyle, icon: Type },
+    { label: 'Magnitude', value: narrativeDetailMap[settings.narrativeDetail] || settings.narrativeDetail || 'Médio', icon: Zap },
     { label: 'Tamanho Base', value: journeyLengthMap[settings.journeyLength] || settings.journeyLength, icon: Clock },
     { label: 'Cenas no Registro', value: historyCount.toString(), icon: ScrollText },
     { label: 'Sistema de Punição', value: settings.punishSystem?.replace(/_/g, ' ') || 'Não definido', icon: ShieldCheck },
@@ -88,7 +106,7 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="relative w-full max-w-3xl bg-zinc-950 border border-zinc-800 rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Header */}
             <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30">
@@ -110,17 +128,15 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {stats.map((stat, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 bg-zinc-900 rounded-3xl border border-zinc-800">
-                    <div className="p-3 bg-zinc-800 rounded-2xl text-primary">
-                      <stat.icon className="w-5 h-5" />
+                  <div key={i} className="flex flex-col gap-1.5 p-3 bg-zinc-900/50 rounded-2xl border border-zinc-800/50 hover:bg-zinc-900 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <stat.icon className="w-3 h-3 text-primary/70" />
+                      <p className="text-[8px] text-zinc-500 uppercase font-black tracking-widest leading-none">{stat.label}</p>
                     </div>
-                    <div>
-                      <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">{stat.label}</p>
-                      <p className="text-sm font-bold text-zinc-100 uppercase">{stat.value}</p>
-                    </div>
+                    <p className="text-[11px] font-bold text-zinc-200 uppercase truncate pl-5">{stat.value}</p>
                   </div>
                 ))}
               </div>

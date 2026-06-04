@@ -31,6 +31,7 @@ export default function JourneySetup() {
     narrativeStyle: 'epic',
     tone: 'dark',
     readStyle: 'moderate',
+    narrativeDetail: 'medium',
     enableImages: true,
     enableAudio: true
   });
@@ -190,6 +191,34 @@ export default function JourneySetup() {
               onClick={() => setForm({ ...form, readStyle: opt.id as any })}
               className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
                 form.readStyle === opt.id 
+                ? 'border-primary bg-primary/10' 
+                : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+              }`}
+            >
+              <div className="font-black uppercase tracking-tighter text-xs">{opt.label}</div>
+              <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+      )
+    },
+    {
+      title: "Magnitude Narrativa",
+      desc: "A extensão dos relatos do Mestre.",
+      icon: Type,
+      content: (
+        <div className="space-y-3">
+          {[
+            { id: 'short', label: 'Curto', desc: '1-2 parágrafos. Foco na objetividade.' },
+            { id: 'medium', label: 'Médio', desc: '3-4 parágrafos. Equilíbrio ideal.' },
+            { id: 'long', label: 'Longo', desc: '5-7 parágrafos. Rico em detalhes.' },
+            { id: 'epic', label: 'Épico', desc: '8+ parágrafos. Imersão literária total.' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setForm({ ...form, narrativeDetail: opt.id as any })}
+              className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
+                form.narrativeDetail === opt.id 
                 ? 'border-primary bg-primary/10' 
                 : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
               }`}

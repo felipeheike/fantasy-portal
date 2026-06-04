@@ -105,10 +105,19 @@ export async function POST(req: Request) {
     const effectiveLimit = baseLimit + (aprofundarCount * 10);
     const isExceeded = actualSceneCount >= effectiveLimit;
 
+    // MAGNITUDE NARRATIVA (VERBOSIDADE)
+    const narrativeDetail = playerContext?.settings?.narrativeDetail || 'medium';
+    const detailInstructions: Record<string, string> = {
+      short: "CURTO: 1-2 parágrafos objetivos. Foco na ação imediata.",
+      medium: "MÉDIO: 3-4 parágrafos. Equilíbrio entre descrição e fluidez.",
+      long: "LONGO: 5-7 parágrafos. Rico em detalhes sensoriais e ambientação.",
+      epic: "ÉPICO: 8+ parágrafos. Imersão literária total, monólogos internos e exploração profunda do cenário."
+    };
+
     console.log(
       'LOG: Chat Request [Player:', playerContext?.settings?.playerName, 
       '| Step:', actualSceneCount, 
-      '| Limit:', effectiveLimit, ']'
+      '| Detail:', narrativeDetail, ']'
     );
 
     const result = await streamObject({
@@ -128,12 +137,17 @@ REGRAS DE CONTROLE DE JORNADA (STEPS):
 1. LIMITE ATUAL: ${effectiveLimit} cenas.
 2. CENA ATUAL: ${actualSceneCount + 1}.
 
-3. MOMENTO DA ESCOLHA (Cena ${effectiveLimit}):
-   - Ao chegar EXATAMENTE na cena ${effectiveLimit}, você DEVE oferecer um dilema narrativo:
+ESTILO E EXTENSÃO (CRÍTICO):
+- ESTILO LITERÁRIO: ${playerContext?.settings?.readStyle} (Combine isso com a magnitude abaixo).
+- MAGNITUDE NARRATIVA: ${detailInstructions[narrativeDetail]}
+- TÉCNICA DE FOCO: Para 'Longo' ou 'Épico', use o cenário como um personagem vivo. Comece com a vastidão, afunile para o detalhe e termine na sensação interna do herói.
+
+REGRAS DE MOMENTO DA ESCOLHA (Cena ${effectiveLimit}):
+1. Ao chegar EXATAMENTE na cena ${effectiveLimit}, você DEVE oferecer um dilema narrativo:
    - "O fim parece próximo, mas os fios do tempo vibram. Você deseja APROFUNDAR A LENDA ou seguir para o seu DESFECHO FINAL?"
    - Forneça duas opções explícitas: "Aprofundar a Lenda (+10 capítulos)" e "Seguir para o Desfecho Final".
 
-4. MODO DESFECHO (Se o jogador escolher 'Seguir para o Desfecho' ou se o limite foi atingido):
+2. MODO DESFECHO (Se o jogador escolher 'Seguir para o Desfecho' ou se o limite foi atingido):
    - Você tem no máximo 3 cenas para encerrar tudo de forma épica.
    - Cena Final + 3: O epílogo literário. Defina obrigatoriamente 'isGameOver: true'.
 

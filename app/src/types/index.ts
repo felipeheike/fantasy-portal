@@ -29,6 +29,7 @@ export interface JourneySettings {
   narrativeStyle: 'suspense' | 'drama' | 'epic' | 'dark-humor' | 'romance' | 'tragedy' | 'fast-paced' | 'contemplative';
   tone: 'neutral' | 'dark' | 'hopeful' | 'gray' | 'heroic' | 'cynical';
   readStyle: 'essential' | 'fast' | 'moderate' | 'detailed' | 'literary';
+  narrativeDetail: 'short' | 'medium' | 'long' | 'epic';
   enableImages?: boolean; // New: Toggle AI illustrations
   enableAudio?: boolean; // New: Toggle AI narration (TTS)
 }

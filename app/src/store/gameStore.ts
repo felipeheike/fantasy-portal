@@ -125,6 +125,7 @@ export const useGameStore = create<GameState>()(
             playerName: data.flags?.playerName || playerData.name,
             genre: data.genre,
             ...data.settings,
+            narrativeDetail: data.settings?.narrativeDetail || 'medium',
             enableImages: data.settings?.enableImages ?? data.flags?.enableImages ?? true,
             enableAudio: data.settings?.enableAudio ?? data.flags?.enableAudio ?? true,
           } as JourneySettings,
