@@ -9,14 +9,17 @@ import {
   AlertCircle, 
   Download, 
   RefreshCcw, 
+  RotateCcw,
   Volume2, 
+  Play,
+  Pause,
   Headphones, 
   Sun, 
   Moon, 
   Terminal,
   FileDown, 
   FileText,
-  Trophy,
+  Trophy, BookOpen, BookText, Eye, EyeOff,
   Skull,
   Ghost,
   Home,
@@ -29,20 +32,22 @@ import { generateJourneyPDF } from '@/lib/pdfUtils';
 
 interface NarrativePanelProps {
   onRetryImage?: (sceneId: string, prompt: string) => void;
+  onRetryAudio?: (sceneId: string, text: string, gender?: 'male' | 'female') => void;
   onRevive?: () => void;
 }
 
-export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePanelProps) {
+export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }: NarrativePanelProps) {
   const { data: session } = useSession();
   const { 
     history, currentScene, status, settings, resetGame, 
     theme, toggleTheme, hasHydrated,
     forcedNextAction, setForcedNextAction,
-    forcedEndingType, setForcedEndingType,
+    forcedEndingType, setForcedEndingType, showDebugInfo, toggleShowDebugInfo, readingMode, toggleReadingMode,
     revivePlayer, setSetupMode
   } = useGameStore();
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
 
   // State mapping for Punishment System
@@ -273,24 +278,111 @@ export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePane
                   <div className="absolute -top-3 left-10 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-md flex items-center gap-4">
                       <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Capítulo {index + 1}</span>
                       
-                      {scene.audioUrl && (
-                        <div className="flex items-center gap-2 border-l border-zinc-700 pl-3">
-                          <audio id={`audio-${scene.sceneId}`} src={scene.audioUrl} />
+                      {scene.audioUrl ? (
+                        <div className="flex items-center gap-3 border-l border-zinc-700 pl-4 py-1">
+                          <audio 
+                            id={`audio-${scene.sceneId}`} 
+                            src={scene.audioUrl} 
+                            autoPlay={index === history.length - 1 && settings?.enableAudio}
+                            onPlay={() => setIsPlaying(scene.sceneId)}
+                            onEnded={() => setIsPlaying(null)}
+                            onPause={() => setIsPlaying(null)}
+                          />
                           <button 
                             onClick={() => {
                               const audio = document.getElementById(`audio-${scene.sceneId}`) as HTMLAudioElement;
                               if (audio.paused) {
+                                // Pause all other audios first
+                                document.querySelectorAll('audio').forEach(a => {
+                                  if (a.id !== `audio-${scene.sceneId}`) a.pause();
+                                });
                                 audio.play();
                               } else {
                                 audio.pause();
                               }
                             }}
-                            className="text-zinc-500 hover:text-primary transition-colors flex items-center gap-1"
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${
+                              isPlaying === scene.sceneId 
+                              ? 'bg-primary/20 border-primary text-primary shadow-[0_0_20px_rgba(245,158,11,0.4)]' 
+                              : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-primary hover:border-primary/50'
+                            }`}
                           >
-                            <Volume2 className="w-3 h-3" />
-                            <span className="text-[8px] font-bold uppercase tracking-widest">Ouvir</span>
+                            <AnimatePresence mode="wait">
+                              {isPlaying === scene.sceneId ? (
+                                <motion.div 
+                                  key="pause"
+                                  initial={{ scale: 0, rotate: -90 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  exit={{ scale: 0, rotate: 90 }}
+                                >
+                                  <Pause className="w-3.5 h-3.5 fill-current" />
+                                </motion.div>
+                              ) : (
+                                <motion.div 
+                                  key="play"
+                                  initial={{ scale: 0, rotate: 90 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  exit={{ scale: 0, rotate: -90 }}
+                                >
+                                  <Play className="w-3.5 h-3.5 fill-current" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                            
+                            <span className="text-[10px] font-black uppercase tracking-widest min-w-[55px]">
+                              {isPlaying === scene.sceneId ? 'Pausar' : 'Ouvir'}
+                            </span>
+
+                            {isPlaying === scene.sceneId && (
+                              <div className="flex gap-0.5 items-end h-3 mb-0.5">
+                                {[1, 2, 3].map((i) => (
+                                  <motion.div
+                                    key={i}
+                                    animate={{ height: ["20%", "100%", "20%"] }}
+                                    transition={{ 
+                                      repeat: Infinity, 
+                                      duration: 0.5 + (i * 0.2),
+                                      ease: "easeInOut" 
+                                    }}
+                                    className="w-0.5 bg-primary rounded-full"
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </button>
+
+                          {/* Restart Button */}
+                          <button 
+                            onClick={() => {
+                              const audio = document.getElementById(`audio-${scene.sceneId}`) as HTMLAudioElement;
+                              audio.currentTime = 0;
+                              audio.play();
+                            }}
+                            className="p-2 bg-zinc-800/50 border border-zinc-700 rounded-full text-zinc-500 hover:text-primary hover:border-primary/50 transition-all active:rotate-[-45deg]"
+                            title="Reiniciar Áudio"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                      ) : (
+                        settings?.enableAudio && (
+                          <div className="flex items-center gap-3 border-l border-zinc-700 pl-4 py-1">
+                             <button 
+                               onClick={() => onRetryAudio?.(scene.sceneId, scene.narration, scene.audioVoice)}
+                               className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all border ${
+                                 scene.audioError
+                                 ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20' 
+                                 : 'bg-zinc-800/30 border-zinc-700 text-zinc-500'
+                               }`}
+                               disabled={!onRetryAudio}
+                             >
+                               {scene.audioError ? <RefreshCcw className="w-3 h-3" /> : <Volume2 className="w-3.5 h-3.5 opacity-30 animate-pulse" />}
+                               <span className="text-[8px] font-black uppercase tracking-widest">
+                                 {scene.audioError ? 'Falha / Tentar' : 'Gerando...'}
+                               </span>
+                             </button>
+                          </div>
+                        )
                       )}
                   </div>
                   
@@ -344,8 +436,8 @@ export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePane
         )}
       </div>
 
-      {/* Admin Control & Theme Toggle - Top Right (Desktop Only) */}
-      <div className="absolute top-10 right-10 z-50 hidden lg:flex flex-col items-end gap-3">
+      {/* Right Controls - Top Right (Desktop Only) */}
+      <div className="absolute top-10 right-10 z-50 hidden lg:flex flex-col gap-3">
         {/* Position 1: Theme Toggle */}
         <motion.button 
           onClick={toggleTheme}
@@ -357,51 +449,83 @@ export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePane
           {theme === 'dark' ? <Sun className="w-5 h-5 group-hover:rotate-90 transition-transform" /> : <Moon className="w-5 h-5 group-hover:-rotate-12 transition-transform" />}
         </motion.button>
 
-        {/* Admin Panels */}
-        {isAdmin && (
-          <div className="flex flex-col gap-2">
-            {/* Force Action Selector */}
-            <div className="flex items-center gap-3 bg-zinc-950/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
-              <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
-                <Terminal className="w-4 h-4" />
-              </div>
-              <select 
-                value={forcedNextAction || ''}
-                onChange={(e) => setForcedNextAction(e.target.value || null)}
-                className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-orange-500 transition-colors cursor-pointer"
-              >
-                <option value="">🎲 Ação Aleatória</option>
-                <option value="puzzle">🧩 Desafio Mental</option>
-                <option value="combined">⚔️ Combate Tático</option>
-                <option value="binary">🌓 Escolha Binária</option>
-                <option value="multiple">📜 Múltipla Escolha</option>
-                <option value="interpretative">✍️ Interpretação Livre</option>
-              </select>
-            </div>
-
-            {/* Force Ending Selector */}
-            <div className="flex items-center gap-3 bg-zinc-950/80 border border-cyan-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
-              <div className="p-2 bg-cyan-500/10 rounded-xl text-cyan-500">
-                <Zap className="w-4 h-4" />
-              </div>
-              <select 
-                value={forcedEndingType || ''}
-                onChange={(e) => setForcedEndingType(e.target.value || null)}
-                className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-cyan-500 transition-colors cursor-pointer"
-              >
-                <option value="">🌿 Continuar História</option>
-                <option value="glory">🏆 Glória do Herói</option>
-                <option value="death">💀 Morte (Tolerância)</option>
-                <option value="permadeath">🌑 Morte Permanente</option>
-                <option value="defeat">🚩 Derrota Amarga</option>
-              </select>
-            </div>
-          </div>
-        )}
+        {/* Position 2: Reading Mode Toggle */}
+        <motion.button 
+          onClick={toggleReadingMode}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className={`p-4 rounded-full backdrop-blur-xl shadow-2xl transition-all border ${
+            readingMode 
+            ? 'bg-primary border-primary text-zinc-950 shadow-[0_0_25px_rgba(245,158,11,0.4)]' 
+            : 'bg-zinc-950/80 border-zinc-800 text-zinc-400 hover:text-primary hover:border-primary/50'
+          }`}
+          title={readingMode ? 'Sair do Modo Leitura' : 'Modo Leitura'}
+        >
+          {readingMode ? <BookOpen className="w-5 h-5" /> : <BookText className="w-5 h-5" />}
+        </motion.button>
       </div>
 
+      {/* Admin Dropdowns - Top Left (Desktop Only) */}
+      {isAdmin && !readingMode && (
+        <div className="absolute top-28 left-10 z-50 hidden lg:flex flex-col items-start gap-2">
+          {/* Force Action Selector */}
+          <div className="flex items-center gap-3 bg-zinc-950/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+            <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
+              <Terminal className="w-4 h-4" />
+            </div>
+            <select 
+              value={forcedNextAction || ''}
+              onChange={(e) => setForcedNextAction(e.target.value || null)}
+              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-orange-500 transition-colors cursor-pointer"
+            >
+              <option value="">🎲 Ação Aleatória</option>
+              <option value="puzzle">🧩 Desafio Mental</option>
+              <option value="combined">⚔️ Combate Tático</option>
+              <option value="binary">🌓 Escolha Binária</option>
+              <option value="multiple">📜 Múltipla Escolha</option>
+              <option value="interpretative">✍️ Interpretação Livre</option>
+            </select>
+          </div>
+
+          {/* Force Ending Selector */}
+          <div className="flex items-center gap-3 bg-zinc-950/80 border border-cyan-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+            <div className="p-2 bg-cyan-500/10 rounded-xl text-cyan-500">
+              <Zap className="w-4 h-4" />
+            </div>
+            <select 
+              value={forcedEndingType || ''}
+              onChange={(e) => setForcedEndingType(e.target.value || null)}
+              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-cyan-500 transition-colors cursor-pointer"
+            >
+              <option value="">🌿 Continuar História</option>
+              <option value="glory">🏆 Glória do Herói</option>
+              <option value="death">💀 Morte (Tolerância)</option>
+              <option value="permadeath">🌑 Morte Permanente</option>
+              <option value="defeat">🚩 Derrota Amarga</option>
+            </select>
+          </div>
+
+          {/* Debug Info Toggle */}
+          <button 
+            onClick={toggleShowDebugInfo}
+            className={`flex items-center gap-3 p-2 rounded-2xl backdrop-blur-xl shadow-2xl border transition-all ${
+              showDebugInfo 
+              ? 'bg-primary/10 border-primary/30 text-primary' 
+              : 'bg-zinc-950/80 border-zinc-800 text-zinc-500'
+            }`}
+          >
+            <div className={`p-2 rounded-xl ${showDebugInfo ? 'bg-primary/20' : 'bg-zinc-900'}`}>
+              {showDebugInfo ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              {showDebugInfo ? 'Debug: Ativo' : 'Debug: Oculto'}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Scribe's Hub - Floating Export Menu (Desktop Only) */}
-      {history.length > 0 && (
+      {history.length > 0 && !readingMode && (
         <motion.div 
           className="absolute bottom-36 lg:bottom-10 right-4 lg:right-10 z-50 hidden lg:flex flex-col lg:flex-row items-center gap-2 lg:gap-1 bg-zinc-950/50 lg:bg-zinc-950/90 border border-zinc-800 p-1.5 rounded-2xl lg:rounded-3xl backdrop-blur-xl shadow-2xl group/hub opacity-60 hover:opacity-100 lg:opacity-100 transition-opacity"
           initial={{ opacity: 0, y: 20 }}

@@ -2,7 +2,9 @@ services:
   # Next.js App (Dev)
   node_app_dev:
     container_name: fantasy_portal_node_dev
-    image: node:22-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     working_dir: /app
     ports:
       - "25039:3000"
@@ -16,6 +18,7 @@ services:
       - NEXTAUTH_URL=http://localhost:25039
       - DATABASE_URL=postgresql://fp_user:fp_password@db_postgres_dev:5432/fantasy_portal_db?schema=public
       - REDIS_URL=redis://cache_redis_dev:6379
+      - MINIO_ENDPOINT_INTERNAL=http://storage-minio-dev:9000
     networks:
       - duplecake-net
     depends_on:
@@ -47,7 +50,7 @@ services:
       - duplecake-net
 
   # MinIO (Dev)
-  storage_minio_dev:
+  storage-minio-dev:
     container_name: fantasy_portal_minio_dev
     image: minio/minio
     environment:

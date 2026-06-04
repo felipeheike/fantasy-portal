@@ -56,6 +56,7 @@ export interface NarrativeScene {
   narration: string;
   visualDescription: string;
   audioDescription?: string; // For "Soundscapes"
+  audioVoice?: 'male' | 'female'; // New: Voice gender selection
   imageUrl?: string;
   audioUrl?: string; // For "Soundscapes"
   options: NarrativeOption[];
@@ -81,6 +82,7 @@ export interface NarrativeScene {
   isGameOver: boolean;
   requiresRoll?: boolean; // New for dice roll mechanics
   imageError?: boolean;
+  audioError?: boolean; // New: Track audio generation failure
   inquiries?: { question: string; answer: string; timestamp: number }[]; // New: Persist inquiries per scene
 }
 

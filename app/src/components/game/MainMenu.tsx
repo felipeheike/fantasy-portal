@@ -232,7 +232,7 @@ export default function MainMenu() {
                             <Swords className="w-5 h-5 md:w-6 md:h-6" />
                         </div>
                         <div className="min-w-0">
-                            <h4 className="text-lg md:text-xl font-black text-zinc-200 tracking-tight truncate">{j.flags?.playerName || j.name || 'Herói Sem Nome'}</h4>
+                            <h4 className="text-lg md:text-xl font-black text-zinc-200 tracking-tight truncate">{j.flags?.playerName || j.name || j.player?.name || 'Herói Sem Nome'}</h4>
                             <div className="flex flex-wrap items-center gap-2 md:gap-3 text-[8px] md:text-[10px] uppercase font-bold text-zinc-600 mt-1">
                               <span className="text-primary truncate">{j.genre}</span>
                               <span className="w-0.5 h-0.5 bg-zinc-800 rounded-full" />

@@ -7,13 +7,9 @@ const secretAccessKey = process.env.MINIO_SECRET_KEY || 'minioadmin';
 const bucketName = process.env.MINIO_BUCKET || 'fantasy-portal-assets';
 const useSSL = process.env.MINIO_USE_SSL === 'true';
 
-// Para uso interno dentro do Docker, o endpoint deve ser o nome do container
+// Para uso interno dentro do Docker, o endpoint deve ser o nome do container/serviço
 // No entanto, para fins de desenvolvimento e flexibilidade, vamos tentar detectar ou usar localhost
-// Se estiver rodando dentro do Docker, storage_minio:9000 é o ideal.
-const isDocker = process.env.DATABASE_URL?.includes('db_postgres');
-const endpoint = isDocker 
-  ? `http://storage_minio:9000` 
-  : `http://${minioEndpoint}:${minioPort}`;
+const endpoint = process.env.MINIO_ENDPOINT_INTERNAL || `http://${minioEndpoint}:${minioPort}`;
 
 export const s3Client = new S3Client({
   endpoint,
@@ -52,9 +48,9 @@ export async function uploadBuffer(buffer: Uint8Array | Buffer, key: string, con
 
     await s3Client.send(command);
     
-    // Retorna a URL pública (ou formatada)
-    const baseUrl = process.env.NEXT_PUBLIC_ASSETS_URL || `http://localhost:${minioPort}/${bucketName}`;
-    return `${baseUrl}/${key}`;
+    // Retorna a URL relativa que passa pelo nosso proxy da API (Force Recompile)
+    // Isso garante acessibilidade universal (Mobile/Web) através do túnel Cloudflare
+    return `/api/assets/${key}`;
   } catch (error) {
     console.error("Error uploading to MinIO:", error);
     throw error;

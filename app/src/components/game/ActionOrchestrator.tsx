@@ -14,6 +14,8 @@ import {
   Package, 
   Sparkles,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   MessageSquare,
   Lock,
   Unlock,
@@ -29,6 +31,7 @@ interface ActionOrchestratorProps {
 export default function ActionOrchestrator({ scene, onAction, isLoading }: ActionOrchestratorProps) {
   const { status, setLockedItem, inventory } = useGameStore();
   const [inputText, setInputText] = useState('');
+  const [isMinimized, setIsMinimized] = useState(false);
   const [selectedTactical, setSelectedTactical] = useState<{
     actionId?: string;
     actionLabel?: string;
@@ -90,12 +93,13 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
     setSelectedTactical({});
     setInputText('');
     setLockedItem(null);
+    setIsMinimized(false);
   }, [scene?.sceneId, setLockedItem]);
 
   if ((!scene && !isLoading) || scene?.isGameOver || status.hp <= 0) return null;
 
   const renderInterpretative = () => (
-    <div className="flex gap-2 md:gap-4 items-center bg-zinc-900 p-3 md:p-2 rounded-2xl border border-zinc-800 focus-within:border-primary/50 transition-all md:backdrop-blur-md shadow-2xl">
+    <div className="flex gap-2 md:gap-4 items-center bg-zinc-900/90 p-3 md:p-2 rounded-2xl border border-zinc-800 focus-within:border-primary/50 transition-all backdrop-blur-md shadow-2xl">
       <div className="p-2 md:p-3 text-zinc-500">
         <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
       </div>
@@ -128,7 +132,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
           transition={{ delay: index * 0.1 }}
           onClick={() => onAction(option.label)}
           disabled={isLoading}
-          className="flex items-center justify-between p-4 md:p-5 bg-zinc-900 border border-zinc-800 rounded-2xl hover:border-primary/40 hover:bg-zinc-800/80 transition-all group"
+          className="flex items-center justify-between p-4 md:p-5 bg-zinc-900/90 border border-zinc-800 rounded-2xl hover:border-primary/40 hover:bg-zinc-800/80 transition-all group"
         >
           <span className="text-zinc-300 text-sm md:text-base font-bold tracking-tight text-left">{option.label}</span>
           <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-primary transition-colors shrink-0" />
@@ -138,7 +142,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
   );
 
   const renderTactical = () => (
-    <div className="space-y-4 md:space-y-6 bg-zinc-900 p-4 md:p-6 rounded-3xl border border-zinc-800/50 md:backdrop-blur-md relative overflow-hidden">
+    <div className="space-y-4 md:space-y-6 bg-zinc-900/90 p-4 md:p-6 rounded-3xl border border-zinc-800/50 backdrop-blur-md relative overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
@@ -152,7 +156,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all relative ${
                   selectedTactical.actionId === a.id 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400'
                 }`}
               >
                 {a.label}
@@ -174,7 +178,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
                   selectedTactical.target === t.label 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400'
                 }`}
               >
                 {t.label}
@@ -183,7 +187,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
           </div>
         </div>
 
-        <div className={`space-y-2 transition-all ${selectedActionData?.requiresItem && !selectedTactical.item ? 'ring-2 ring-orange-500/20 rounded-xl p-2 -m-2 bg-orange-500/5' : ''}`}>
+        <div className={`space-y-2 transition-all ${selectedActionData?.requiresItem && !selectedTactical.item ? 'ring-2 ring-orange-500/20 rounded-xl p-2 -m-2 bg-orange-500/20' : ''}`}>
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
             <Package className="w-3 h-3" /> Item
             {selectedActionData?.requiresItem && <span className="text-[7px] text-orange-500 animate-pulse">(Obrigatório)</span>}
@@ -210,7 +214,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
                   selectedTactical.item === i 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:border-zinc-600'
                 }`}
               >
                 {i}
@@ -242,7 +246,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
                   selectedTactical.skill === s 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400'
                 }`}
               >
                 {s}
@@ -256,21 +260,47 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
          <button 
             disabled={!isActionValid || isLoading}
             onClick={handleSendTactical}
-            className={`flex items-center gap-3 px-10 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-[0_0_30px_rgba(255,255,255,0.05)] ${
+            className={`flex items-center gap-3 px-10 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all relative overflow-hidden ${
               isActionValid 
-              ? 'bg-zinc-100 text-zinc-950 hover:bg-primary' 
-              : 'bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50'
+              ? 'bg-zinc-100 text-zinc-950 hover:bg-primary shadow-[0_0_30px_rgba(255,255,255,0.1)] scale-100' 
+              : 'bg-zinc-950 border-2 border-dashed border-zinc-800 text-zinc-600 cursor-not-allowed opacity-100 scale-[0.98]'
             }`}
          >
-           {selectedActionData?.requiresItem && !selectedTactical.item ? 'Selecione um Item' : 'Executar Ação'}
+           {!isActionValid && !isLoading && <Lock className="w-3.5 h-3.5 opacity-50" />}
+           <span>
+             {isLoading ? 'Invocando...' : 
+              selectedActionData?.requiresItem && !selectedTactical.item ? 'Selecione um Item' : 
+              !selectedTactical.actionId ? 'Escolha uma Ação' :
+              !selectedTactical.target ? 'Escolha um Alvo' : 'Executar Ação'}
+           </span>
          </button>
       </div>
     </div>
   );
 
   return (
-    <div className="fixed bottom-0 left-0 w-full pb-10 pt-4 px-4 md:p-8 z-40 bg-zinc-900 md:bg-gradient-to-t md:from-zinc-950 md:via-zinc-950/90 md:to-transparent">
-      <div className="max-w-4xl mx-auto">
+    <motion.div 
+      initial={false}
+      animate={{ 
+        y: isMinimized ? 'calc(100% - 24px)' : '0px',
+      }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="fixed bottom-0 left-0 w-full pb-6 pt-4 px-4 md:p-8 z-40 bg-zinc-900/90 border-t border-zinc-800/50"
+    >
+      <div className="max-w-4xl mx-auto relative">
+        {/* Toggle Button for Mobile */}
+        <div className="flex lg:hidden justify-center absolute -top-12 left-0 w-full">
+           <button 
+             onClick={() => setIsMinimized(!isMinimized)}
+             className="bg-zinc-900/90 border border-zinc-800 px-4 py-1.5 rounded-t-xl text-zinc-400 flex items-center gap-2 shadow-2xl transition-colors hover:text-primary"
+           >
+              {isMinimized ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              <span className="text-[8px] font-black uppercase tracking-widest">
+                {isMinimized ? 'Expandir Ações' : 'Recolher Painel'}
+              </span>
+           </button>
+        </div>
+
         <AnimatePresence mode="wait">
           {isLoading ? (
              <motion.div 
@@ -299,6 +329,6 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }

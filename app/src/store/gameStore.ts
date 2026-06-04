@@ -23,13 +23,15 @@ interface GameState {
   theme: 'light' | 'dark';
   forcedNextAction: string | null; // Admin tool: Force next scene type
   forcedEndingType: string | null; // Admin tool: Force ending type
+  showDebugInfo: boolean; // Admin tool: Show AI models and latency
+  readingMode: boolean; // Immersion: Hide all UI except narrative
   
   // Actions
   setHasHydrated: (state: boolean) => void;
   setSettings: (settings: JourneySettings) => void;
   setSetupMode: (state: boolean) => void;
   updateSettings: (settings: Partial<JourneySettings>) => void;
-  setJourneyId: (id: string) => void;
+  setJourneyId: (id: string, initialFlags?: any) => void;
   startGame: () => void;
   loadJourney: (id: string, data: any) => void;
   updateStatus: (changes: Partial<PlayerStatus>) => void;
@@ -42,6 +44,7 @@ interface GameState {
   updateSceneImage: (sceneId: string, imageUrl: string) => void;
   updateSceneAudio: (sceneId: string, audioUrl: string) => void;
   setImageError: (sceneId: string, hasError: boolean) => void;
+  setAudioError: (sceneId: string, hasError: boolean) => void;
   addNotification: (notification: Omit<GameNotification, 'id' | 'timestamp' | 'read'>) => void;
   markNotificationsAsRead: () => void;
   clearNotifications: () => void;
@@ -54,6 +57,8 @@ interface GameState {
   toggleTheme: () => void;
   setForcedNextAction: (type: string | null) => void;
   setForcedEndingType: (type: string | null) => void;
+  toggleShowDebugInfo: () => void;
+  toggleReadingMode: () => void;
   revivePlayer: () => void;
   resetGame: () => void;
 }
@@ -100,6 +105,8 @@ export const useGameStore = create<GameState>()(
       theme: 'dark',
       forcedNextAction: null,
       forcedEndingType: null,
+      showDebugInfo: false,
+      readingMode: false,
 
       setHasHydrated: (state) => set({ hasHydrated: state }),
       setSettings: (settings) => set({ settings }),
@@ -107,11 +114,18 @@ export const useGameStore = create<GameState>()(
       updateSettings: (newSettings) => set((state) => ({
         settings: state.settings ? { ...state.settings, ...newSettings } : null
       })),
-      setJourneyId: (id) => set({ currentJourneyId: id }),
+      setJourneyId: (id, initialFlags) => set((state) => ({ 
+        currentJourneyId: id,
+        flags: initialFlags ? { ...state.flags, ...initialFlags } : state.flags
+      })),
       startGame: () => set({ isGameStarted: true, isSetupMode: false }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       setForcedNextAction: (type) => set({ forcedNextAction: type }),
       setForcedEndingType: (type) => set({ forcedEndingType: type }),
+
+      toggleShowDebugInfo: () => set((state) => ({ showDebugInfo: !state.showDebugInfo })),
+
+      toggleReadingMode: () => set((state) => ({ readingMode: !state.readingMode })),
 
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
@@ -341,14 +355,20 @@ export const useGameStore = create<GameState>()(
 
       updateSceneAudio: (sceneId, audioUrl) =>
         set((state) => ({
-          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, audioUrl } : scene),
-          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, audioUrl } : state.currentScene
+          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, audioUrl, audioError: false } : scene),
+          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, audioUrl, audioError: false } : state.currentScene
         })),
 
       setImageError: (sceneId, hasError) =>
         set((state) => ({
           history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, imageError: hasError } : scene),
           currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, imageError: hasError } : state.currentScene
+        })),
+
+      setAudioError: (sceneId, hasError) =>
+        set((state) => ({
+          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, audioError: hasError } : scene),
+          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, audioError: hasError } : state.currentScene
         })),
 
       addNotification: (notification) => 

@@ -96,8 +96,8 @@ export default function GamePage() {
     status, completeScene, currentScene, isGameStarted,
     settings, currentJourneyId, setJourneyId, history,
     inventory, resetGame, loadJourney, hasHydrated,
-    setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError,
-    flags, memories, addNotification, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation
+    setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError, setAudioError,
+    flags, memories, addNotification, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode
   } = useGameStore();
 
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -113,7 +113,7 @@ export default function GamePage() {
   const [aiModels, setAiModels] = useState<{ text?: string, image?: string }>({});
   const startTimeRef = useRef<number | null>(null);
 
-  // Reset semaphores when game is not started (to allow fresh starts)
+  // Reset semaphores when game is not started
   useEffect(() => {
     if (!isGameStarted) {
       initialTriggerDone.current = false;
@@ -121,33 +121,32 @@ export default function GamePage() {
     }
   }, [isGameStarted]);
 
-  // Fetch AI status for the footer
+  // Fetch AI status
   useEffect(() => {
     if (hasHydrated) {
       fetch('/api/ai-status')
         .then(r => r.json())
         .then(data => {
           setAiModels({
-            text: data.text.model,
-            image: data.image.model
+            text: data.text?.model || data.text,
+            image: data.image?.model || data.image
           });
         })
         .catch(() => {});
     }
   }, [hasHydrated]);
 
-  // SEMAPHORES to block any unintended double-calls
   const initialTriggerDone = useRef(false);
   const creationInProgress = useRef(false);
 
   const playerContext = useMemo(() => ({
-    status, // Full status including skills and moral
+    status,
     inventory,
     settings,
     flags,
     memories,
     lastSceneId: currentScene?.sceneId,
-    sceneCount: history.length, // Actual total count
+    sceneCount: history.length,
     forcedNextAction: useGameStore.getState().forcedNextAction,
     forcedEndingType: useGameStore.getState().forcedEndingType
   }), [status, inventory, settings, currentScene?.sceneId, history.length, flags, memories]);
@@ -174,22 +173,26 @@ export default function GamePage() {
     });
   }, [currentJourneyId, updateSceneImage, setImageError]);
 
-  const generateSceneAudio = useCallback((sceneId: string, text: string) => {
+  const generateSceneAudio = useCallback((sceneId: string, text: string, gender?: 'male' | 'female') => {
+    setAudioError(sceneId, false);
     fetch('/api/audio', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, journeyId: currentJourneyId, sceneId })
+      body: JSON.stringify({ text, journeyId: currentJourneyId, sceneId, gender })
     })
     .then(async r => {
       if (r.ok) {
         const { audioUrl } = await r.json();
         updateSceneAudio(sceneId, audioUrl);
+      } else {
+        setAudioError(sceneId, true);
       }
     })
     .catch(e => {
       console.error("AUDIO_GEN_ERR:", e);
+      setAudioError(sceneId, true);
     });
-  }, [currentJourneyId, updateSceneAudio]);
+  }, [currentJourneyId, updateSceneAudio, setAudioError]);
 
   const { object, submit, isLoading, error, stop } = useObject({
     api: '/api/chat',
@@ -200,23 +203,17 @@ export default function GamePage() {
         setLastResponseTime(endTime - startTimeRef.current);
       }
 
-      console.log("LOG: AI Stream Finished. Received Object:", object);
-
       if (object) {
         const scene = object as unknown as NarrativeScene;
         
-        // VALIDATION: Only complete if we have a real scene
         if (!scene.sceneId || !scene.narration) {
-          console.error("!!! ABORT: Received partial or invalid scene object.", scene);
           setPersistentError("O Mestre se calou subitamente. Verifique sua cota ou conexão.");
           return;
         }
 
-        // --- DETECT CHANGES FOR NOTIFICATIONS ---
         const currentInventory = [...useGameStore.getState().inventory];
         const currentStatus = { ...useGameStore.getState().status };
 
-        // 1. Check for removed items (Consumption or Breaking)
         if (scene.inventoryChanges?.removed?.length) {
           scene.inventoryChanges.removed.forEach(nameToRemove => {
              const item = currentInventory.find(i => 
@@ -241,7 +238,6 @@ export default function GamePage() {
           });
         }
 
-        // 2. Check for added items
         if (scene.inventoryChanges?.added?.length) {
           scene.inventoryChanges.added.forEach(item => {
             const title = `✨ Item Encontrado: ${item.name}`;
@@ -253,7 +249,6 @@ export default function GamePage() {
           });
         }
 
-        // 3. Check for Reputation Changes
         if (scene.statusChanges?.reputations) {
           Object.entries(scene.statusChanges.reputations).forEach(([name, value]) => {
             const val = value as number;
@@ -269,7 +264,6 @@ export default function GamePage() {
           });
         }
 
-        // 4. Check for Global Moral (Karma)
         if (scene.statusChanges?.moral) {
            const val = scene.statusChanges.moral;
            if (val > 0) {
@@ -283,7 +277,6 @@ export default function GamePage() {
            }
         }
 
-        // 5. Check for World Memories
         if (scene.worldUpdate?.memories?.length) {
           scene.worldUpdate.memories.forEach(m => {
             const title = "📜 Memória Gravada";
@@ -292,7 +285,6 @@ export default function GamePage() {
           });
         }
 
-        // 6. Critical Status Alerts
         if (scene.statusChanges?.hp !== undefined && scene.statusChanges.hp <= currentStatus.maxHp * 0.25 && scene.statusChanges.hp > 0) {
            const title = "🩸 Vitalidade Crítica!";
            toast.error(title, { description: "Você está à beira da morte!" });
@@ -304,21 +296,17 @@ export default function GamePage() {
            addNotification({ type: 'status', title, description: "Sua estamina chegou a zero." });
         }
 
-        // --- APPLY CHANGES ---
         completeScene(scene, scene.statusChanges);
-        console.log("LOG: completeScene called for ID:", scene.sceneId);
 
-        // ASYNC: Trigger image and audio
         if (settings?.enableImages && scene.visualDescription && scene.sceneId && scene.sceneId !== 'undefined') {
           generateSceneImage(scene.sceneId, scene.visualDescription);
         }
         if (settings?.enableAudio && scene.narration && scene.sceneId && scene.sceneId !== 'undefined') {
-          generateSceneAudio(scene.sceneId, scene.narration);
+          generateSceneAudio(scene.sceneId, scene.narration, scene.audioVoice);
         }
 
         setPersistentError(null);
       } else {
-        console.error("!!! AI Stream finished but object is undefined.");
         setPersistentError("O Portal não conseguiu materializar esta cena. Verifique o limite de cota do Gemini.");
       }
     },
@@ -338,7 +326,6 @@ export default function GamePage() {
     
     startTimeRef.current = Date.now();
     const scene = (object as unknown as NarrativeScene) || currentScene;
-    console.log(`LOG: Triggering AI [Prompt: ${prompt}] [Current Scene: ${scene?.sceneId}]`);
 
     if (prompt) setPendingChoice(prompt);
 
@@ -365,7 +352,6 @@ export default function GamePage() {
   // DB Record Creation & Persistence Sync
   useEffect(() => {
     if (isGameStarted && !currentJourneyId && !creationInProgress.current && session?.user) {
-      console.log("FLOW: Creating new DB record...");
       creationInProgress.current = true;
       fetch('/api/journey', {
         method: 'POST',
@@ -373,14 +359,13 @@ export default function GamePage() {
         body: JSON.stringify({ 
           ...settings, 
           playerName: settings?.playerName || session.user.name || 'Viajante',
-          impersonatedPlayerId // Pass to API if in supervision mode
+          impersonatedPlayerId
         })
       })
       .then(async r => {
         const data = await r.json();
         if (r.ok) {
-          setJourneyId(data.id);
-          console.log("FLOW: DB Record Created ID:", data.id);
+          setJourneyId(data.id, data.flags);
         }
       })
       .finally(() => {
@@ -398,7 +383,6 @@ export default function GamePage() {
       if (currentStateString === lastSyncedRef.current) return;
 
       const timer = setTimeout(() => {
-        console.log("DB_SYNC: Sending update to server...");
         fetch(`/api/journey/${currentJourneyId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -409,7 +393,7 @@ export default function GamePage() {
             flags,
             memories,
             settings,
-            impersonatedPlayerId // Pass to API if in supervision mode
+            impersonatedPlayerId
           })
         })
         .then(() => {
@@ -476,7 +460,7 @@ export default function GamePage() {
         )}
       </AnimatePresence>
 
-      <PlayerStatusBar 
+      {!readingMode && <PlayerStatusBar 
         onToggleInventory={() => setIsInventoryOpen(true)} 
         onToggleSkills={() => setIsSkillsOpen(true)}
         onToggleInfluence={() => setIsInfluenceOpen(true)}
@@ -487,14 +471,14 @@ export default function GamePage() {
         onDownloadMD={handleExportMarkdown}
         onToggleHPLog={() => setIsHPLogOpen(true)}
         onToggleSPLog={() => setIsSPLogOpen(true)}
-        onLogout={() => resetGame()}
-      />
+        onLogout={() => resetGame()} 
+      />}
 
       <main 
-        className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-32 lg:pt-36' : 'pt-24 lg:pt-24'} ${isInquiryOpen ? 'lg:pl-[448px]' : 'pl-0'} transition-all duration-500 ease-in-out`}
+        className={`flex-1 flex flex-col relative z-20 ${readingMode ? 'pt-0 pb-0' : (impersonatedPlayerId ? 'pt-32 lg:pt-36' : 'pt-24 lg:pt-24')} ${isInquiryOpen ? 'lg:pl-[448px]' : 'pl-0'} transition-all duration-500 ease-in-out`}
       >
         {/* Top Actions Hub */}
-        <div className={`absolute ${impersonatedPlayerId ? 'top-32 lg:top-40' : 'top-24 lg:top-28'} ${isInquiryOpen ? 'lg:left-[468px]' : 'left-4 lg:left-10'} z-50 flex gap-2 transition-all duration-500 ease-in-out`}>
+        <div className={`absolute ${readingMode ? 'hidden' : ''} ${impersonatedPlayerId ? 'top-32 lg:top-40' : 'top-24 lg:top-28'} ${isInquiryOpen ? 'lg:left-[468px]' : 'left-4 lg:left-10'} z-50 flex gap-2 transition-all duration-500 ease-in-out`}>
           {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
@@ -504,18 +488,10 @@ export default function GamePage() {
               <ShieldCheck className="w-5 h-5" />
             </button>
           )}
-
-          <button 
-            onClick={() => setIsDetailsOpen(true)}
-            className="hidden lg:block p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
-            title="Detalhes da Jornada"
-          >
-            <Settings2 className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Insight Hub (Questioning) - Floating above Export Hub */}
-        <div className="fixed bottom-24 lg:bottom-32 right-4 lg:right-10 z-50 hidden lg:flex flex-col items-center gap-4">
+        <div className={`fixed bottom-24 lg:bottom-32 right-4 lg:right-10 z-50 ${readingMode ? 'hidden' : 'hidden lg:flex'} flex-col items-center gap-4`}>
            <AnimatePresence>
              {!isGameOver && history.length > 0 && (
                <motion.button 
@@ -535,7 +511,7 @@ export default function GamePage() {
            </AnimatePresence>
         </div>
 
-        {persistentError && (
+        {persistentError && !readingMode && (
           <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md">
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
@@ -566,27 +542,32 @@ export default function GamePage() {
           </div>
         )}
 
-        <NarrativePanel onRetryImage={(sceneId, prompt) => generateSceneImage(sceneId, prompt)} />
+        <NarrativePanel 
+          onRetryImage={(sceneId, prompt) => generateSceneImage(sceneId, prompt)} 
+          onRetryAudio={(sceneId, text, gender) => generateSceneAudio(sceneId, text, gender)}
+        />
         
         {/* Performance & Model Info */}
-        <div className="fixed bottom-6 lg:bottom-4 left-4 lg:left-6 z-[45] flex items-center gap-2 md:gap-4 opacity-30 hover:opacity-100 transition-opacity">
-           <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
-              <Type className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
-              <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.text || '...'}</span>
-           </div>
-           <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
-              <Palette className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
-              <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.image || '...'}</span>
-           </div>
-           {lastResponseTime && (
-             <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
-                <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
-                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-primary">{lastResponseTime}ms</span>
-             </div>
-           )}
-        </div>
+        {showDebugInfo && !readingMode && !isLoading && (
+          <div className="fixed bottom-6 lg:bottom-4 left-4 lg:left-6 z-[45] flex items-center gap-2 md:gap-4 opacity-30 hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900 border border-zinc-800 rounded-full">
+                <Type className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
+                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.text || '...'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900 border border-zinc-800 rounded-full">
+                <Palette className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
+                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.image || '...'}</span>
+            </div>
+            {lastResponseTime && (
+              <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900 border border-zinc-800 rounded-full">
+                  <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
+                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-primary">{lastResponseTime}ms</span>
+              </div>
+            )}
+          </div>
+        )}
 
-        <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-30 pointer-events-none" />
+        <div className={`absolute bottom-0 left-0 w-full h-40 ${readingMode ? 'hidden' : 'bg-gradient-to-t'} from-zinc-950 via-zinc-950 to-transparent z-30 pointer-events-none`} />
         
         <AnimatePresence>
           {history.length === 0 && !isLoading && !object && (
@@ -612,7 +593,7 @@ export default function GamePage() {
           )}
         </AnimatePresence>
 
-        {(history.length > 0 || (isLoading && history.length === 0) || (!!object && history.length > 0)) && (
+        {!readingMode && (history.length > 0 || (isLoading && history.length === 0) || (!!object && history.length > 0)) && (
           <ActionOrchestrator 
             scene={object as unknown as NarrativeScene || currentScene} 
             onAction={(label) => triggerAI(label)} 
@@ -635,10 +616,6 @@ export default function GamePage() {
         settings={settings}
         historyCount={history.length}
       />
-
-      {/* Global Visual Overlays */}
-      <div className="fixed inset-0 pointer-events-none opacity-20 bg-[url('/noise.svg')] mix-blend-soft-light z-0" />
-      <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-zinc-950/80 z-1" />
     </div>
   );
 }

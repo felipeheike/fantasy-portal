@@ -4,13 +4,13 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const { text, journeyId, sceneId } = await req.json();
+    const { text, journeyId, sceneId, gender } = await req.json();
     
     if (!text || !journeyId || !sceneId) {
       return new Response(JSON.stringify({ error: 'Text, journeyId and sceneId are required' }), { status: 400 });
     }
     
-    const audioUrl = await generateSpeech(text, journeyId, sceneId);
+    const audioUrl = await generateSpeech(text, journeyId, sceneId, gender);
 
     return new Response(JSON.stringify({ audioUrl }), {
       headers: { 'Content-Type': 'application/json' },

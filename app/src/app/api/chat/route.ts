@@ -9,6 +9,7 @@ const sceneSchema = z.object({
   narration: z.string().describe('Texto literário e envolvendo da cena.'),
   visualDescription: z.string().describe('Descrição visual detalhada para a cena.'),
   audioDescription: z.string().optional().describe('Descrição da paisagem sonora e tom da narração para síntese de áudio.'),
+  audioVoice: z.enum(['male', 'female']).optional().describe('Gênero da voz para narração.'),
   imageUrl: z.string().optional(),
   audioUrl: z.string().optional(),
   recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle']),
@@ -185,6 +186,7 @@ SISTEMA DE DESAFIOS MENTAIS (puzzle):
 
 SISTEMA DE PAISAGENS SONORAS:
 - Preencha 'audioDescription' com uma descrição rica do ambiente sonoro.
+- Use 'audioVoice' para definir se a narração deve ser 'male' (masculina) ou 'female' (feminina), baseando-se no tom da cena ou se há um narrador/NPC específico falando.
 
 REGRAS DE COMBATE E DESAFIOS (combined):
 - Quando a cena envolver combate ou exploração técnica, preencha 'tacticalOptions'.

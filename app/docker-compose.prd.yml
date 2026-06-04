@@ -1,7 +1,7 @@
 services:
   # Next.js App (Prd)
   node_app_prd:
-    container_name: fantasy_portal_node_prd
+    container_name: fantasy_portal_node
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,6 +12,9 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://fp_user:fp_password@db_postgres_prd:5432/fantasy_portal_db?schema=public
+      - REDIS_URL=redis://cache_redis_prd:6379
+      - MINIO_ENDPOINT_INTERNAL=http://storage-minio-prd:9000
     networks:
       - duplecake-net
     depends_on:
@@ -45,7 +48,7 @@ services:
       - duplecake-net
 
   # MinIO (Prd)
-  storage_minio_prd:
+  storage-minio-prd:
     container_name: fantasy_portal_minio_prd
     image: minio/minio
     restart: unless-stopped
