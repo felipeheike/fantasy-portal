@@ -105,10 +105,29 @@ export async function POST(req: Request) {
       epic: "ÉPICO: 8+ parágrafos. Imersão literária total, monólogos internos e exploração profunda do cenário."
     };
 
+    // ADMIN: FORÇAR TIPO DE AÇÃO OU DESFECHO
+    const forcedType = playerContext?.forcedNextAction;
+    const forcedEnding = playerContext?.forcedEndingType;
+    
+    let forceRule = "";
+    if (forcedEnding) {
+      if (forcedEnding === 'glory') {
+        forceRule = "\n!!! REGRA ABSOLUTA: FINALIZE A HISTÓRIA AGORA COM GLÓRIA. Narre a vitória triunfal do herói e defina 'isGameOver: true'. Mantenha o HP atual.";
+      } else if (forcedEnding === 'death') {
+        forceRule = "\n!!! REGRA ABSOLUTA: O HERÓI DEVE MORRER AGORA (REVIVÍVEL). Narre um golpe fatal, defina 'hp: 0' e 'isGameOver: true'.";
+      } else if (forcedEnding === 'permadeath') {
+        forceRule = "\n!!! REGRA ABSOLUTA: O HERÓI DEVE MORRER PERMANENTEMENTE AGORA. Narre o fim absoluto, defina 'hp: 0' e 'isGameOver: true'.";
+      } else if (forcedEnding === 'defeat') {
+        forceRule = "\n!!! REGRA ABSOLUTA: FINALIZE A HISTÓRIA COM DERROTA AMARGA. O herói sobrevive, mas falha em seu objetivo principal. Defina 'isGameOver: true'.";
+      }
+    } else if (forcedType) {
+      forceRule = `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente uma interação do tipo '${forcedType}'. Ignore as regras normais de diversificação para esta cena.`;
+    }
+
     console.log(
       'LOG: Chat Request [Player:', playerContext?.settings?.playerName, 
       '| Step:', actualSceneCount, 
-      '| Detail:', narrativeDetail, ']'
+      '| Forced:', forcedEnding || forcedType || 'None', ']'
     );
 
     const result = await streamObject({
@@ -117,10 +136,10 @@ export async function POST(req: Request) {
       output: 'object',
       system: `
 Você é o Narrador soberano do "Fantasy Portal".
-${playerContext?.forcedNextAction ? `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente uma interação do tipo '${playerContext.forcedNextAction}'. Ignore as regras normais de diversificação para esta cena.` : ""}
+${forceRule}
 
 REGRAS DE DIVERSIFICAÇÃO (ANTI-REPETIÇÃO):
-1. LIMITE DE REPETIÇÃO: Você NÃO deve usar o mesmo 'recommendedInputType' por more than ${process.env.MAX_REPETITIVE_INTERACTIONS || 2} cenas consecutivas.
+1. LIMITE DE REPETIÇÃO: Você NÃO deve usar o same 'recommendedInputType' por more than ${process.env.MAX_REPETITIVE_INTERACTIONS || 2} cenas consecutivas.
 2. VARIEDADE: Alterne entre 'binary', 'multiple', 'combined' e 'interpretative' para manter o dinamismo.
 3. PRIORIDADE TÁTICA: SEMPRE use o modo 'combined' (Escolha Estruturada) em situações de conflito físico, perseguição ou obstáculos técnicos.
 4. USO DE HABILIDADES: Ofereça pelo menos uma opção que utilize as habilidades do jogador em cada 3 cenas.
@@ -177,10 +196,11 @@ REGRAS TÉCNICAS ABSOLUTAS:
 1. FORMATO: Responda estritamente em JSON seguindo o schema.
 2. ID ÚNICO (CRÍTICO): 'sceneId' deve ser ÚNICO, NOVO e JAMAIS igual a '${playerContext?.lastSceneId}'.
 3. RESOLUÇÃO DE DADO: Se a última mensagem for "RESULTADO DO DADO: X", narre o desfecho e AVANCE para uma NOVA cena com 'requiresRoll: false'.
-4. GESTÃO DE STATUS: Use valores ABSOLUTOS em 'statusChanges' para HP/SP/CombatPower, mas use valores RELATIVOS (+X ou -X) para 'moral'.
+4. RENASCIMENTO: Se a última mensagem indicar um renascimento (revive), narre como o herói recuperou a consciência ou quem o salvou milagrosamente, mantendo a continuidade.
+5. GESTÃO DE STATUS: Use valores ABSOLUTOS em 'statusChanges' para HP/SP/CombatPower, mas use valores RELATIVOS (+X ou -X) para 'moral'.
    - SEMPRE preencha 'hpSource' ou 'spSource' se houver mudança de vitalidade ou estamina.
-5. INVENTÁRIO: Use 'inventoryChanges' para adicionar/remover itens narrativamente. 
-6. HABILIDADES: Use 'skillChanges' para conceder novas habilidades (level 1) ou evoluir existentes.
+6. INVENTÁRIO: Use 'inventoryChanges' para adicionar/remover itens narrativamente. 
+7. HABILIDADES: Use 'skillChanges' para conceder novas habilidades (level 1) ou evoluir existentes.
 
 ESTILO NARRATIVO:
 - Tom literário compatível com o gênero: ${playerContext?.settings?.genre}.

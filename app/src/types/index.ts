@@ -9,6 +9,7 @@ export interface PlayerStatus {
   skills: Skill[];
   reputations: Record<string, number>; // New: Granular Karma
   insightPoints: number; // Cargas para questionar o mestre
+  deathCount: number; // New: Track revivals for punishment systems
 }
 
 export interface Skill {

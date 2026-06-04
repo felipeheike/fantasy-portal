@@ -22,6 +22,7 @@ interface GameState {
   lockedItemName: string | null;
   theme: 'light' | 'dark';
   forcedNextAction: string | null; // Admin tool: Force next scene type
+  forcedEndingType: string | null; // Admin tool: Force ending type
   
   // Actions
   setHasHydrated: (state: boolean) => void;
@@ -52,6 +53,8 @@ interface GameState {
   stopImpersonation: () => void;
   toggleTheme: () => void;
   setForcedNextAction: (type: string | null) => void;
+  setForcedEndingType: (type: string | null) => void;
+  revivePlayer: () => void;
   resetGame: () => void;
 }
 
@@ -67,6 +70,7 @@ const initialStatus: PlayerStatus = {
   skills: [],
   reputations: {},
   insightPoints: INITIAL_INSIGHT_POINTS,
+  deathCount: 0,
 };
 
 export const INVENTORY_CAPACITY = 10;
@@ -95,6 +99,7 @@ export const useGameStore = create<GameState>()(
       lockedItemName: null,
       theme: 'dark',
       forcedNextAction: null,
+      forcedEndingType: null,
 
       setHasHydrated: (state) => set({ hasHydrated: state }),
       setSettings: (settings) => set({ settings }),
@@ -106,6 +111,7 @@ export const useGameStore = create<GameState>()(
       startGame: () => set({ isGameStarted: true, isSetupMode: false }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       setForcedNextAction: (type) => set({ forcedNextAction: type }),
+      setForcedEndingType: (type) => set({ forcedEndingType: type }),
 
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
@@ -142,7 +148,8 @@ export const useGameStore = create<GameState>()(
           status: {
             ...loadedStatus,
             reputations: loadedStatus.reputations || {},
-            insightPoints: loadedStatus.insightPoints ?? INITIAL_INSIGHT_POINTS
+            insightPoints: loadedStatus.insightPoints ?? INITIAL_INSIGHT_POINTS,
+            deathCount: loadedStatus.deathCount ?? 0
           },
           inventory: deduplicatedInventory,
           flags: data.flags || {},
@@ -150,6 +157,7 @@ export const useGameStore = create<GameState>()(
           notificationHistory: data.settings?.notificationHistory || [],
           statusHistory: data.settings?.statusHistory || [],
           forcedNextAction: null,
+          forcedEndingType: null,
         });
       },
 
@@ -320,7 +328,8 @@ export const useGameStore = create<GameState>()(
             statusHistory: [...newLogEntries, ...state.statusHistory].slice(0, MAX_LOG_ENTRIES),
             lastPendingChoice: null,
             lockedItemName: null,
-            forcedNextAction: null // Clear forced action after scene completion
+            forcedNextAction: null,
+            forcedEndingType: null // Clear forced ending after scene completion
           };
         }),
 
@@ -424,6 +433,36 @@ export const useGameStore = create<GameState>()(
       startImpersonation: (id, name) => set({ impersonatedPlayerId: id, impersonatedPlayerName: name }),
       stopImpersonation: () => set({ impersonatedPlayerId: null, impersonatedPlayerName: null }),
 
+      revivePlayer: () => {
+        const state = get();
+        if (!state.currentScene) return;
+
+        const newHp = Math.ceil(state.status.maxHp * 0.5);
+        const updatedStatus = { 
+          ...state.status, 
+          hp: newHp, 
+          deathCount: state.status.deathCount + 1 
+        };
+
+        const revivedScene = { ...state.currentScene, isGameOver: false };
+        const updatedHistory = [...state.history];
+        if (updatedHistory.length > 0) {
+          updatedHistory[updatedHistory.length - 1] = revivedScene;
+        }
+
+        set({
+          status: updatedStatus,
+          currentScene: revivedScene,
+          history: updatedHistory
+        });
+
+        get().addNotification({
+          type: 'status',
+          title: '✨ Renascimento',
+          description: 'A poeira foi removida e você retornou à jogada.'
+        });
+      },
+
       resetGame: () => {
         set((state) => ({
           status: initialStatus,
@@ -445,7 +484,8 @@ export const useGameStore = create<GameState>()(
           lockedItemName: null,
           hasHydrated: true,
           theme: state.theme,
-          forcedNextAction: null
+          forcedNextAction: null,
+          forcedEndingType: null
         }));
       },
     }),
@@ -470,7 +510,8 @@ export const useGameStore = create<GameState>()(
         impersonatedPlayerId: state.impersonatedPlayerId,
         impersonatedPlayerName: state.impersonatedPlayerName,
         theme: state.theme,
-        forcedNextAction: state.forcedNextAction
+        forcedNextAction: state.forcedNextAction,
+        forcedEndingType: state.forcedEndingType
       }),
     }
   )

@@ -2,7 +2,7 @@
 
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { 
   ChevronDown, 
   MessageCircle, 
@@ -15,7 +15,13 @@ import {
   Moon, 
   Terminal,
   FileDown, 
-  FileText 
+  FileText,
+  Trophy,
+  Skull,
+  Ghost,
+  Home,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
@@ -23,19 +29,34 @@ import { generateJourneyPDF } from '@/lib/pdfUtils';
 
 interface NarrativePanelProps {
   onRetryImage?: (sceneId: string, prompt: string) => void;
+  onRevive?: () => void;
 }
 
-export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
+export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePanelProps) {
   const { data: session } = useSession();
   const { 
     history, currentScene, status, settings, resetGame, 
     theme, toggleTheme, hasHydrated,
-    forcedNextAction, setForcedNextAction
+    forcedNextAction, setForcedNextAction,
+    forcedEndingType, setForcedEndingType,
+    revivePlayer, setSetupMode
   } = useGameStore();
   
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isGameOver = currentScene?.isGameOver || status.hp <= 0;
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
+
+  // State mapping for Punishment System
+  const toleranceLimits: Record<string, number> = {
+    'fail_tolerance_5': 5,
+    'fail_tolerance_3': 3,
+    'no_fail_tolerance': 0,
+    'permadeath': -1 // Special case
+  };
+
+  const currentLimit = settings ? toleranceLimits[settings.punishSystem] : 3;
+  const canRevive = settings?.punishSystem !== 'permadeath' && (currentLimit === 0 || status.deathCount < currentLimit);
+  const isDeath = status.hp <= 0;
+  const isGlory = currentScene?.isGameOver && status.hp > 0;
 
   const handleExportMarkdown = () => {
     const markdown = exportJourneyToMarkdown(history, settings, settings?.playerName || 'Viajante', currentScene);
@@ -46,11 +67,16 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
     await generateJourneyPDF(history, settings, settings?.playerName || 'Viajante');
   };
 
+  const handleStartNewJourney = () => {
+    resetGame();
+    setSetupMode(true);
+  };
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [history, currentScene, isGameOver]);
+  }, [history, currentScene, isDeath, isGlory]);
 
   // Apply theme to document element
   useEffect(() => {
@@ -61,6 +87,110 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
       document.documentElement.classList.remove('light-mode');
     }
   }, [theme, hasHydrated]);
+
+  const renderGameOver = () => {
+    if (isGlory) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-2xl mx-auto py-20 text-center space-y-8 relative"
+        >
+          {/* Golden Flash Effect */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 2 }}
+            className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full pointer-events-none"
+          />
+
+          <div className="w-24 h-24 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(245,158,11,0.3)]">
+            <Trophy className="w-12 h-12 text-primary animate-bounce" />
+          </div>
+          <div className="space-y-4">
+            <h2 className="text-5xl font-black uppercase tracking-tighter text-white">Sua Lenda foi Escrita</h2>
+            <p className="text-zinc-400 font-serif italic text-xl leading-relaxed max-w-lg mx-auto">
+              "Seu nome ecoará pelos salões do Portal por toda a eternidade. A jornada termina aqui, mas sua glória é imortal."
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 max-w-sm mx-auto">
+            <button 
+              onClick={() => resetGame()}
+              className="w-full bg-white text-zinc-950 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-primary transition-all shadow-xl flex items-center justify-center gap-3"
+            >
+              <Home className="w-4 h-4" /> Voltar ao Menu Principal
+            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={handleExportPDF} className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">PDF Arte</button>
+              <button onClick={handleExportMarkdown} className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">Crônicas .MD</button>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    if (isDeath) {
+      const isPermadeath = settings?.punishSystem === 'permadeath';
+      
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-2xl mx-auto py-20 text-center space-y-8"
+        >
+          <div className={`w-24 h-24 ${isPermadeath ? 'bg-zinc-900' : 'bg-red-500/10'} border ${isPermadeath ? 'border-zinc-800' : 'border-red-500/20'} rounded-full flex items-center justify-center mx-auto shadow-2xl`}>
+            {isPermadeath ? <Skull className="w-12 h-12 text-zinc-600" /> : <Ghost className="w-12 h-12 text-red-500 animate-pulse" />}
+          </div>
+          
+          <div className="space-y-4">
+            <h2 className="text-4xl font-black uppercase tracking-tighter text-white">
+              {isPermadeath ? 'O Fim Absoluto' : 'A Morte é Apenas um Revés'}
+            </h2>
+            <p className="text-zinc-500 font-serif italic text-lg leading-relaxed max-w-lg mx-auto">
+              {isPermadeath 
+                ? "O destino foi implacável e o Portal se fechou para esta alma. Suas cinzas agora sopram pelo vazio."
+                : "As sombras tentaram te levar, mas sua lenda ainda não terminou. A poeira foi removida e você retornou à jogada."
+              }
+            </p>
+            {!isPermadeath && (
+               <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
+                  <Sparkles className="w-3 h-3" /> Ressurreições Usadas: {status.deathCount} / {currentLimit === 0 ? '∞' : currentLimit}
+               </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 max-w-sm mx-auto">
+            {canRevive ? (
+              <button 
+                onClick={() => {
+                  revivePlayer();
+                  onRevive?.();
+                }}
+                className="w-full bg-primary text-zinc-950 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)]"
+              >
+                ✨ Levantar-se e Continuar
+              </button>
+            ) : (
+              <button 
+                onClick={handleStartNewJourney}
+                className="w-full bg-white text-zinc-950 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-primary transition-all shadow-xl"
+              >
+                🌀 Iniciar Nova Jornada
+              </button>
+            )}
+            <button 
+              onClick={() => resetGame()}
+              className="w-full bg-zinc-900 text-zinc-500 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all border border-zinc-800"
+            >
+              🏛️ Menu Principal
+            </button>
+          </div>
+        </motion.div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="flex-1 overflow-hidden relative">
@@ -182,45 +312,7 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
             </div>
           ))}
 
-          {isGameOver && (
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-md mx-auto py-20 text-center space-y-8"
-            >
-              <div className="w-24 h-24 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(239,68,68,0.2)]">
-                <AlertCircle className="w-12 h-12 text-red-500" />
-              </div>
-              <div className="space-y-4">
-                <h2 className="text-4xl font-black uppercase tracking-tighter text-white">Sua Jornada Encerrou</h2>
-                <p className="text-zinc-500 font-serif italic text-lg leading-relaxed">
-                  O destino foi implacável e suas cinzas agora sopram pelo Portal.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={() => resetGame()}
-                  className="w-full bg-white text-zinc-950 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-primary transition-all shadow-xl active:scale-95"
-                >
-                  Tentar Novamente
-                </button>
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={handleExportPDF}
-                    className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-zinc-800 hover:text-white transition-all flex items-center justify-center gap-2"
-                  >
-                    <FileText className="w-4 h-4" /> PDF de Arte
-                  </button>
-                  <button 
-                    onClick={handleExportMarkdown}
-                    className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-zinc-800 hover:text-white transition-all flex items-center justify-center gap-2"
-                  >
-                    <FileDown className="w-4 h-4" /> Crônicas (.md)
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {(isDeath || isGlory) && renderGameOver()}
         </AnimatePresence>
 
 
@@ -239,28 +331,8 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
       </div>
 
       {/* Admin Control & Theme Toggle - Top Right */}
-      <div className="absolute top-10 right-10 z-50 flex items-center gap-4">
-        {/* Admin Force-Action Dropdown */}
-        {isAdmin && (
-          <div className="flex items-center gap-3 bg-zinc-950/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
-            <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
-               <Terminal className="w-4 h-4" />
-            </div>
-            <select 
-              value={forcedNextAction || ''}
-              onChange={(e) => setForcedNextAction(e.target.value || null)}
-              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-orange-500 transition-colors cursor-pointer"
-            >
-              <option value="">🎲 Aleatório</option>
-              <option value="puzzle">🧩 Desafio Mental</option>
-              <option value="combined">⚔️ Combate Tático</option>
-              <option value="binary">🌓 Escolha Binária</option>
-              <option value="multiple">📜 Múltipla Escolha</option>
-              <option value="interpretative">✍️ Interpretação Livre</option>
-            </select>
-          </div>
-        )}
-
+      <div className="absolute top-10 right-10 z-50 flex flex-col items-end gap-3">
+        {/* Position 1: Theme Toggle */}
         <motion.button 
           onClick={toggleTheme}
           whileHover={{ scale: 1.1 }}
@@ -270,6 +342,48 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
         >
           {theme === 'dark' ? <Sun className="w-5 h-5 group-hover:rotate-90 transition-transform" /> : <Moon className="w-5 h-5 group-hover:-rotate-12 transition-transform" />}
         </motion.button>
+
+        {/* Admin Panels */}
+        {isAdmin && (
+          <div className="flex flex-col gap-2">
+            {/* Force Action Selector */}
+            <div className="flex items-center gap-3 bg-zinc-950/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+              <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
+                <Terminal className="w-4 h-4" />
+              </div>
+              <select 
+                value={forcedNextAction || ''}
+                onChange={(e) => setForcedNextAction(e.target.value || null)}
+                className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-orange-500 transition-colors cursor-pointer"
+              >
+                <option value="">🎲 Ação Aleatória</option>
+                <option value="puzzle">🧩 Desafio Mental</option>
+                <option value="combined">⚔️ Combate Tático</option>
+                <option value="binary">🌓 Escolha Binária</option>
+                <option value="multiple">📜 Múltipla Escolha</option>
+                <option value="interpretative">✍️ Interpretação Livre</option>
+              </select>
+            </div>
+
+            {/* Force Ending Selector */}
+            <div className="flex items-center gap-3 bg-zinc-950/80 border border-cyan-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+              <div className="p-2 bg-cyan-500/10 rounded-xl text-cyan-500">
+                <Zap className="w-4 h-4" />
+              </div>
+              <select 
+                value={forcedEndingType || ''}
+                onChange={(e) => setForcedEndingType(e.target.value || null)}
+                className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-cyan-500 transition-colors cursor-pointer"
+              >
+                <option value="">🌿 Continuar História</option>
+                <option value="glory">🏆 Glória do Herói</option>
+                <option value="death">💀 Morte (Tolerância)</option>
+                <option value="permadeath">🌑 Morte Permanente</option>
+                <option value="defeat">🚩 Derrota Amarga</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Scribe's Hub - Floating Export Menu */}
