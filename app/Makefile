@@ -1,70 +1,75 @@
 SHELL := /bin/bash
-PROJECT_NAME_DEV=fantasy_dev
-PROJECT_NAME_PRD=fantasy-portal
+PROJECT_NAME=fantasy-portal
 
-# Compose commands with environment variables for isolation
-COMPOSE_DEV=FP_ENV=dev docker compose -p $(PROJECT_NAME_DEV) -f docker-compose.yml -f docker-compose.dev.yml
-COMPOSE_PRD=FP_ENV=prd docker compose -p $(PROJECT_NAME_PRD) -f docker-compose.yml -f docker-compose.prd.yml
+# Base commands
+COMPOSE_BASE=docker compose -p $(PROJECT_NAME)
+COMPOSE_DEV=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.dev.yml
+COMPOSE_PRD=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.prd.yml
 
-ls:
-	ls -la
+.PHONY: dev prd down status clean db-reset-dev db-reset-prd prisma-seed pgadmin-down
 
-# --- Development Commands ---
+# --- Development ---
 dev:
 	$(COMPOSE_DEV) up -d
-
-dev-build:
-	$(COMPOSE_DEV) up -d --build
 
 dev-logs:
 	$(COMPOSE_DEV) logs -f
 
-dev-down:
-	$(COMPOSE_DEV) down
-
-# --- Production Commands ---
+# --- Production ---
 prd:
 	$(COMPOSE_PRD) up -d --build
 
 prd-logs:
 	$(COMPOSE_PRD) logs -f
 
-prd-down:
-	$(COMPOSE_PRD) down
+# --- Management ---
+down:
+	$(COMPOSE_BASE) -f docker-compose.dev.yml -f docker-compose.prd.yml -f docker-compose.yml down
 
-# --- General Commands ---
-up: dev
-
-down: dev-down
-
-stop:
-	$(COMPOSE_DEV) stop
-
-restart:
-	$(COMPOSE_DEV) restart
+pgadmin-down:
+	$(COMPOSE_BASE) -f docker-compose.yml stop pgadmin
+	$(COMPOSE_BASE) -f docker-compose.yml rm -f pgadmin
 
 status:
-	docker ps --filter "name=fantasy"
-
-# Execute into dev container
-p:
-	$(COMPOSE_DEV) exec node_app sh
-
-# Execute into prd container
-pp:
-	$(COMPOSE_PRD) exec node_app sh
+	docker ps --filter "name=fantasy_portal"
 
 clean:
-	$(COMPOSE_DEV) down -v
-	$(COMPOSE_PRD) down -v
-	docker system prune -af
+	$(COMPOSE_BASE) -f docker-compose.dev.yml -f docker-compose.prd.yml -f docker-compose.yml down -v
+	docker system prune -f
 
-# Next.js specific helpers (using dev by default)
+# --- Database & Prisma ---
 prisma-gen:
-	$(COMPOSE_DEV) exec node_app npx prisma generate
-
-prisma-seed:
-	$(COMPOSE_DEV) exec node_app npm run prisma:seed
+	$(COMPOSE_DEV) exec node_app_dev npx prisma generate
 
 prisma-migrate:
-	$(COMPOSE_DEV) exec node_app npx prisma migrate dev
+	$(COMPOSE_DEV) exec node_app_dev npx prisma migrate dev
+
+prisma-seed:
+	$(COMPOSE_DEV) exec node_app_dev npx prisma db seed
+
+db-reset-dev:
+	$(COMPOSE_DEV) stop db_postgres_dev
+	$(COMPOSE_DEV) rm -f db_postgres_dev
+	sudo rm -rf database/dev/postgres
+	$(COMPOSE_DEV) up -d db_postgres_dev
+	@echo "Aguardando banco inicializar..."
+	@sleep 5
+	$(COMPOSE_DEV) exec node_app_dev npx prisma migrate dev --name reset
+	$(COMPOSE_DEV) exec node_app_dev npx prisma db seed
+
+db-reset-prd:
+	$(COMPOSE_PRD) stop db_postgres_prd
+	$(COMPOSE_PRD) rm -f db_postgres_prd
+	sudo rm -rf database/prd/postgres
+	$(COMPOSE_PRD) up -d db_postgres_prd
+	@echo "Aguardando banco inicializar..."
+	@sleep 5
+	$(COMPOSE_PRD) exec node_app_prd npx prisma migrate deploy
+	$(COMPOSE_PRD) exec node_app_prd npx prisma db seed
+
+# --- Shell ---
+sh-dev:
+	$(COMPOSE_DEV) exec node_app_dev sh
+
+sh-prd:
+	$(COMPOSE_PRD) exec node_app_prd sh

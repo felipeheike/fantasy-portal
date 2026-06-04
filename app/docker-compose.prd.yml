@@ -1,16 +1,66 @@
 services:
-  # Next.js Application (Production ports)
-  node_app:
+  # Next.js App (Prd)
+  node_app_prd:
+    container_name: fantasy_portal_node_prd
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "25035:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    networks:
+      - duplecake-net
+    depends_on:
+      - db_postgres_prd
+      - cache_redis_prd
 
-  # pgAdmin for Database Management
-  pgadmin:
+  # PostgreSQL (Prd)
+  db_postgres_prd:
+    container_name: fantasy_portal_db_prd
+    image: postgres:16-alpine
+    restart: unless-stopped
     ports:
-      - "25036:80"
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: fp_user
+      POSTGRES_PASSWORD: fp_password
+      POSTGRES_DB: fantasy_portal_db
+    volumes:
+      - ./database/prd/postgres:/var/lib/postgresql/data
+    networks:
+      - duplecake-net
 
-  # MinIO for Blob Storage
-  storage_minio:
+  # Redis (Prd)
+  cache_redis_prd:
+    container_name: fantasy_portal_redis_prd
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - ./database/prd/redis:/data
+    networks:
+      - duplecake-net
+
+  # MinIO (Prd)
+  storage_minio_prd:
+    container_name: fantasy_portal_minio_prd
+    image: minio/minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - ./database/prd/minio:/data
+    command: server /data --console-address ":9001"
     ports:
       - "25037:9000"
       - "25038:9001"
+    networks:
+      - duplecake-net
+
+networks:
+  duplecake-net:
+    external: true

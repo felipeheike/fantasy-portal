@@ -1,40 +1,67 @@
 services:
-  node_app:
+  # Next.js App (Dev)
+  node_app_dev:
     container_name: fantasy_portal_node_dev
-    # Em desenvolvimento, usamos a imagem base diretamente para agilidade
     image: node:22-alpine
     working_dir: /app
     ports:
       - "25039:3000"
-    # Mapeamos o código local para hot-reload
     volumes:
       - .:/app
       - /app/node_modules
-    # Sobrescrevemos o comando para rodar o servidor de desenvolvimento
     command: sh -c "npm install && npx prisma generate && npm run dev"
-    # Adicionamos variáveis extras para dev se necessário
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
       - NEXTAUTH_URL=http://localhost:25039
+      - DATABASE_URL=postgresql://fp_user:fp_password@db_postgres_dev:5432/fantasy_portal_db?schema=public
+      - REDIS_URL=redis://cache_redis_dev:6379
+    networks:
+      - duplecake-net
+    depends_on:
+      - db_postgres_dev
+      - cache_redis_dev
 
-  # PostgreSQL Database (Dev)
-  db_postgres:
+  # PostgreSQL (Dev)
+  db_postgres_dev:
     container_name: fantasy_portal_db_dev
-
-  # Redis Cache (Dev)
-  cache_redis:
-    container_name: fantasy_portal_redis_dev
-
-  # pgAdmin (Dev ports and name)
-  pgadmin:
-    container_name: fantasy_portal_pgadmin_dev
+    image: postgres:16-alpine
     ports:
-      - "25040:80"
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: fp_user
+      POSTGRES_PASSWORD: fp_password
+      POSTGRES_DB: fantasy_portal_db
+    volumes:
+      - ./database/dev/postgres:/var/lib/postgresql/data
+    networks:
+      - duplecake-net
 
-  # MinIO (Dev ports and name)
-  storage_minio:
+  # Redis (Dev)
+  cache_redis_dev:
+    container_name: fantasy_portal_redis_dev
+    image: redis:7-alpine
+    volumes:
+      - ./database/dev/redis:/data
+    networks:
+      - duplecake-net
+
+  # MinIO (Dev)
+  storage_minio_dev:
     container_name: fantasy_portal_minio_dev
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - ./database/dev/minio:/data
+    command: server /data --console-address ":9001"
     ports:
       - "25041:9000"
       - "25042:9001"
+    networks:
+      - duplecake-net
+
+networks:
+  duplecake-net:
+    external: true

@@ -1,49 +1,5 @@
-version: '3.8'
-
 services:
-  # Next.js Application (Production by default)
-  node_app:
-    container_name: fantasy_portal_node
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-      - WATCHPACK_POLLING=false
-    restart: unless-stopped
-    networks:
-      - duplecake-net
-    depends_on:
-      - db_postgres
-      - cache_redis
-
-  # PostgreSQL Database
-  db_postgres:
-    container_name: fantasy_portal_db
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: fp_user
-      POSTGRES_PASSWORD: fp_password
-      POSTGRES_DB: fantasy_portal_db
-    volumes:
-      - ./database/${FP_ENV:-prd}/postgres:/var/lib/postgresql/data
-    restart: unless-stopped
-    networks:
-      - duplecake-net
-
-  # Redis Cache
-  cache_redis:
-    container_name: fantasy_portal_redis
-    image: redis:7-alpine
-    volumes:
-      - ./database/${FP_ENV:-prd}/redis:/data
-    restart: unless-stopped
-    networks:
-      - duplecake-net
-
-  # pgAdmin for Database Management
+  # pgAdmin (Compartilhado entre Dev e Prd)
   pgadmin:
     container_name: fantasy_portal_pgadmin
     image: dpage/pgadmin4
@@ -51,24 +7,12 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'True'
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
     volumes:
-      - ./database/${FP_ENV:-prd}/pgadmin/servers.json:/pgadmin4/servers.json
-      - ./database/${FP_ENV:-prd}/pgadmin/pgpass:/var/lib/pgadmin/pgpass
-    networks:
-      - duplecake-net
-
-  # MinIO for Blob Storage
-  storage_minio:
-    container_name: fantasy_portal_minio
-    image: minio/minio
-    restart: unless-stopped
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - ./database/${FP_ENV:-prd}/minio:/data
-    command: server /data --console-address ":9001"
+      - ./database/shared/pgadmin/servers.json:/pgadmin4/servers.json
+      - ./database/shared/pgadmin/data:/var/lib/pgadmin
+    ports:
+      - "25036:80"
     networks:
       - duplecake-net
 

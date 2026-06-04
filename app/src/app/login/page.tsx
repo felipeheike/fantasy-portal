@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Sparkles, Mail, Lock, LogIn, ArrowRight, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Mail, Lock, LogIn, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
@@ -12,11 +12,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    // Verificar saúde do banco ao carregar
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) {
+          setDbError(data.error);
+        }
+      })
+      .catch(() => setDbError("Erro de conexão com o Portal"));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password || dbError) return;
 
     setIsLoading(true);
     try {
@@ -45,6 +58,27 @@ export default function LoginPage() {
       {/* Background Ambience */}
       <div className="absolute inset-0 opacity-20 bg-[url('/noise.svg')] pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <AnimatePresence>
+        {dbError && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-6"
+          >
+             <div className="bg-red-950/80 border border-red-500/50 p-6 rounded-3xl backdrop-blur-xl flex items-center gap-4 text-red-200 shadow-2xl">
+                <ShieldAlert className="w-8 h-8 shrink-0 text-red-500" />
+                <div>
+                   <h3 className="font-black uppercase tracking-widest text-xs mb-1">Masmorra Inacessível</h3>
+                   <p className="text-xs opacity-80">
+                     O banco de dados não está pronto ou as migrações não foram aplicadas. 
+                     Peça ao Mestre para executar <code className="bg-black/40 px-1 rounded">prisma migrate deploy</code>.
+                   </p>
+                </div>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
