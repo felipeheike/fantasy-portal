@@ -5,6 +5,7 @@ import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NarrativeScene, NarrativeOption, TacticalOptions, InventoryItem } from '@/types';
 import DiceRoller from './DiceRoller';
+import PuzzleOrchestrator from './PuzzleOrchestrator';
 import { 
   Send, 
   Sword, 
@@ -39,7 +40,6 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
   const handleSendText = useCallback(() => {
     if (inputText.trim()) {
       onAction(inputText);
-      // Removed setInputText('') to avoid data loss on failure
     }
   }, [inputText, onAction]);
 
@@ -59,6 +59,10 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
     onAction(`RESULTADO DO DADO: ${result}. Narre o desfecho da minha ação anterior considerando este valor de sorte (1-10).`);
   }, [onAction]);
 
+  const handleSolvePuzzle = useCallback((solution: string) => {
+    onAction(`RESOLUÇÃO DO ENIGMA: ${solution}. Prossiga com as consequências.`);
+  }, [onAction]);
+
   // Derived state for validation
   const selectedActionData = useMemo(() => 
     scene?.tacticalOptions?.actions?.find(a => a.id === selectedTactical.actionId),
@@ -75,9 +79,8 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
     const rawItems = scene?.tacticalOptions?.availableItems || [];
     if (!selectedActionData?.itemType) return rawItems;
     
-    // Attempt to filter based on item metadata in store
     return rawItems.filter(itemName => {
-      const itemData = inventory.find(i => i.name === itemName);
+      const itemData = inventory.find(i => i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === itemName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
       return !itemData || itemData.type === selectedActionData.itemType;
     });
   }, [scene, selectedActionData, inventory]);
@@ -137,7 +140,6 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
   const renderTactical = () => (
     <div className="space-y-6 bg-zinc-900/40 p-6 rounded-3xl border border-zinc-800/50 backdrop-blur-md relative overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Actions Column */}
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
             <Sword className="w-3 h-3" /> Ação
@@ -160,7 +162,6 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
           </div>
         </div>
 
-        {/* Targets Column */}
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
             <Target className="w-3 h-3" /> Alvo
@@ -182,7 +183,6 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
           </div>
         </div>
 
-        {/* Items Column */}
         <div className={`space-y-2 transition-all ${selectedActionData?.requiresItem && !selectedTactical.item ? 'ring-2 ring-orange-500/20 rounded-xl p-2 -m-2 bg-orange-500/5' : ''}`}>
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
             <Package className="w-3 h-3" /> Item
@@ -216,13 +216,9 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 {i}
               </button>
             ))}
-            {filteredItems.length === 0 && (
-              <p className="text-[8px] text-zinc-700 italic ml-2">Nenhum item compatível</p>
-            )}
           </div>
         </div>
 
-        {/* Skills Column */}
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
             <Sparkles className="w-3 h-3" /> Habilidade
@@ -296,6 +292,8 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                  <div className="flex justify-center">
                     <DiceRoller onRollComplete={handleDiceRoll} isLoading={isLoading} />
                  </div>
+              ) : scene?.puzzle ? (
+                 <PuzzleOrchestrator onSolve={handleSolvePuzzle} />
               ) : scene?.tacticalOptions ? renderTactical() : scene?.options?.length ? renderOptions() : renderInterpretative()}
             </motion.div>
           )}

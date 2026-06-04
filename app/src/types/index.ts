@@ -59,6 +59,13 @@ export interface NarrativeScene {
   audioUrl?: string; // For "Soundscapes"
   options: NarrativeOption[];
   tacticalOptions?: TacticalOptions; 
+  puzzle?: {
+    type: 'hangman' | 'anagram' | 'cipher' | 'riddle';
+    solution: string;     // Resposta correta (ex: "ESPADAS")
+    hint: string;         // Pista inicial (ex: "Forjada em aço")
+    displayData: string;  // O que aparece inicialmente (ex: "_ _ _ _ _ _" ou "D S A S E P A")
+    maxAttempts: number;  // Limite de erros antes da penalidade
+  };
   selectedOption?: string; // The choice made by the player
   statusChanges?: Partial<PlayerStatus>;
   inventoryChanges?: {
@@ -110,5 +117,5 @@ export interface StatusLogEntry {
 export interface NarrativeOption {
   id: string;
   label: string;
-  type: 'binary' | 'ternary' | 'quaternary' | 'composite' | 'interpretative' | 'combined';
+  type: 'binary' | 'ternary' | 'quaternary' | 'composite' | 'interpretative' | 'combined' | 'puzzle';
 }

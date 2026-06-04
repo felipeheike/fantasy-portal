@@ -21,6 +21,7 @@ interface GameState {
   lastPendingChoice: string | null;
   lockedItemName: string | null;
   theme: 'light' | 'dark';
+  forcedNextAction: string | null; // Admin tool: Force next scene type
   
   // Actions
   setHasHydrated: (state: boolean) => void;
@@ -50,6 +51,7 @@ interface GameState {
   startImpersonation: (id: string, name: string) => void;
   stopImpersonation: () => void;
   toggleTheme: () => void;
+  setForcedNextAction: (type: string | null) => void;
   resetGame: () => void;
 }
 
@@ -92,6 +94,7 @@ export const useGameStore = create<GameState>()(
       lastPendingChoice: null,
       lockedItemName: null,
       theme: 'dark',
+      forcedNextAction: null,
 
       setHasHydrated: (state) => set({ hasHydrated: state }),
       setSettings: (settings) => set({ settings }),
@@ -102,6 +105,7 @@ export const useGameStore = create<GameState>()(
       setJourneyId: (id) => set({ currentJourneyId: id }),
       startGame: () => set({ isGameStarted: true, isSetupMode: false }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      setForcedNextAction: (type) => set({ forcedNextAction: type }),
 
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
@@ -145,6 +149,7 @@ export const useGameStore = create<GameState>()(
           memories: data.memories || [],
           notificationHistory: data.settings?.notificationHistory || [],
           statusHistory: data.settings?.statusHistory || [],
+          forcedNextAction: null,
         });
       },
 
@@ -314,7 +319,8 @@ export const useGameStore = create<GameState>()(
             memories: updatedMemories,
             statusHistory: [...newLogEntries, ...state.statusHistory].slice(0, MAX_LOG_ENTRIES),
             lastPendingChoice: null,
-            lockedItemName: null
+            lockedItemName: null,
+            forcedNextAction: null // Clear forced action after scene completion
           };
         }),
 
@@ -338,7 +344,12 @@ export const useGameStore = create<GameState>()(
 
       addNotification: (notification) => 
         set((state) => {
-          const newNotif = { ...notification, id: `notif-${Date.now()}`, timestamp: Date.now(), read: false };
+          const newNotif = { 
+            ...notification, 
+            id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, 
+            timestamp: Date.now(), 
+            read: false 
+          };
           return { notificationHistory: [newNotif, ...state.notificationHistory].slice(0, MAX_NOTIFICATIONS) };
         }),
 
@@ -433,7 +444,8 @@ export const useGameStore = create<GameState>()(
           lastPendingChoice: null,
           lockedItemName: null,
           hasHydrated: true,
-          theme: state.theme
+          theme: state.theme,
+          forcedNextAction: null
         }));
       },
     }),
@@ -457,7 +469,8 @@ export const useGameStore = create<GameState>()(
         statusHistory: state.statusHistory,
         impersonatedPlayerId: state.impersonatedPlayerId,
         impersonatedPlayerName: state.impersonatedPlayerName,
-        theme: state.theme
+        theme: state.theme,
+        forcedNextAction: state.forcedNextAction
       }),
     }
   )

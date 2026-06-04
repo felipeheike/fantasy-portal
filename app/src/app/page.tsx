@@ -32,7 +32,7 @@ const sceneSchema = z.object({
   audioDescription: z.string().optional(),
   imageUrl: z.string().optional(),
   audioUrl: z.string().optional(),
-  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative']),
+  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle']),
   options: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
   tacticalOptions: z.object({
     actions: z.array(z.object({ 
@@ -46,21 +46,12 @@ const sceneSchema = z.object({
     availableItems: z.array(z.string()).optional(),
     availableSkills: z.array(z.string()).optional()
   }).optional(),
-  tacticalMap: z.object({
-    gridSize: z.object({ rows: z.number(), cols: z.number() }),
-    entities: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.enum(['player', 'enemy', 'npc']),
-      position: z.object({ x: z.number(), y: z.number() }),
-      hp: z.number().optional(),
-      maxHp: z.number().optional()
-    })),
-    environment: z.array(z.object({
-      id: z.string(),
-      type: z.enum(['wall', 'fire', 'water', 'obstacle']),
-      position: z.object({ x: z.number(), y: z.number() })
-    })).optional()
+  puzzle: z.object({
+    type: z.enum(['hangman', 'anagram', 'cipher', 'riddle']),
+    solution: z.string(),
+    hint: z.string(),
+    displayData: z.string(),
+    maxAttempts: z.number()
   }).optional(),
   statusChanges: z.object({ 
     hp: z.number().optional(), 
@@ -154,7 +145,8 @@ export default function GamePage() {
     flags,
     memories,
     lastSceneId: currentScene?.sceneId,
-    sceneCount: history.length // Actual total count
+    sceneCount: history.length, // Actual total count
+    forcedNextAction: useGameStore.getState().forcedNextAction
   }), [status, inventory, settings, currentScene?.sceneId, history.length, flags, memories]);
 
   const generateSceneImage = useCallback((sceneId: string, prompt: string) => {

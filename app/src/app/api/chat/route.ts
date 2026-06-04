@@ -11,7 +11,7 @@ const sceneSchema = z.object({
   audioDescription: z.string().optional().describe('Descrição da paisagem sonora e tom da narração para síntese de áudio.'),
   imageUrl: z.string().optional(),
   audioUrl: z.string().optional(),
-  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative']),
+  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle']),
   options: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
   tacticalOptions: z.object({
     actions: z.array(z.object({ 
@@ -25,6 +25,13 @@ const sceneSchema = z.object({
     availableItems: z.array(z.string()).optional(),
     availableSkills: z.array(z.string()).optional()
   }).optional().describe('Opções estruturadas para combates ou desafios técnicos.'),
+  puzzle: z.object({
+    type: z.enum(['hangman', 'anagram', 'cipher', 'riddle']),
+    solution: z.string().describe('Resposta correta em maiúsculas.'),
+    hint: z.string().describe('Pista para ser comprada com Insight.'),
+    displayData: z.string().describe('Representação visual inicial (ex: "_ _ _" ou letras embaralhadas).'),
+    maxAttempts: z.number().describe('Limite de erros (geralmente 3 a 5).')
+  }).optional().describe('Desafios de puzzle para transições ou interações especiais.'),
   statusChanges: z.object({ 
     hp: z.number().optional(), 
     hpSource: z.string().optional().describe('Fonte do dano ou cura (ex: "Garras do Lobo", "Poção").'),
@@ -110,6 +117,7 @@ export async function POST(req: Request) {
       output: 'object',
       system: `
 Você é o Narrador soberano do "Fantasy Portal".
+${playerContext?.forcedNextAction ? `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente uma interação do tipo '${playerContext.forcedNextAction}'. Ignore as regras normais de diversificação para esta cena.` : ""}
 
 REGRAS DE DIVERSIFICAÇÃO (ANTI-REPETIÇÃO):
 1. LIMITE DE REPETIÇÃO: Você NÃO deve usar o mesmo 'recommendedInputType' por more than ${process.env.MAX_REPETITIVE_INTERACTIONS || 2} cenas consecutivas.
@@ -147,6 +155,14 @@ SISTEMA DE EFEITO BORBOLETA (BUTTERFLY EFFECT):
 - Se o ato não for para uma entidade específica, use "O Mundo" como chave em 'reputations'.
 - Ações nobres ativam feedback DOURADO, ações cruéis ativam feedback ROXO.
 - O mundo e NPCs devem reagir à moral acumulada e às reputações locais.
+
+SISTEMA DE DESAFIOS MENTAIS (puzzle):
+- Use o campo 'puzzle' para travar o progresso atrás de um desafio intelectual.
+- 'hangman': Forca temática. Defina 'solution' e 'displayData' com espaços (ex: "A _ _ _ _ A").
+- 'anagram': Letras embaralhadas. Defina 'displayData' com a bagunça (ex: "R T P O A L").
+- 'cipher': Código de substituição. Dê a dica no campo 'hint'.
+- 'riddle': Charada clássica. A resposta curta deve estar em 'solution'.
+- RECOMPENSA: Resolver um puzzle concede +1 Insight Point automaticamente.
 
 SISTEMA DE PAISAGENS SONORAS:
 - Preencha 'audioDescription' com uma descrição rica do ambiente sonoro.

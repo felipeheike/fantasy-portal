@@ -3,20 +3,39 @@
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef } from 'react';
-import { ChevronDown, MessageCircle, AlertCircle, Download, RefreshCcw, Volume2, Headphones, Sun, Moon } from 'lucide-react';
+import { 
+  ChevronDown, 
+  MessageCircle, 
+  AlertCircle, 
+  Download, 
+  RefreshCcw, 
+  Volume2, 
+  Headphones, 
+  Sun, 
+  Moon, 
+  Terminal,
+  FileDown, 
+  FileText 
+} from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
 import { generateJourneyPDF } from '@/lib/pdfUtils';
-import { FileDown, FileText } from 'lucide-react';
 
 interface NarrativePanelProps {
   onRetryImage?: (sceneId: string, prompt: string) => void;
 }
 
 export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
-  const { history, currentScene, status, settings, resetGame, theme, toggleTheme, hasHydrated } = useGameStore();
+  const { data: session } = useSession();
+  const { 
+    history, currentScene, status, settings, resetGame, 
+    theme, toggleTheme, hasHydrated,
+    forcedNextAction, setForcedNextAction
+  } = useGameStore();
+  
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const isGameOver = currentScene?.isGameOver || status.hp <= 0;
+  const isAdmin = (session?.user as any)?.role === 'ADMIN';
 
   const handleExportMarkdown = () => {
     const markdown = exportJourneyToMarkdown(history, settings, settings?.playerName || 'Viajante', currentScene);
@@ -44,9 +63,7 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
   }, [theme, hasHydrated]);
 
   return (
-    <div 
-      className="flex-1 overflow-hidden relative"
-    >
+    <div className="flex-1 overflow-hidden relative">
       <div 
         ref={scrollRef}
         className="absolute inset-0 overflow-y-auto p-6 space-y-12 scroll-smooth custom-scrollbar pb-[45vh]"
@@ -221,8 +238,29 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
         )}
       </div>
 
-      {/* Theme Toggle - Top Right */}
-      <div className="absolute top-10 right-10 z-50">
+      {/* Admin Control & Theme Toggle - Top Right */}
+      <div className="absolute top-10 right-10 z-50 flex items-center gap-4">
+        {/* Admin Force-Action Dropdown */}
+        {isAdmin && (
+          <div className="flex items-center gap-3 bg-zinc-950/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+            <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
+               <Terminal className="w-4 h-4" />
+            </div>
+            <select 
+              value={forcedNextAction || ''}
+              onChange={(e) => setForcedNextAction(e.target.value || null)}
+              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-orange-500 transition-colors cursor-pointer"
+            >
+              <option value="">🎲 Aleatório</option>
+              <option value="puzzle">🧩 Desafio Mental</option>
+              <option value="combined">⚔️ Combate Tático</option>
+              <option value="binary">🌓 Escolha Binária</option>
+              <option value="multiple">📜 Múltipla Escolha</option>
+              <option value="interpretative">✍️ Interpretação Livre</option>
+            </select>
+          </div>
+        )}
+
         <motion.button 
           onClick={toggleTheme}
           whileHover={{ scale: 1.1 }}
