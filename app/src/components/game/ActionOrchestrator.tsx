@@ -285,24 +285,25 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
         y: isMinimized ? 'calc(100% - 24px)' : '0px',
       }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed bottom-0 left-0 w-full pb-6 pt-4 px-4 md:p-8 z-40 bg-zinc-900/90 border-t border-zinc-800/50"
+      className="fixed bottom-0 left-0 w-full z-40 bg-zinc-900/90 border-t border-zinc-800/50"
     >
-      <div className="max-w-4xl mx-auto relative">
-        {/* Toggle Button for Mobile */}
-        <div className="flex lg:hidden justify-center absolute -top-12 left-0 w-full">
-           <button 
-             onClick={() => setIsMinimized(!isMinimized)}
-             className="bg-zinc-900/90 border border-zinc-800 px-4 py-1.5 rounded-t-xl text-zinc-400 flex items-center gap-2 shadow-2xl transition-colors hover:text-primary"
-           >
-              {isMinimized ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span className="text-[8px] font-black uppercase tracking-widest">
-                {isMinimized ? 'Expandir Ações' : 'Recolher Painel'}
-              </span>
-           </button>
-        </div>
+      {/* Toggle Button */}
+      <div className="absolute -top-8 left-0 w-full flex justify-center z-50">
+         <button 
+           onClick={() => setIsMinimized(!isMinimized)}
+           className="bg-zinc-900/90 border border-zinc-800 border-b-0 px-6 py-1.5 rounded-t-xl text-zinc-400 flex items-center gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] transition-colors hover:text-primary backdrop-blur-md"
+         >
+            {isMinimized ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span className="text-[9px] font-black uppercase tracking-widest">
+              {isMinimized ? 'Expandir Ações' : 'Recolher Painel'}
+            </span>
+         </button>
+      </div>
 
-        <AnimatePresence mode="wait">
-          {isLoading ? (
+      <div className="w-full max-h-[85vh] overflow-y-auto custom-scrollbar pb-6 pt-4 px-4 md:p-6">
+        <div className="max-w-4xl mx-auto relative mt-2 md:mt-0">
+          <AnimatePresence mode="wait">
+            {isLoading ? (
              <motion.div 
                key="loading"
                initial={{ opacity: 0 }}
@@ -328,6 +329,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );
