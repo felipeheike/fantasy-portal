@@ -96,20 +96,34 @@ export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePane
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-2xl mx-auto py-20 text-center space-y-8 relative"
         >
-          {/* Golden Flash Effect */}
+          {/* Golden Flash Effect - Looping */}
           <motion.div 
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 2 }}
+            animate={{ opacity: [0, 0.4, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full pointer-events-none"
           />
 
-          <div className="w-24 h-24 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(245,158,11,0.3)]">
-            <Trophy className="w-12 h-12 text-primary animate-bounce" />
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-5xl font-black uppercase tracking-tighter text-white">Sua Lenda foi Escrita</h2>
-            <p className="text-zinc-400 font-serif italic text-xl leading-relaxed max-w-lg mx-auto">
+          <motion.div 
+            animate={{ 
+              y: [0, -10, 0],
+              scale: [1, 1.05, 1],
+              rotate: [0, 2, -2, 0]
+            }}
+            transition={{ 
+              duration: 5, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+            className="w-24 h-24 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(245,158,11,0.3)] relative z-10"
+          >
+            <Trophy className="w-12 h-12 text-primary" />
+          </motion.div>
+          <div className="space-y-4 relative z-10">
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">
+              Sua Lenda foi Escrita
+            </h2>
+            <p className="text-zinc-400 font-serif italic text-lg md:text-xl leading-relaxed max-w-lg mx-auto">
               "Seu nome ecoará pelos salões do Portal por toda a eternidade. A jornada termina aqui, mas sua glória é imortal."
             </p>
           </div>
@@ -143,10 +157,10 @@ export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePane
           </div>
           
           <div className="space-y-4">
-            <h2 className="text-4xl font-black uppercase tracking-tighter text-white">
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white">
               {isPermadeath ? 'O Fim Absoluto' : 'A Morte é Apenas um Revés'}
             </h2>
-            <p className="text-zinc-500 font-serif italic text-lg leading-relaxed max-w-lg mx-auto">
+            <p className="text-zinc-500 font-serif italic text-base md:text-lg leading-relaxed max-w-lg mx-auto">
               {isPermadeath 
                 ? "O destino foi implacável e o Portal se fechou para esta alma. Suas cinzas agora sopram pelo vazio."
                 : "As sombras tentaram te levar, mas sua lenda ainda não terminou. A poeira foi removida e você retornou à jogada."
@@ -330,8 +344,8 @@ export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePane
         )}
       </div>
 
-      {/* Admin Control & Theme Toggle - Top Right */}
-      <div className="absolute top-10 right-10 z-50 flex flex-col items-end gap-3">
+      {/* Admin Control & Theme Toggle - Top Right (Desktop Only) */}
+      <div className="absolute top-10 right-10 z-50 hidden lg:flex flex-col items-end gap-3">
         {/* Position 1: Theme Toggle */}
         <motion.button 
           onClick={toggleTheme}
@@ -386,39 +400,38 @@ export default function NarrativePanel({ onRetryImage, onRevive }: NarrativePane
         )}
       </div>
 
-      {/* Scribe's Hub - Floating Export Menu */}
+      {/* Scribe's Hub - Floating Export Menu (Desktop Only) */}
       {history.length > 0 && (
         <motion.div 
-          className="absolute bottom-10 right-10 z-50 flex items-center gap-1 bg-zinc-950/90 border border-zinc-800 p-1.5 rounded-3xl backdrop-blur-xl shadow-2xl group/hub"
+          className="absolute bottom-36 lg:bottom-10 right-4 lg:right-10 z-50 hidden lg:flex flex-col lg:flex-row items-center gap-2 lg:gap-1 bg-zinc-950/50 lg:bg-zinc-950/90 border border-zinc-800 p-1.5 rounded-2xl lg:rounded-3xl backdrop-blur-xl shadow-2xl group/hub opacity-60 hover:opacity-100 lg:opacity-100 transition-opacity"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.02 }}
         >
-          <div className="flex items-center gap-1">
+          <div className="flex flex-col lg:flex-row items-center gap-1">
             {/* PDF Option */}
             <motion.button
               onClick={handleExportPDF}
-              className="p-3 rounded-2xl text-zinc-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2 group/pdf"
+              className="p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-zinc-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2 group/pdf"
               title="Livro de Arte (PDF)"
             >
-              <FileText className="w-5 h-5" />
-              <span className="text-[9px] font-black uppercase tracking-widest hidden group-hover/hub:inline-block transition-all">PDF Arte</span>
+              <FileText className="w-4 h-4 lg:w-5 lg:h-5" />
+              <span className="text-[9px] font-black uppercase tracking-widest hidden lg:group-hover/hub:inline-block transition-all">PDF Arte</span>
             </motion.button>
 
-            <div className="w-px h-6 bg-zinc-800/50 mx-1" />
+            <div className="h-px w-6 lg:h-6 lg:w-px bg-zinc-800/50 my-1 lg:mx-1" />
 
             {/* Markdown Option */}
             <motion.button
               onClick={handleExportMarkdown}
-              className="p-3 rounded-2xl text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all flex items-center gap-2 group/md"
+              className="p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all flex items-center gap-2 group/md"
               title="Crônicas (.md)"
             >
-              <FileDown className="w-5 h-5" />
-              <span className="text-[9px] font-black uppercase tracking-widest hidden group-hover/hub:inline-block transition-all">Dados .MD</span>
+              <FileDown className="w-4 h-4 lg:w-5 lg:h-5" />
+              <span className="text-[9px] font-black uppercase tracking-widest hidden lg:group-hover/hub:inline-block transition-all">Dados .MD</span>
             </motion.button>
           </div>
 
-          <div className="bg-zinc-900 p-3 rounded-2xl text-zinc-600 group-hover/hub:text-primary transition-colors ml-1 border border-zinc-800">
+          <div className="hidden lg:flex bg-zinc-900 p-3 rounded-2xl text-zinc-600 group-hover/hub:text-primary transition-colors ml-1 border border-zinc-800">
              <Download className="w-4 h-4" />
           </div>
         </motion.div>

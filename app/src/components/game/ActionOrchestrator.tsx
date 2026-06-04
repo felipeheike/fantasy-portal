@@ -95,14 +95,14 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
   if ((!scene && !isLoading) || scene?.isGameOver || status.hp <= 0) return null;
 
   const renderInterpretative = () => (
-    <div className="flex gap-4 items-center bg-zinc-900/60 p-2 rounded-2xl border border-zinc-800 focus-within:border-primary/50 transition-all backdrop-blur-md shadow-2xl">
-      <div className="p-3 text-zinc-500">
-        <MessageSquare className="w-5 h-5" />
+    <div className="flex gap-2 md:gap-4 items-center bg-zinc-900 p-3 md:p-2 rounded-2xl border border-zinc-800 focus-within:border-primary/50 transition-all md:backdrop-blur-md shadow-2xl">
+      <div className="p-2 md:p-3 text-zinc-500">
+        <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
       </div>
       <input 
         type="text"
         placeholder="Escreva seu destino..."
-        className="flex-1 bg-transparent border-none outline-none text-zinc-200 placeholder:text-zinc-600 font-serif italic"
+        className="flex-1 bg-transparent border-none outline-none text-sm md:text-base text-zinc-200 placeholder:text-zinc-600 font-serif italic"
         value={inputText}
         onChange={(e) => setInputText(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSendText()}
@@ -111,15 +111,15 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
       <button 
         onClick={handleSendText}
         disabled={isLoading || !inputText.trim()}
-        className="p-3 bg-primary text-zinc-950 rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+        className="p-2.5 md:p-3 bg-primary text-zinc-950 rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
       >
-        <Send className="w-5 h-5" />
+        <Send className="w-4 h-4 md:w-5 md:h-5" />
       </button>
     </div>
   );
 
   const renderOptions = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
       {scene?.options?.map((option, index) => (
         <motion.button
           key={option.id + index}
@@ -128,17 +128,17 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
           transition={{ delay: index * 0.1 }}
           onClick={() => onAction(option.label)}
           disabled={isLoading}
-          className="flex items-center justify-between p-5 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-primary/40 hover:bg-zinc-800/80 transition-all group"
+          className="flex items-center justify-between p-4 md:p-5 bg-zinc-900 border border-zinc-800 rounded-2xl hover:border-primary/40 hover:bg-zinc-800/80 transition-all group"
         >
-          <span className="text-zinc-300 font-bold tracking-tight">{option.label}</span>
-          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-primary transition-colors" />
+          <span className="text-zinc-300 text-sm md:text-base font-bold tracking-tight text-left">{option.label}</span>
+          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-primary transition-colors shrink-0" />
         </motion.button>
       ))}
     </div>
   );
 
   const renderTactical = () => (
-    <div className="space-y-6 bg-zinc-900/40 p-6 rounded-3xl border border-zinc-800/50 backdrop-blur-md relative overflow-hidden">
+    <div className="space-y-4 md:space-y-6 bg-zinc-900 p-4 md:p-6 rounded-3xl border border-zinc-800/50 md:backdrop-blur-md relative overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
@@ -269,7 +269,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
   );
 
   return (
-    <div className="fixed bottom-0 left-0 w-full p-8 z-40 bg-gradient-to-t from-zinc-950 via-zinc-950/90 to-transparent">
+    <div className="fixed bottom-0 left-0 w-full pb-10 pt-4 px-4 md:p-8 z-40 bg-zinc-900 md:bg-gradient-to-t md:from-zinc-950 md:via-zinc-950/90 md:to-transparent">
       <div className="max-w-4xl mx-auto">
         <AnimatePresence mode="wait">
           {isLoading ? (

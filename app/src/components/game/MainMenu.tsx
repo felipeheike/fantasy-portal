@@ -86,9 +86,9 @@ export default function MainMenu() {
   if (!hasHydrated) return null;
 
   return (
-    <div className="fixed inset-0 bg-zinc-950 z-[80] flex flex-col items-center justify-center p-6 overflow-hidden">
+    <div className="fixed inset-0 bg-zinc-950 z-[80] flex flex-col items-center p-4 md:p-6 overflow-y-auto">
       {/* Background Video or Image Placeholder */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none grayscale contrast-125 scale-110 bg-[url('/noise.svg')]" />
+      <div className="fixed inset-0 opacity-20 pointer-events-none grayscale contrast-125 scale-110 bg-[url('/noise.svg')]" />
       
       {/* Impersonation Banner */}
       <AnimatePresence>
@@ -96,14 +96,14 @@ export default function MainMenu() {
           <motion.div 
             initial={{ y: -100 }}
             animate={{ y: 0 }}
-            className="absolute top-0 left-0 w-full h-12 bg-orange-600 z-[90] flex items-center justify-center gap-6 px-10 border-b border-orange-500 shadow-2xl"
+            className="fixed top-0 left-0 w-full h-12 bg-orange-600 z-[100] flex items-center justify-center gap-6 px-4 md:px-10 border-b border-orange-500 shadow-2xl"
           >
              <div className="flex items-center gap-3">
                 <div className="p-1.5 bg-black/20 rounded-lg">
                   <Eye className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xs font-black uppercase tracking-widest text-orange-50">
-                  Modo Supervisão: Lendas de <span className="text-white underline decoration-2 underline-offset-4">{impersonatedPlayerName}</span>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-orange-50">
+                  <span className="hidden xs:inline">Modo Supervisão:</span> {impersonatedPlayerName}
                 </span>
              </div>
              <button 
@@ -119,90 +119,91 @@ export default function MainMenu() {
         )}
       </AnimatePresence>
 
-      <div className={`w-full max-w-6xl flex flex-col items-center gap-12 relative z-10 ${impersonatedPlayerId ? 'mt-12' : ''} transition-all duration-300`}>
+      <div className={`w-full max-w-6xl flex flex-col items-center gap-8 md:gap-12 relative z-10 ${impersonatedPlayerId ? 'mt-16' : 'mt-8'} transition-all duration-300`}>
+        
+        {/* Top Navigation Bar (Mobile Friendly) */}
+        <div className="w-full flex flex-wrap justify-center md:justify-end gap-2 md:gap-3">
+          {/* Theme Toggle Button */}
+          <button 
+            onClick={() => toggleTheme()}
+            className="p-2.5 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-400 hover:text-primary transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4 group-hover:rotate-90 transition-transform" /> : <Moon className="w-4 h-4 group-hover:-rotate-12 transition-transform" />}
+            <span className="hidden md:inline">{theme === 'dark' ? 'Modo Luz' : 'Modo Sombras'}</span>
+          </button>
+
+          {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
+            <button 
+              onClick={() => router.push('/admin/dashboard')}
+              className="p-2.5 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-primary hover:bg-zinc-800 transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group"
+            >
+              <ShieldCheck className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden md:inline">Câmara do Mestre</span>
+            </button>
+          )}
+
+          <button 
+            onClick={() => setIsProfileOpen(true)}
+            className="p-2.5 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-400 hover:text-white transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group"
+          >
+            <User className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden md:inline">Identidade</span>
+          </button>
+
+          <button 
+            onClick={() => signOut()}
+            className="p-2.5 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-600 hover:text-red-500 transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group"
+          >
+            <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> <span className="hidden md:inline">Sair da Conta</span>
+          </button>
+        </div>
+
         {/* Logo Section */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4 relative"
+          className="text-center space-y-4"
         >
-          <div className="absolute -top-16 right-0 flex gap-2">
-            {/* Theme Toggle Button */}
-            <button 
-              onClick={() => toggleTheme()}
-              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-primary transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
-              title={theme === 'dark' ? 'Ativar Modo Luz' : 'Ativar Modo Sombras'}
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 group-hover:rotate-90 transition-transform" /> : <Moon className="w-4 h-4 group-hover:-rotate-12 transition-transform" />}
-              {theme === 'dark' ? 'Luz' : 'Sombras'}
-            </button>
-
-            {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
-              <button 
-                onClick={() => router.push('/admin/dashboard')}
-                className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
-              >
-                <ShieldCheck className="w-4 h-4 group-hover:scale-110 transition-transform" /> Câmara do Mestre
-              </button>
-            )}
-
-            <button 
-              onClick={() => setIsProfileOpen(true)}
-              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
-            >
-              <User className="w-4 h-4 group-hover:scale-110 transition-transform" /> Identidade
-            </button>
-
-            <button 
-              onClick={() => signOut()}
-              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-600 hover:text-red-500 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
-            >
-              <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> Sair da Conta
-            </button>
+          <div className="inline-block p-3 md:p-4 bg-primary/10 rounded-2xl md:rounded-[32px] border border-primary/20 mb-2 md:mb-4 shadow-[0_0_50px_rgba(245,158,11,0.1)]">
+             <Sparkles className="w-8 h-8 md:w-12 md:h-12 text-primary fill-primary/20" />
           </div>
-
-          <div className="inline-block p-4 bg-primary/10 rounded-[32px] border border-primary/20 mb-4 shadow-[0_0_50px_rgba(245,158,11,0.1)]">
-             <Sparkles className="w-12 h-12 text-primary fill-primary/20" />
-          </div>
-          <h1 className="text-7xl font-black tracking-tighter italic text-white uppercase">
+          <h1 className="text-4xl md:text-7xl font-black tracking-tighter italic text-white uppercase">
             Fantasy <span className="text-primary">Portal</span>
           </h1>
-          <p className="text-zinc-500 font-serif italic text-xl tracking-widest uppercase">Crônicas do Destino Infinito</p>
+          <p className="text-zinc-500 font-serif italic text-sm md:text-xl tracking-[0.2em] md:tracking-widest uppercase">Crônicas do Destino Infinito</p>
         </motion.div>
 
-        <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 pb-12">
           {/* New Game Card */}
           <motion.button
             whileHover={{ scale: 1.02, translateY: -5 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNewGame}
-            className="lg:col-span-1 h-full min-h-[300px] p-10 bg-white rounded-[40px] flex flex-col items-start justify-between text-left group shadow-2xl relative overflow-hidden"
+            className="lg:col-span-1 h-full min-h-[200px] md:min-h-[300px] p-6 md:p-10 bg-white rounded-[32px] md:rounded-[40px] flex flex-col items-start justify-between text-left group shadow-2xl relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-100 group-hover:scale-110 transition-all text-zinc-950">
-               <Plus className="w-24 h-24" />
+            <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 md:opacity-10 group-hover:opacity-100 group-hover:scale-110 transition-all text-zinc-950">
+               <Plus className="w-16 h-16 md:w-24 md:h-24" />
             </div>
-            <div className="space-y-4 relative z-10">
-              <div className="p-3 bg-zinc-50 rounded-2xl text-zinc-900 w-fit border border-zinc-100">
-                <Plus className="w-6 h-6" />
+            <div className="space-y-3 md:space-y-4 relative z-10">
+              <div className="p-2 md:p-3 bg-zinc-50 rounded-xl md:rounded-2xl text-zinc-900 w-fit border border-zinc-100">
+                <Plus className="w-5 h-5 md:w-6 md:h-6" />
               </div>
-              <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase leading-none">Iniciar<br/>Nova Lenda</h2>
+              <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tighter uppercase leading-none">Iniciar<br/>Nova Lenda</h2>
             </div>
-            <span className="text-xs font-black uppercase tracking-widest text-zinc-400 group-hover:text-primary transition-colors flex items-center gap-2">
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-400 group-hover:text-primary transition-colors flex items-center gap-2">
                Cruzar o Portal <ChevronRight className="w-4 h-4" />
             </span>
           </motion.button>
 
           {/* Saved Sessions List */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             <div className="flex items-center justify-between px-2">
-              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 flex items-center gap-2">
+              <h3 className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-zinc-500 flex items-center gap-2">
                  <Clock className="w-4 h-4" /> Sessões Preservadas
               </h3>
-              <span className="text-[10px] font-bold text-zinc-700 uppercase">{journeys.length} Registros</span>
+              <span className="text-[9px] md:text-[10px] font-bold text-zinc-700 uppercase">{journeys.length} Registros</span>
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center p-20">
+              <div className="flex items-center justify-center p-12 md:p-20">
                 <motion.div 
                    animate={{ rotate: 360 }}
                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
@@ -210,12 +211,12 @@ export default function MainMenu() {
                 />
               </div>
             ) : journeys.length === 0 ? (
-              <div className="p-12 border-2 border-dashed border-zinc-800 rounded-[40px] text-center space-y-4 opacity-50">
-                 <Skull className="w-12 h-12 text-zinc-700 mx-auto" />
-                 <p className="text-zinc-500 font-serif italic text-lg">Nenhuma alma atravessou este portal ainda...</p>
+              <div className="p-8 md:p-12 border-2 border-dashed border-zinc-800 rounded-[32px] md:rounded-[40px] text-center space-y-4 opacity-50">
+                 <Skull className="w-10 h-10 md:w-12 md:h-12 text-zinc-700 mx-auto" />
+                 <p className="text-zinc-500 font-serif italic text-base md:text-lg">Nenhuma alma atravessou este portal ainda...</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <AnimatePresence>
                   {journeys.map((j, i) => (
                     <motion.div
@@ -224,38 +225,36 @@ export default function MainMenu() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => loadJourney(j.id, j)}
-                      className="p-6 bg-zinc-900/50 border border-zinc-800 hover:border-primary/40 hover:bg-zinc-800/80 rounded-3xl transition-all group cursor-pointer flex items-center justify-between"
+                      className="p-4 md:p-6 bg-zinc-900/50 border border-zinc-800 hover:border-primary/40 hover:bg-zinc-800/80 rounded-[24px] md:rounded-3xl transition-all group cursor-pointer flex items-center justify-between gap-4"
                     >
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                            <Swords className="w-6 h-6" />
+                      <div className="flex items-center gap-4 md:gap-6 min-w-0">
+                        <div className="w-10 h-10 md:w-14 md:h-14 bg-zinc-950 border border-zinc-800 rounded-xl md:rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
+                            <Swords className="w-5 h-5 md:w-6 md:h-6" />
                         </div>
-                        <div>
-                            <h4 className="text-xl font-black text-zinc-200 tracking-tight">{j.flags?.playerName || j.name || 'Herói Sem Nome'}</h4>
-                            <div className="flex items-center gap-3 text-[10px] uppercase font-bold text-zinc-600 mt-1">
-                              <span className="text-primary">{j.genre}</span>
-                              <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                              <span>{new Date(j.updatedAt).toLocaleDateString()}</span>
-                              <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                              <span>{j.history?.length || 0} Passos</span>
+                        <div className="min-w-0">
+                            <h4 className="text-lg md:text-xl font-black text-zinc-200 tracking-tight truncate">{j.flags?.playerName || j.name || 'Herói Sem Nome'}</h4>
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 text-[8px] md:text-[10px] uppercase font-bold text-zinc-600 mt-1">
+                              <span className="text-primary truncate">{j.genre}</span>
+                              <span className="w-0.5 h-0.5 bg-zinc-800 rounded-full" />
+                              <span className="shrink-0">{new Date(j.updatedAt).toLocaleDateString()}</span>
+                              <span className="w-0.5 h-0.5 bg-zinc-800 rounded-full" />
+                              <span className="shrink-0">{j.history?.length || 0} Passos</span>
                             </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                         <button 
                           onClick={(e) => openSettings(j, e)}
-                          className="p-3 bg-zinc-950 rounded-xl text-zinc-600 hover:text-zinc-200 hover:bg-zinc-800 transition-all border border-zinc-800"
-                          title="Configurações da Sessão"
+                          className="p-2 md:p-3 bg-zinc-950 rounded-lg md:rounded-xl text-zinc-600 hover:text-zinc-200 hover:bg-zinc-800 transition-all border border-zinc-800"
                         >
-                          <Settings2 className="w-4 h-4" />
+                          <Settings2 className="w-4 h-4 md:w-4 md:h-4" />
                         </button>
                         <button 
                           onClick={(e) => handleDelete(j.id, e)}
-                          className="p-3 bg-zinc-950 rounded-xl text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all border border-zinc-800"
-                          title="Apagar Registro"
+                          className="p-2 md:p-3 bg-zinc-950 rounded-lg md:rounded-xl text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all border border-zinc-800"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 md:w-4 md:h-4" />
                         </button>
                       </div>
                     </motion.div>
@@ -263,12 +262,12 @@ export default function MainMenu() {
                 </AnimatePresence>
                 
                 {/* Troubleshooting Button */}
-                <div className="pt-10 flex justify-center">
+                <div className="pt-6 md:pt-10 flex justify-center px-4 text-center">
                   <button 
                     onClick={handleHardReset}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-950/20 text-red-500/50 hover:bg-red-500 hover:text-white transition-all rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20"
+                    className="flex items-center gap-2 px-4 py-2 bg-red-950/20 text-red-500/50 hover:bg-red-500 hover:text-white transition-all rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-red-500/20"
                   >
-                    <Trash2 className="w-3 h-3" /> Limpar Memória do Navegador (Cache)
+                    <Trash2 className="w-3 h-3" /> Limpar Cache Local
                   </button>
                 </div>
               </div>

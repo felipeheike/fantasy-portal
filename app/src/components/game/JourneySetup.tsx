@@ -294,19 +294,19 @@ export default function JourneySetup() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="w-full max-w-xl bg-zinc-900/50 border border-zinc-800 p-10 rounded-[40px] backdrop-blur-xl shadow-2xl relative"
+            className="w-full max-w-xl bg-zinc-900/50 border border-zinc-800 p-6 md:p-10 rounded-[32px] md:rounded-[40px] backdrop-blur-xl shadow-2xl relative"
             >
             {/* Cancel Button */}
             <button 
               onClick={handleCancel}
-              className="absolute top-8 right-8 z-50 p-2 bg-zinc-800/50 hover:bg-zinc-700 rounded-full text-zinc-500 hover:text-white transition-all group"
+              className="absolute top-6 right-6 md:top-8 md:right-8 z-50 p-2 bg-zinc-800/50 hover:bg-zinc-700 rounded-full text-zinc-500 hover:text-white transition-all group"
               title="Cancelar Criação"
             >
-              <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+              <X className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-90 transition-transform" />
             </button>
 
             {/* Progress Bar */}
-            <div className="absolute top-0 left-0 w-full h-1.5 flex gap-1 p-4">
+            <div className="absolute top-0 left-0 w-full h-1.5 flex gap-1 p-3 md:p-4">
               {steps.map((_, i) => (
                 <div 
                   key={i} 
@@ -323,53 +323,53 @@ export default function JourneySetup() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
+                className="space-y-6 md:space-y-8"
               >
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 text-primary mb-4">
-                    <currentStepData.icon className="w-5 h-5" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em]">Passo {step} de {steps.length}</span>
+                <div className="space-y-1 md:space-y-2">
+                  <div className="flex items-center gap-3 text-primary mb-2 md:mb-4">
+                    <currentStepData.icon className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em]">Passo {step} de {steps.length}</span>
                   </div>
-                  <h2 className="text-4xl font-black text-zinc-100 tracking-tighter italic">
+                  <h2 className="text-2xl md:text-4xl font-black text-zinc-100 tracking-tighter italic">
                     {currentStepData.title}
                   </h2>
-                  <p className="text-zinc-500 font-serif italic text-lg leading-relaxed">
+                  <p className="text-zinc-500 font-serif italic text-sm md:text-lg leading-relaxed">
                     {currentStepData.desc}
                   </p>
                 </div>
 
-                <div className="py-4">
+                <div className="py-2 md:py-4">
                   {currentStepData.content}
                 </div>
               </motion.div>
             </AnimatePresence>
 
-            <div className="mt-10 flex items-center justify-between pt-6 border-t border-zinc-800/50">
+            <div className="mt-6 md:mt-10 flex items-center justify-between pt-4 md:pt-6 border-t border-zinc-800/50 gap-4">
               <button
                 disabled={step === 1}
                 onClick={prevStep}
-                className="flex items-center gap-2 text-zinc-500 hover:text-zinc-100 transition-colors disabled:opacity-0"
+                className="flex items-center gap-2 text-zinc-500 hover:text-zinc-100 transition-colors disabled:opacity-0 shrink-0"
               >
-                <ChevronLeft className="w-5 h-5" />
-                <span className="text-xs font-black uppercase tracking-widest">Voltar</span>
+                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Voltar</span>
               </button>
 
               {step < steps.length ? (
                 <button
                   disabled={step === 1 && !form.playerName}
                   onClick={nextStep}
-                  className="group flex items-center gap-3 bg-zinc-100 text-zinc-950 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary transition-all disabled:opacity-50"
+                  className="group flex items-center gap-2 md:gap-3 bg-zinc-100 text-zinc-950 px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-primary transition-all disabled:opacity-50"
                 >
                   Próximo
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
               ) : (
                 <button
                   onClick={handleStart}
-                  className="flex items-center gap-3 bg-primary text-zinc-950 px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-105 active:scale-95 transition-all"
+                  className="flex items-center gap-2 md:gap-3 bg-primary text-zinc-950 px-6 md:px-10 py-4 md:py-5 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-sm shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-105 active:scale-95 transition-all"
                 >
-                  <Sparkles className="w-5 h-5 fill-zinc-950" />
-                  Invocar Jornada
+                  <Sparkles className="w-4 h-4 md:w-5 md:h-5 fill-zinc-950" />
+                  <span className="truncate">Invocar Jornada</span>
                 </button>
               )}
             </div>

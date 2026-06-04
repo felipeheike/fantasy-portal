@@ -24,6 +24,8 @@ import { z } from 'zod';
 import { NarrativeScene, NarrativeOption, StatusLogEntry } from '@/types';
 import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, ShieldCheck, Eye, X, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
+import { generateJourneyPDF } from '@/lib/pdfUtils';
 
 const sceneSchema = z.object({
   sceneId: z.string(),
@@ -146,7 +148,8 @@ export default function GamePage() {
     memories,
     lastSceneId: currentScene?.sceneId,
     sceneCount: history.length, // Actual total count
-    forcedNextAction: useGameStore.getState().forcedNextAction
+    forcedNextAction: useGameStore.getState().forcedNextAction,
+    forcedEndingType: useGameStore.getState().forcedEndingType
   }), [status, inventory, settings, currentScene?.sceneId, history.length, flags, memories]);
 
   const generateSceneImage = useCallback((sceneId: string, prompt: string) => {
@@ -350,6 +353,15 @@ export default function GamePage() {
     submit({ messages, playerContext });
   }, [isLoading, history, currentScene, object, playerContext, submit, setPendingChoice]);
 
+  const handleExportMarkdown = useCallback(() => {
+    const markdown = exportJourneyToMarkdown(history, settings, settings?.playerName || 'Viajante', currentScene);
+    downloadMarkdown(markdown, `jornada-${settings?.playerName || 'viajante'}.md`);
+  }, [history, settings, currentScene]);
+
+  const handleExportPDF = useCallback(async () => {
+    await generateJourneyPDF(history, settings, settings?.playerName || 'Viajante');
+  }, [history, settings]);
+
   // DB Record Creation & Persistence Sync
   useEffect(() => {
     if (isGameStarted && !currentJourneyId && !creationInProgress.current && session?.user) {
@@ -470,20 +482,23 @@ export default function GamePage() {
         onToggleInfluence={() => setIsInfluenceOpen(true)}
         onToggleNotifications={() => setIsNotificationsOpen(true)}
         onToggleSettings={() => setIsDetailsOpen(true)}
+        onToggleInquiry={() => setIsInquiryOpen(true)}
+        onDownloadPDF={handleExportPDF}
+        onDownloadMD={handleExportMarkdown}
         onToggleHPLog={() => setIsHPLogOpen(true)}
         onToggleSPLog={() => setIsSPLogOpen(true)}
         onLogout={() => resetGame()}
       />
 
       <main 
-        className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-36' : 'pt-24'} ${isInquiryOpen ? 'pl-[448px]' : 'pl-0'} transition-all duration-500 ease-in-out`}
+        className={`flex-1 flex flex-col relative z-20 ${impersonatedPlayerId ? 'pt-32 lg:pt-36' : 'pt-24 lg:pt-24'} ${isInquiryOpen ? 'lg:pl-[448px]' : 'pl-0'} transition-all duration-500 ease-in-out`}
       >
         {/* Top Actions Hub */}
-        <div className={`absolute ${impersonatedPlayerId ? 'top-40' : 'top-28'} ${isInquiryOpen ? 'left-[468px]' : 'left-10'} z-50 flex gap-2 transition-all duration-500 ease-in-out`}>
+        <div className={`absolute ${impersonatedPlayerId ? 'top-32 lg:top-40' : 'top-24 lg:top-28'} ${isInquiryOpen ? 'lg:left-[468px]' : 'left-4 lg:left-10'} z-50 flex gap-2 transition-all duration-500 ease-in-out`}>
           {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
-              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
+              className="hidden lg:block p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
               title="Câmara do Mestre (Admin)"
             >
               <ShieldCheck className="w-5 h-5" />
@@ -492,7 +507,7 @@ export default function GamePage() {
 
           <button 
             onClick={() => setIsDetailsOpen(true)}
-            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
+            className="hidden lg:block p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all shadow-xl"
             title="Detalhes da Jornada"
           >
             <Settings2 className="w-5 h-5" />
@@ -500,7 +515,7 @@ export default function GamePage() {
         </div>
 
         {/* Insight Hub (Questioning) - Floating above Export Hub */}
-        <div className="fixed bottom-32 right-10 z-50 flex flex-col items-center gap-4">
+        <div className="fixed bottom-24 lg:bottom-32 right-4 lg:right-10 z-50 hidden lg:flex flex-col items-center gap-4">
            <AnimatePresence>
              {!isGameOver && history.length > 0 && (
                <motion.button 
@@ -508,11 +523,11 @@ export default function GamePage() {
                  animate={{ scale: 1, rotate: 0 }}
                  exit={{ scale: 0, rotate: 45 }}
                  onClick={() => setIsInquiryOpen(true)}
-                 className="p-5 bg-primary text-zinc-950 rounded-[28px] hover:scale-110 active:scale-95 transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] group relative border-4 border-zinc-950"
+                 className="p-4 lg:p-5 bg-primary text-zinc-950 rounded-2xl lg:rounded-[28px] hover:scale-110 active:scale-95 transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] group relative border-4 border-zinc-950"
                  title="Questionar o Mestre (Pontos de Visão)"
                >
-                  <HelpCircle className="w-8 h-8" />
-                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-zinc-950 text-primary text-[12px] font-black rounded-full flex items-center justify-center border-2 border-primary/50 shadow-lg">
+                  <HelpCircle className="w-6 h-6 lg:w-8 lg:h-8" />
+                  <span className="absolute -top-2 -right-2 w-6 h-6 lg:w-7 lg:h-7 bg-zinc-950 text-primary text-[10px] lg:text-[12px] font-black rounded-full flex items-center justify-center border-2 border-primary/50 shadow-lg">
                     {status.insightPoints}
                   </span>
                </motion.button>
@@ -554,19 +569,19 @@ export default function GamePage() {
         <NarrativePanel onRetryImage={(sceneId, prompt) => generateSceneImage(sceneId, prompt)} />
         
         {/* Performance & Model Info */}
-        <div className="fixed bottom-4 left-6 z-[45] flex items-center gap-4 opacity-30 hover:opacity-100 transition-opacity">
-           <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
-              <Type className="w-3 h-3 text-zinc-500" />
-              <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.text || 'Carregando...'}</span>
+        <div className="fixed bottom-6 lg:bottom-4 left-4 lg:left-6 z-[45] flex items-center gap-2 md:gap-4 opacity-30 hover:opacity-100 transition-opacity">
+           <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
+              <Type className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
+              <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.text || '...'}</span>
            </div>
-           <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
-              <Palette className="w-3 h-3 text-zinc-500" />
-              <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.image || 'Carregando...'}</span>
+           <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
+              <Palette className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
+              <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.image || '...'}</span>
            </div>
            {lastResponseTime && (
-             <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
-                <Clock className="w-3 h-3 text-primary" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-primary">{lastResponseTime}ms</span>
+             <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-full">
+                <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
+                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-primary">{lastResponseTime}ms</span>
              </div>
            )}
         </div>
