@@ -59,7 +59,6 @@ export interface NarrativeScene {
   audioUrl?: string; // For "Soundscapes"
   options: NarrativeOption[];
   tacticalOptions?: TacticalOptions; 
-  tacticalMap?: TacticalMap; // New for "Grid-based Combat"
   selectedOption?: string; // The choice made by the player
   statusChanges?: Partial<PlayerStatus>;
   inventoryChanges?: {
@@ -75,31 +74,6 @@ export interface NarrativeScene {
   requiresRoll?: boolean; // New for dice roll mechanics
   imageError?: boolean;
   inquiries?: { question: string; answer: string; timestamp: number }[]; // New: Persist inquiries per scene
-}
-
-export interface TacticalMap {
-  gridSize: { rows: number; cols: number };
-  entities: TacticalEntity[];
-  environment?: {
-    id: string;
-    type: 'wall' | 'fire' | 'water' | 'obstacle';
-    position: Position;
-  }[];
-}
-
-export interface TacticalEntity {
-  id: string;
-  name: string;
-  type: 'player' | 'enemy' | 'npc';
-  position: Position;
-  hp?: number;
-  maxHp?: number;
-  spriteUrl?: string; // AI generated sprite
-}
-
-export interface Position {
-  x: number;
-  y: number;
 }
 
 export interface TacticalOptions {

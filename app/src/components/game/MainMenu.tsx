@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2, LogOut, ShieldCheck, Eye, X, User } from 'lucide-react';
+import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2, LogOut, ShieldCheck, Eye, X, User, Moon, Sun } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import JourneyDetailsModal from './JourneyDetailsModal';
@@ -14,13 +14,24 @@ export default function MainMenu() {
   const router = useRouter();
   const { 
     hasHydrated, loadJourney, resetGame, startGame, 
-    impersonatedPlayerId, impersonatedPlayerName, stopImpersonation 
+    impersonatedPlayerId, impersonatedPlayerName, stopImpersonation,
+    theme, toggleTheme
   } = useGameStore();
   
   const [journeys, setJourneys] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJourneyForSettings, setSelectedJourneyForSettings] = useState<any | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Apply theme to document element
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
+  }, [theme, hasHydrated]);
 
   const fetchJourneys = useCallback(async () => {
     if (!hasHydrated) return;
@@ -116,6 +127,16 @@ export default function MainMenu() {
           className="text-center space-y-4 relative"
         >
           <div className="absolute -top-16 right-0 flex gap-2">
+            {/* Theme Toggle Button */}
+            <button 
+              onClick={() => toggleTheme()}
+              className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-primary transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl group"
+              title={theme === 'dark' ? 'Ativar Modo Luz' : 'Ativar Modo Sombras'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 group-hover:rotate-90 transition-transform" /> : <Moon className="w-4 h-4 group-hover:-rotate-12 transition-transform" />}
+              {theme === 'dark' ? 'Luz' : 'Sombras'}
+            </button>
+
             {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
               <button 
                 onClick={() => router.push('/admin/dashboard')}

@@ -20,6 +20,7 @@ interface GameState {
   hasHydrated: boolean;
   lastPendingChoice: string | null;
   lockedItemName: string | null;
+  theme: 'light' | 'dark';
   
   // Actions
   setHasHydrated: (state: boolean) => void;
@@ -48,6 +49,7 @@ interface GameState {
   restoreInsightWithSacrifice: () => boolean;
   startImpersonation: (id: string, name: string) => void;
   stopImpersonation: () => void;
+  toggleTheme: () => void;
   resetGame: () => void;
 }
 
@@ -89,6 +91,7 @@ export const useGameStore = create<GameState>()(
       hasHydrated: false,
       lastPendingChoice: null,
       lockedItemName: null,
+      theme: 'dark',
 
       setHasHydrated: (state) => set({ hasHydrated: state }),
       setSettings: (settings) => set({ settings }),
@@ -98,6 +101,7 @@ export const useGameStore = create<GameState>()(
       })),
       setJourneyId: (id) => set({ currentJourneyId: id }),
       startGame: () => set({ isGameStarted: true, isSetupMode: false }),
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
@@ -429,6 +433,7 @@ export const useGameStore = create<GameState>()(
           lastPendingChoice: null,
           lockedItemName: null,
           hasHydrated: true,
+          theme: state.theme
         }));
       },
     }),
@@ -451,7 +456,8 @@ export const useGameStore = create<GameState>()(
         notificationHistory: state.notificationHistory,
         statusHistory: state.statusHistory,
         impersonatedPlayerId: state.impersonatedPlayerId,
-        impersonatedPlayerName: state.impersonatedPlayerName
+        impersonatedPlayerName: state.impersonatedPlayerName,
+        theme: state.theme
       }),
     }
   )

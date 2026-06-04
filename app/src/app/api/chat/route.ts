@@ -24,23 +24,7 @@ const sceneSchema = z.object({
     targets: z.array(z.object({ id: z.string(), label: z.string(), description: z.string().optional() })),
     availableItems: z.array(z.string()).optional(),
     availableSkills: z.array(z.string()).optional()
-  }).optional(),
-  tacticalMap: z.object({
-    gridSize: z.object({ rows: z.number(), cols: z.number() }),
-    entities: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.enum(['player', 'enemy', 'npc']),
-      position: z.object({ x: z.number(), y: z.number() }),
-      hp: z.number().optional(),
-      maxHp: z.number().optional()
-    })),
-    environment: z.array(z.object({
-      id: z.string(),
-      type: z.enum(['wall', 'fire', 'water', 'obstacle']),
-      position: z.object({ x: z.number(), y: z.number() })
-    })).optional()
-  }).optional().describe('Mapa tático para combates ou exploração complexa em grade.'),
+  }).optional().describe('Opções estruturadas para combates ou desafios técnicos.'),
   statusChanges: z.object({ 
     hp: z.number().optional(), 
     hpSource: z.string().optional().describe('Fonte do dano ou cura (ex: "Garras do Lobo", "Poção").'),
@@ -130,7 +114,7 @@ Você é o Narrador soberano do "Fantasy Portal".
 REGRAS DE DIVERSIFICAÇÃO (ANTI-REPETIÇÃO):
 1. LIMITE DE REPETIÇÃO: Você NÃO deve usar o mesmo 'recommendedInputType' por more than ${process.env.MAX_REPETITIVE_INTERACTIONS || 2} cenas consecutivas.
 2. VARIEDADE: Alterne entre 'binary', 'multiple', 'combined' e 'interpretative' para manter o dinamismo.
-3. PRIORIDADE TÁTICA: SEMPRE use o modo 'combined' (Combate Tático) em situações de conflito físico, perseguição ou obstáculos que exijam uso de itens/habilidades.
+3. PRIORIDADE TÁTICA: SEMPRE use o modo 'combined' (Escolha Estruturada) em situações de conflito físico, perseguição ou obstáculos técnicos.
 4. USO DE HABILIDADES: Ofereça pelo menos uma opção que utilize as habilidades do jogador em cada 3 cenas.
 
 REGRAS DE CONTROLE DE JORNADA (STEPS):
@@ -165,24 +149,22 @@ SISTEMA DE EFEITO BORBOLETA (BUTTERFLY EFFECT):
 - O mundo e NPCs devem reagir à moral acumulada e às reputações locais.
 
 SISTEMA DE PAISAGENS SONORAS:
-- Preencha 'audioDescription' com uma descrição rica do ambiente sonoro (ex: "vento uivante misturado com o som de correntes arrastando").
+- Preencha 'audioDescription' com uma descrição rica do ambiente sonoro.
 
-SISTEMA DE COMBATE TÁTICO (GRID-BASED):
-- Quando a cena envolver combate ou exploração tática, preencha 'tacticalMap'.
-- Use uma grade padrão de 5x5 ou 8x8 conforme a complexidade.
-- Posicione o jogador e inimigos logicamente.
-- No 'visualDescription', forneça prompts específicos para os sprites dos inimigos se o campo 'tacticalMap' for usado.
+REGRAS DE COMBATE E DESAFIOS (combined):
+- Quando a cena envolver combate ou exploração técnica, preencha 'tacticalOptions'.
+- Narre o posicionamento e a tensão de forma puramente textual. Não tente gerar mapas visuais ou grades de coordenadas.
+- Ao oferecer 'tacticalOptions', preencha 'availableItems' com os NOMES dos itens na mochila e 'availableSkills' estritamente com os NOMES das habilidades presentes na lista de Habilidades abaixo. Não invente habilidades.
+- Classifique cada ação com 'requiresItem: true' se ela depender fisicamente de um item.
 
 REGRAS TÉCNICAS ABSOLUTAS:
 1. FORMATO: Responda estritamente em JSON seguindo o schema.
-2. ID ÚNICO (CRÍTICO): 'sceneId' deve ser ÚNICO, NOVO e JAMAIS igual a '${playerContext?.lastSceneId}'. Invente um ID descritivo para cada nova cena.
+2. ID ÚNICO (CRÍTICO): 'sceneId' deve ser ÚNICO, NOVO e JAMAIS igual a '${playerContext?.lastSceneId}'.
 3. RESOLUÇÃO DE DADO: Se a última mensagem for "RESULTADO DO DADO: X", narre o desfecho e AVANCE para uma NOVA cena com 'requiresRoll: false'.
-4. TÁTICA (combined): Ao oferecer 'tacticalOptions', preencha 'availableItems' com os NOMES dos itens na mochila e 'availableSkills' estritamente com os NOMES das habilidades presentes na lista de Habilidades abaixo. Não invente habilidades.
-   - REGRAS DE REQUISITO: Classifique cada ação com 'requiresItem: true' se ela depender fisicamente de um item (ex: golpear com arma, usar poção). Defina 'itemType' para orientar a escolha. Use 'requiresItem: false' para ações corporais ou inatas (ex: esquivar, recuar, intimidar).
-5. GESTÃO DE STATUS: Use valores ABSOLUTOS em 'statusChanges' para HP/SP/CombatPower, mas use valores RELATIVOS (+X ou -X) para 'moral'.
-   - REGRAS DE REGISTRO: SEMPRE preencha 'hpSource' ou 'spSource' se houver mudança de vitalidade ou estamina, nomeando o autor do dano ou a ação exaustiva.
-6. INVENTÁRIO: Use 'inventoryChanges' para adicionar/remover itens narrativamente. 
-7. HABILIDADES: Use 'skillChanges' para conceder novas habilidades (level 1) ou evoluir existentes.
+4. GESTÃO DE STATUS: Use valores ABSOLUTOS em 'statusChanges' para HP/SP/CombatPower, mas use valores RELATIVOS (+X ou -X) para 'moral'.
+   - SEMPRE preencha 'hpSource' ou 'spSource' se houver mudança de vitalidade ou estamina.
+5. INVENTÁRIO: Use 'inventoryChanges' para adicionar/remover itens narrativamente. 
+6. HABILIDADES: Use 'skillChanges' para conceder novas habilidades (level 1) ou evoluir existentes.
 
 ESTILO NARRATIVO:
 - Tom literário compatível com o gênero: ${playerContext?.settings?.genre}.

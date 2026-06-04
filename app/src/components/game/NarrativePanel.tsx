@@ -3,18 +3,17 @@
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef } from 'react';
-import { ChevronDown, MessageCircle, AlertCircle, Download, RefreshCcw, Volume2, Headphones } from 'lucide-react';
+import { ChevronDown, MessageCircle, AlertCircle, Download, RefreshCcw, Volume2, Headphones, Sun, Moon } from 'lucide-react';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
 import { generateJourneyPDF } from '@/lib/pdfUtils';
-import { FileDown, FileText, Swords } from 'lucide-react';
-import TacticalGrid from './TacticalGrid';
+import { FileDown, FileText } from 'lucide-react';
 
 interface NarrativePanelProps {
   onRetryImage?: (sceneId: string, prompt: string) => void;
 }
 
 export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
-  const { history, currentScene, status, settings, resetGame } = useGameStore();
+  const { history, currentScene, status, settings, resetGame, theme, toggleTheme, hasHydrated } = useGameStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const isGameOver = currentScene?.isGameOver || status.hp <= 0;
@@ -33,6 +32,16 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [history, currentScene, isGameOver]);
+
+  // Apply theme to document element
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
+  }, [theme, hasHydrated]);
 
   return (
     <div 
@@ -96,21 +105,6 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
                        </p>
                     </div>
                   </div>
-                )}
-
-                {/* Tactical Combat Grid */}
-                {scene.tacticalMap && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="space-y-4"
-                  >
-                    <div className="flex items-center gap-3 ml-2">
-                       <Swords className="w-4 h-4 text-primary" />
-                       <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Modo de Combate Tático</span>
-                    </div>
-                    <TacticalGrid map={scene.tacticalMap} />
-                  </motion.div>
                 )}
 
                 {/* Narration Block */}
@@ -225,6 +219,19 @@ export default function NarrativePanel({ onRetryImage }: NarrativePanelProps) {
             </motion.div>
           </div>
         )}
+      </div>
+
+      {/* Theme Toggle - Top Right */}
+      <div className="absolute top-10 right-10 z-50">
+        <motion.button 
+          onClick={toggleTheme}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl shadow-2xl text-zinc-400 hover:text-primary transition-all group"
+          title={theme === 'dark' ? 'Modo Luz' : 'Modo Sombras'}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5 group-hover:rotate-90 transition-transform" /> : <Moon className="w-5 h-5 group-hover:-rotate-12 transition-transform" />}
+        </motion.button>
       </div>
 
       {/* Scribe's Hub - Floating Export Menu */}
