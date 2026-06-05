@@ -2,21 +2,34 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { getImageModel } from '@/lib/ai/providers';
 import { uploadBuffer } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
     const { prompt, journeyId, sceneId } = await req.json();
     
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt is required' }), { status: 400 });
     }
     
+    // Fetch User AI Config (BYOK)
+    let userConfig = undefined;
+    if (session) {
+      const player = await prisma.player.findUnique({
+        where: { id: (session.user as any).id },
+        select: { apiKeys: true, aiPreferences: true }
+      });
+      if (player) userConfig = player;
+    }
+
     console.log(`LOG: Generating Image [Prompt: ${prompt.substring(0, 50)}...]`);
 
     const { image } = await generateImage({
-      model: getImageModel(),
+      model: getImageModel(userConfig),
       prompt,
     });
 
@@ -51,12 +64,8 @@ export async function POST(req: Request) {
       }
     } catch (storageError) {
       console.error('!!! STORAGE FAILURE !!!', storageError);
-      // Não falha a requisição inteira se o storage falhar, 
-      // mas loga o erro e continua para retornar a imagem original
     }
 
-    // Retornamos a imagem original (binário) para manter compatibilidade com o frontend atual
-    // O frontend pode ser atualizado posteriormente para usar assetUrl se preferir
     return new Response(Buffer.from(image.uint8Array), {
       headers: {
         'Content-Type': 'image/png',

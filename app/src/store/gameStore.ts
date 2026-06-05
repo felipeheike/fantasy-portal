@@ -25,6 +25,8 @@ interface GameState {
   forcedEndingType: string | null; // Admin tool: Force ending type
   showDebugInfo: boolean; // Admin tool: Show AI models and latency
   readingMode: boolean; // Immersion: Hide all UI except narrative
+  isLoadingHistory: boolean;
+  hasMoreHistory: boolean;
   
   // Actions
   setHasHydrated: (state: boolean) => void;
@@ -34,6 +36,7 @@ interface GameState {
   setJourneyId: (id: string, initialFlags?: any) => void;
   startGame: () => void;
   loadJourney: (id: string, data: any) => void;
+  fetchMoreScenes: () => Promise<void>;
   updateStatus: (changes: Partial<PlayerStatus>) => void;
   addItem: (item: InventoryItem) => void;
   removeItem: (itemId: string) => void;
@@ -109,6 +112,8 @@ export const useGameStore = create<GameState>()(
       forcedEndingType: null,
       showDebugInfo: false,
       readingMode: false,
+      isLoadingHistory: false,
+      hasMoreHistory: true,
 
       setHasHydrated: (state) => set({ hasHydrated: state }),
       setSettings: (settings) => set({ settings }),
@@ -131,6 +136,8 @@ export const useGameStore = create<GameState>()(
 
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
+        // data.history pode vir vazio se estivermos usando o novo modelo
+        // No carregamento inicial, o history virá da coluna 'history' do banco (compatibilidade)
         const loadedHistory = data.history || [];
         const playerData = data.player || {};
         const rawInventory = (playerData.inventory || []) as InventoryItem[];
@@ -175,7 +182,44 @@ export const useGameStore = create<GameState>()(
           statusHistory: data.settings?.statusHistory || [],
           forcedNextAction: null,
           forcedEndingType: null,
+          hasMoreHistory: true, // Resetar para novas jornadas
+          isLoadingHistory: false
         });
+      },
+
+      fetchMoreScenes: async () => {
+        const { currentJourneyId, history, isLoadingHistory, hasMoreHistory } = get();
+        if (!currentJourneyId || isLoadingHistory || !hasMoreHistory) return;
+
+        set({ isLoadingHistory: true });
+
+        try {
+          // Pegar a ordem da cena mais antiga carregada
+          const firstOrder = (history[0] as any).order || 1;
+          
+          const response = await fetch(`/api/journey/${currentJourneyId}/scenes?beforeOrder=${firstOrder}&limit=10`);
+          if (!response.ok) throw new Error("Falha ao carregar histórico");
+          
+          const olderScenes: NarrativeScene[] = await response.json();
+          
+          if (olderScenes.length === 0) {
+            set({ hasMoreHistory: false, isLoadingHistory: false });
+            return;
+          }
+
+          // As cenas vem em ordem desc (mais recentes primeiro), 
+          // então precisamos inverter para anexar no início do histórico (que é asc)
+          const formattedOlderScenes = [...olderScenes].reverse();
+
+          set((state) => ({
+            history: [...formattedOlderScenes, ...state.history],
+            isLoadingHistory: false,
+            hasMoreHistory: olderScenes.length === 10
+          }));
+        } catch (error) {
+          console.error("Erro ao carregar mais cenas:", error);
+          set({ isLoadingHistory: false });
+        }
       },
 
       updateStatus: (changes) => 
@@ -520,7 +564,9 @@ export const useGameStore = create<GameState>()(
           hasHydrated: true,
           theme: state.theme,
           forcedNextAction: null,
-          forcedEndingType: null
+          forcedEndingType: null,
+          isLoadingHistory: false,
+          hasMoreHistory: true
         }));
       },
     }),

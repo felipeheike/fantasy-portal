@@ -24,7 +24,8 @@ import {
   Ghost,
   Home,
   Sparkles,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
@@ -43,10 +44,11 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
     theme, toggleTheme, hasHydrated,
     forcedNextAction, setForcedNextAction,
     forcedEndingType, setForcedEndingType, showDebugInfo, toggleShowDebugInfo, readingMode, toggleReadingMode,
-    revivePlayer, setSetupMode
+    revivePlayer, setSetupMode, fetchMoreScenes, isLoadingHistory, hasMoreHistory, isGameStarted
   } = useGameStore();
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [audioTimes, setAudioTimes] = useState<Record<string, { current: number, duration: number }>>({});
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
@@ -78,11 +80,63 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
     setSetupMode(true);
   };
 
-  useEffect(() => {
+  // Scroll to bottom logic
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior
+      });
     }
-  }, [history, currentScene, isDeath, isGlory]);
+  };
+
+  // 1. Initial scroll when session starts or history is loaded
+  const initialScrollDone = useRef(false);
+  useEffect(() => {
+    if (isGameStarted && history.length > 0 && !initialScrollDone.current) {
+      // Pequeno timeout para garantir que o DOM renderizou as cenas
+      const timer = setTimeout(() => {
+        scrollToBottom('auto');
+        initialScrollDone.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    
+    // Resetar flag se o jogo for fechado/resetado
+    if (!isGameStarted) {
+      initialScrollDone.current = false;
+    }
+  }, [isGameStarted, history.length]);
+
+  // 2. Scroll to bottom when a NEW scene is added at the end
+  const lastHistoryCount = useRef(0); // Começa em 0 para detectar a primeira carga
+  useEffect(() => {
+    if (scrollRef.current && history.length > lastHistoryCount.current) {
+      // Só scrolla se o ID da última cena mudou (evita scroll ao carregar passado)
+      const lastScene = history[history.length - 1];
+      const prevLastSceneId = lastHistoryCount.current > 0 ? history[lastHistoryCount.current - 1]?.sceneId : null;
+      
+      if (lastScene?.sceneId !== prevLastSceneId && initialScrollDone.current) {
+        scrollToBottom('smooth');
+      }
+    }
+    lastHistoryCount.current = history.length;
+  }, [history.length, currentScene]);
+
+  // Infinite Scroll Trigger (Sentinel)
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMoreHistory && !isLoadingHistory && history.length > 0) {
+        fetchMoreScenes();
+      }
+    }, { threshold: 0.1 });
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMoreHistory, isLoadingHistory, history.length, fetchMoreScenes]);
 
   // Apply theme to document element
   useEffect(() => {
@@ -253,8 +307,19 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
     <div className="flex-1 overflow-hidden relative">
       <div 
         ref={scrollRef}
+        style={{ overflowAnchor: 'auto' } as any}
         className="absolute inset-0 overflow-y-auto p-6 space-y-12 scroll-smooth custom-scrollbar pb-[45vh]"
       >
+        {/* Sentinel for Reverse Scroll */}
+        <div ref={sentinelRef} className="h-4 w-full flex items-center justify-center">
+           {isLoadingHistory && (
+             <div className="flex items-center gap-2 text-zinc-500 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Recuperando Crônicas...</span>
+             </div>
+           )}
+        </div>
+
         <AnimatePresence mode="popLayout">
           {history.map((scene, index) => (
             <div key={scene.sceneId + index} className="space-y-12">
@@ -331,7 +396,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
                 {/* Narration Block */}
                 <div className="relative px-8 py-10 bg-zinc-900/40 border border-zinc-800/50 rounded-3xl backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                   <div className="absolute -top-3 left-10 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-md flex items-center gap-4">
-                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Capítulo {index + 1}</span>
+                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Capítulo {(scene as any).order || index + 1}</span>
                       
                       {scene.audioUrl ? (
                         <div className="flex items-center gap-3 border-l border-zinc-700 pl-4 py-1">

@@ -1,10 +1,14 @@
 import { getTextModel } from '@/lib/ai/providers';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 60;
 
 const sceneSchema = z.object({
+  // ... (existing schema)
   sceneId: z.string(),
   narration: z.string().describe('Texto literário e envolvendo da cena.'),
   visualDescription: z.string().describe('Descrição visual detalhada para a cena.'),
@@ -72,7 +76,16 @@ const sceneSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401 });
+
     const { messages, playerContext } = await req.json();
+
+    // Fetch User AI Config (BYOK)
+    const player = await prisma.player.findUnique({
+      where: { id: (session.user as any).id },
+      select: { apiKeys: true, aiPreferences: true }
+    });
     
     // Total de cenas reais no histórico do banco
     const actualSceneCount = playerContext?.sceneCount ?? 0;

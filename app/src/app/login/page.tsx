@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Mail, Lock, LogIn, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import { Sparkles, Mail, Lock, LogIn, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, ShieldAlert, Smartphone, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
+  const [requiresMfa, setRequiresMfa] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -36,11 +38,17 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email,
         password,
+        mfaToken,
         redirect: false,
       });
 
       if (result?.error) {
-        toast.error('Erro de Acesso', { description: result.error });
+        if (result.error === 'MFA_REQUIRED') {
+          setRequiresMfa(true);
+          toast.info('Escudo de Almas detectado. Insira seu código de 6 dígitos.');
+        } else {
+          toast.error('Erro de Acesso', { description: result.error });
+        }
       } else {
         toast.success('Bem-vindo de volta, Aventureiro!');
         router.push('/');
@@ -92,43 +100,88 @@ export default function LoginPage() {
           <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
             Fantasy <span className="text-primary">Portal</span>
           </h1>
-          <p className="text-zinc-500 font-serif italic text-sm tracking-widest uppercase">Identifique-se para cruzar o portal</p>
+          <p className="text-zinc-500 font-serif italic text-sm tracking-widest uppercase">
+            {requiresMfa ? 'Escudo de Almas' : 'Identifique-se para cruzar o portal'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
-              <input 
-                type="email" 
-                placeholder="Seu email de aventureiro"
-                className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
-              <input 
-                type={showPassword ? "text" : "password"} 
-                placeholder="Sua senha secreta"
-                className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
-                title={showPassword ? "Ocultar senha" : "Ver senha"}
+          <AnimatePresence mode="wait">
+            {!requiresMfa ? (
+              <motion.div 
+                key="login-fields"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-4"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
+                  <input 
+                    type="email" 
+                    placeholder="Seu email de aventureiro"
+                    className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Sua senha secreta"
+                    className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="mfa-field"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
+              >
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl mb-4 text-center">
+                   <p className="text-[10px] text-primary font-black uppercase tracking-widest leading-relaxed">
+                     Um escudo sagrado protege esta conta. Insira o código do seu oráculo de segurança (Authenticator).
+                   </p>
+                </div>
+                <div className="relative group">
+                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary transition-colors" />
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    placeholder="000 000"
+                    className="w-full bg-zinc-950 border-2 border-primary rounded-2xl p-5 pl-12 text-center text-2xl font-mono tracking-[0.5em] text-white outline-none shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                    value={mfaToken}
+                    onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, ''))}
+                    autoFocus
+                    required
+                  />
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => { setRequiresMfa(false); setMfaToken(''); }}
+                  className="flex items-center gap-2 text-zinc-500 hover:text-zinc-300 transition-colors text-[10px] font-black uppercase tracking-widest mx-auto"
+                >
+                  <ArrowLeft className="w-3 h-3" /> Voltar para Senha
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <button 
             type="submit"
@@ -138,25 +191,27 @@ export default function LoginPage() {
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <> <LogIn className="w-5 h-5" /> Entrar no Reino </>
+              <> <LogIn className="w-5 h-5" /> {requiresMfa ? 'Validar Escudo' : 'Entrar no Reino'} </>
             )}
           </button>
         </form>
 
-        <div className="mt-8 pt-8 border-t border-zinc-800 text-center">
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Novo por aqui?</p>
-          <button 
-            onClick={() => router.push('/register')}
-            className="text-primary hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 mx-auto"
-          >
-            Solicitar Acesso <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
+        {!requiresMfa && (
+          <div className="mt-8 pt-8 border-t border-zinc-800 text-center">
+            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Novo por aqui?</p>
+            <button 
+              onClick={() => router.push('/register')}
+              className="text-primary hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 mx-auto"
+            >
+              Solicitar Acesso <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        )}
       </motion.div>
       
       {/* Footer Lore */}
       <p className="absolute bottom-10 text-[10px] text-zinc-700 font-black uppercase tracking-[0.5em] pointer-events-none">
-        Apenas as almas aprovadas pelo mestre podem prosseguir
+        {requiresMfa ? 'A prova final de sua identidade' : 'Apenas as almas aprovadas pelo mestre podem prosseguir'}
       </p>
     </div>
   );

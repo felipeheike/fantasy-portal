@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,41 +7,74 @@ datasource db {
 }
 
 model Player {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String?   // Hash da senha (Opcional para compatibilidade inicial)
-  role          String    @default("PLAYER") // ADMIN, PLAYER
-  accountStatus String    @default("PENDING") // PENDING, ACTIVE, INACTIVE
-  forcePasswordChange Boolean @default(false) // Marcador para troca obrigatória
-  name          String?
-  status        Json      // Stores HP, SP, Combat Power, Skills, Moral
-  inventory     Json      // Stores items and equipment
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  journeys      Journey[]
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  name                String?
+  status              Json
+  inventory           Json
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  accountStatus       String    @default("PENDING")
+  forcePasswordChange Boolean   @default(false)
+  passwordHash        String?
+  role                String    @default("PLAYER")
+  aiPreferences       Json?
+  apiKeys             Json?
+  mfaEnabled          Boolean   @default(false)
+  mfaSecret           String?
+  usageStats          Json?
+  apiEnabled          Json?
+  journeys            Journey[]
 }
 
 model Journey {
   id        String   @id @default(cuid())
   playerId  String
-  player    Player   @relation(fields: [playerId], references: [id])
   genre     String
-  status    String   @default("active") // active, completed, dead
-  history   Json     // Stores the narrative sequence and decisions
-  flags     Json     // Stores game world state changes
-  settings  Json?    // UI/UX preferences (images, audio, etc)
-  memories  Json?    // World Knowledge Graph memories
+  status    String   @default("active")
+  history   Json
+  flags     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  memories  Json?
+  settings  Json?
   assets    Asset[]
+  player    Player   @relation(fields: [playerId], references: [id])
+  scenes    Scene[]
+}
+
+model Scene {
+  id                String   @id @default(cuid())
+  journeyId         String
+  sceneId           String
+  order             Int
+  narration         String
+  visualDescription String
+  audioDescription  String?
+  imageUrl          String?
+  audioUrl          String?
+  options           Json?
+  tacticalOptions   Json?
+  puzzle            Json?
+  selectedOption    String?
+  statusChanges     Json?
+  inventoryChanges  Json?
+  skillChanges      Json?
+  worldUpdate       Json?
+  isGameOver        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  journey           Journey  @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  @@index([journeyId])
+  @@index([order])
 }
 
 model Asset {
   id        String   @id @default(cuid())
   journeyId String
-  journey   Journey  @relation(fields: [journeyId], references: [id])
   url       String
-  type      String   // AI_GENERATED, PLAYER_UPLOAD
-  metadata  Json?    // prompt, dimensions, etc.
+  type      String
+  metadata  Json?
   createdAt DateTime @default(now())
+  journey   Journey  @relation(fields: [journeyId], references: [id])
 }

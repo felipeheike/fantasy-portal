@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcrypt";
+import { verifyMfaCode, decrypt } from "./security";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,7 +10,8 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "text" },
-        password: { label: "Senha", type: "password" }
+        password: { label: "Senha", type: "password" },
+        mfaToken: { label: "Código MFA", type: "text" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
@@ -21,12 +23,26 @@ export const authOptions: NextAuthOptions = {
         if (!player || !player.passwordHash) return null;
 
         const isPasswordValid = await bcrypt.compare(credentials.password, player.passwordHash);
-
         if (!isPasswordValid) return null;
 
         // Check account status
         if (player.accountStatus !== 'ACTIVE' && player.role !== 'ADMIN') {
           throw new Error("Sua conta está aguardando aprovação ou está inativa.");
+        }
+
+        // --- Multi-Factor Authentication (MFA) Check ---
+        if (player.mfaEnabled) {
+          if (!credentials.mfaToken) {
+            // Signal to frontend that MFA is required
+            throw new Error("MFA_REQUIRED");
+          }
+
+          const decryptedSecret = decrypt(player.mfaSecret || '');
+          const isMfaValid = verifyMfaCode(credentials.mfaToken, decryptedSecret);
+
+          if (!isMfaValid) {
+            throw new Error("Código MFA inválido. Tente novamente.");
+          }
         }
 
         return {

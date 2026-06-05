@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { JourneySettings } from '@/types';
@@ -16,16 +16,25 @@ import {
   X,
   Volume2,
   Type,
-  Target
+  Target,
+  Lock,
+  Crown,
+  ScrollText,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function JourneySetup() {
-  const { setSettings, startGame, resetGame, isSetupMode, setSetupMode } = useGameStore();
+  const { setSettings, startGame, isSetupMode, setSetupMode } = useGameStore();
   const [step, setStep] = useState(1);
+  const [hasBYOK, setHasBYOK] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
   const [form, setForm] = useState<JourneySettings>({
     playerName: '',
     genre: 'fantasy',
-    journeyLength: 'medium',
+    journeyLength: 'preview', 
     punishSystem: 'fail_tolerance_3',
     visualStyle: 'dark-realism',
     narrativeStyle: 'epic',
@@ -37,14 +46,34 @@ export default function JourneySetup() {
     autoPlayAudio: false
   });
 
+  // Fetch BYOK status on start
+  useEffect(() => {
+    if (isSetupMode) {
+      fetch('/api/auth/profile')
+        .then(r => r.json())
+        .then(data => {
+          const keys = data.apiKeys || {};
+          const enabled = data.apiEnabled || {};
+          const active = Object.entries(keys).some(([p, k]) => k && k !== '' && enabled[p] !== false);
+          setHasBYOK(active);
+          
+          // Force defaults if no keys
+          if (!active) {
+            setForm(f => ({ ...f, journeyLength: 'preview', narrativeDetail: 'medium' }));
+          }
+        })
+        .catch(() => setHasBYOK(false))
+        .finally(() => setIsInitialLoading(false));
+    }
+  }, [isSetupMode]);
+
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
-  const handleStart = () => {
-    if (form.playerName) {
-      setSettings(form);
-      startGame();
-    }
+  const handleStart = async () => {
+    if (!form.playerName) return;
+    setSettings(form);
+    startGame();
   };
 
   const handleCancel = () => {
@@ -54,6 +83,7 @@ export default function JourneySetup() {
 
   const steps = [
     {
+      id: 'name',
       title: "Quem é você?",
       desc: "Todo herói começa com um nome.",
       icon: User,
@@ -72,34 +102,50 @@ export default function JourneySetup() {
       )
     },
     {
+      id: 'length',
       title: "O Destino da Jornada",
       desc: "Quão longe pretende ir?",
       icon: Map,
       content: (
         <div className="grid grid-cols-2 gap-3">
           {[
-            { id: 'preview', label: 'Preview', desc: '1-10 cenas' },
-            { id: 'short', label: 'Curta', desc: '11-50 cenas' },
-            { id: 'medium', label: 'Média', desc: '51-99 cenas' },
-            { id: 'long', label: 'Longa', desc: '100+ cenas' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setForm({ ...form, journeyLength: opt.id as any })}
-              className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                form.journeyLength === opt.id 
-                ? 'border-primary bg-primary/10' 
-                : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
-              }`}
-            >
-              <div className="font-black uppercase tracking-tighter text-xs mb-1">{opt.label}</div>
-              <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
-            </button>
-          ))}
+            { id: 'preview', label: 'Preview', desc: '10 cenas', restricted: false },
+            { id: 'short', label: 'Curta', desc: '11-50 cenas', restricted: true },
+            { id: 'medium', label: 'Média', desc: '51-99 cenas', restricted: true },
+            { id: 'long', label: 'Longa', desc: '100+ cenas', restricted: true },
+          ].map((opt) => {
+            const isLocked = !hasBYOK && opt.restricted;
+            return (
+              <button
+                key={opt.id}
+                disabled={isLocked}
+                onClick={() => setForm({ ...form, journeyLength: opt.id as any })}
+                className={`p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${
+                  form.journeyLength === opt.id 
+                  ? 'border-primary bg-primary/10' 
+                  : isLocked ? 'border-zinc-900 bg-zinc-950 opacity-40 cursor-not-allowed' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                   <div>
+                      <div className={`font-black uppercase tracking-tighter text-xs mb-1 ${form.journeyLength === opt.id ? 'text-primary' : 'text-zinc-400'}`}>{opt.label}</div>
+                      <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
+                   </div>
+                   {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
+                </div>
+                {isLocked && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                     <span className="text-[7px] font-black uppercase text-zinc-400 bg-black/60 px-2 py-1 rounded text-center">Exige Canalização Pessoal</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       )
     },
     {
+      id: 'punish',
       title: "Regras de Punição",
       desc: "A morte é o fim ou apenas um revés?",
       icon: Skull,
@@ -131,6 +177,7 @@ export default function JourneySetup() {
       )
     },
     {
+      id: 'visual',
       title: "Estética do Mundo",
       desc: "Como o portal deve se manifestar?",
       icon: Palette,
@@ -193,6 +240,7 @@ export default function JourneySetup() {
       )
     },
     {
+      id: 'read',
       title: "Estilo Literário",
       desc: "A profundidade da narração.",
       icon: BookOpen,
@@ -221,34 +269,45 @@ export default function JourneySetup() {
       )
     },
     {
+      id: 'magnitude',
       title: "Magnitude Narrativa",
       desc: "A extensão dos relatos do Mestre.",
       icon: Type,
       content: (
         <div className="space-y-3">
           {[
-            { id: 'short', label: 'Curto', desc: '1-2 parágrafos. Foco na objetividade.' },
-            { id: 'medium', label: 'Médio', desc: '3-4 parágrafos. Equilíbrio ideal.' },
-            { id: 'long', label: 'Longo', desc: '5-7 parágrafos. Rico em detalhes.' },
-            { id: 'epic', label: 'Épico', desc: '8+ parágrafos. Imersão literária total.' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setForm({ ...form, narrativeDetail: opt.id as any })}
-              className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
-                form.narrativeDetail === opt.id 
-                ? 'border-primary bg-primary/10' 
-                : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
-              }`}
-            >
-              <div className="font-black uppercase tracking-tighter text-xs">{opt.label}</div>
-              <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
-            </button>
-          ))}
+            { id: 'short', label: 'Curto', desc: '1-2 parágrafos. Foco na objetividade.', restricted: false },
+            { id: 'medium', label: 'Médio', desc: '3-4 parágrafos. Equilíbrio ideal.', restricted: false },
+            { id: 'long', label: 'Longo', desc: '5-7 parágrafos. Rico em detalhes.', restricted: true },
+            { id: 'epic', label: 'Épico', desc: '8+ parágrafos. Imersão literária.', restricted: true },
+          ].map((opt) => {
+            const isLocked = !hasBYOK && opt.restricted;
+            return (
+              <button
+                key={opt.id}
+                disabled={isLocked}
+                onClick={() => setForm({ ...form, narrativeDetail: opt.id as any })}
+                className={`w-full p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${
+                  form.narrativeDetail === opt.id 
+                  ? 'border-primary bg-primary/10' 
+                  : isLocked ? 'border-zinc-950 bg-zinc-950 opacity-40 cursor-not-allowed' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                   <div>
+                      <div className={`font-black uppercase tracking-tighter text-xs ${form.narrativeDetail === opt.id ? 'text-primary' : 'text-zinc-400'}`}>{opt.label}</div>
+                      <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
+                   </div>
+                   {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )
     },
     {
+      id: 'immersion',
       title: "Imersão e Cota",
       desc: "Configurações finais da sua lenda.",
       icon: Sparkles,
@@ -351,8 +410,25 @@ export default function JourneySetup() {
               <X className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-90 transition-transform" />
             </button>
 
+            {/* Power Status Badge */}
+            <div className="absolute top-8 left-10 flex items-center gap-2">
+               {isInitialLoading ? (
+                 <Loader2 className="w-3 h-3 animate-spin text-zinc-600" />
+               ) : hasBYOK ? (
+                 <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                    <Crown className="w-2.5 h-2.5 text-emerald-500" />
+                    <span className="text-[7px] font-black uppercase tracking-widest text-emerald-500">Poder Ancestral</span>
+                 </div>
+               ) : (
+                 <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-full">
+                    <ScrollText className="w-2.5 h-2.5 text-zinc-500" />
+                    <span className="text-[7px] font-black uppercase tracking-widest text-zinc-500">Canalização do Reino</span>
+                 </div>
+               )}
+            </div>
+
             {/* Progress Bar */}
-            <div className="absolute top-0 left-0 w-full h-1.5 flex gap-1 p-3 md:p-4">
+            <div className="absolute top-0 left-0 w-full h-1.5 flex gap-1 p-3 md:p-4 mt-2">
               {steps.map((_, i) => (
                 <div 
                   key={i} 
@@ -369,7 +445,7 @@ export default function JourneySetup() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6 md:space-y-8"
+                className="space-y-6 md:space-y-8 pt-6"
               >
                 <div className="space-y-1 md:space-y-2">
                   <div className="flex items-center gap-3 text-primary mb-2 md:mb-4">
@@ -419,6 +495,20 @@ export default function JourneySetup() {
                 </button>
               )}
             </div>
+            
+            {/* Contextual Restriction Help */}
+            {!hasBYOK && (step === 2 || step === 6) && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-2"
+              >
+                 <AlertCircle className="w-3 h-3 text-primary" />
+                 <p className="text-[7px] font-black uppercase tracking-widest text-primary/70">
+                    Alguns caminhos exigem sua própria chave de API para sustentar a energia do portal.
+                 </p>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       )}

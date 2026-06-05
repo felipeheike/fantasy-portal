@@ -2,82 +2,152 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { encrypt, decrypt, maskKey, generateMfaSecret, generateQrCode, verifyMfaCode } from "@/lib/security";
 import bcrypt from "bcrypt";
 
-export async function PUT(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const userId = (session.user as any).id;
-    const body = await req.json();
-    const { name, email, currentPassword, newPassword } = body;
-
-    // 1. Get current player data
     const player = await prisma.player.findUnique({
-      where: { id: userId }
-    });
-
-    if (!player) {
-      return NextResponse.json({ error: "Aventureiro não encontrado." }, { status: 404 });
-    }
-
-    const updates: any = {};
-
-    // 2. Logic for sensitive changes (Email or Password)
-    const isEmailChanging = email && email !== player.email;
-    const isPasswordChanging = !!newPassword;
-
-    if (isEmailChanging || isPasswordChanging) {
-      if (!currentPassword) {
-        return NextResponse.json({ error: "A senha atual é obrigatória para alterar e-mail ou senha." }, { status: 400 });
-      }
-
-      const isPasswordValid = await bcrypt.compare(currentPassword, player.passwordHash || "");
-      if (!isPasswordValid) {
-        return NextResponse.json({ error: "A senha atual está incorreta." }, { status: 403 });
-      }
-
-      if (isEmailChanging) {
-        // Check if new email is already taken
-        const existingEmail = await prisma.player.findUnique({ where: { email } });
-        if (existingEmail) {
-          return NextResponse.json({ error: "Este e-mail já está sendo usado por outra alma." }, { status: 400 });
-        }
-        updates.email = email;
-      }
-
-      if (isPasswordChanging) {
-        updates.passwordHash = await bcrypt.hash(newPassword, 10);
-        updates.forcePasswordChange = false; // Reset the flag
-      }
-    }
-
-    // 3. Logic for simple changes (Name)
-    if (name && name !== player.name) {
-      updates.name = name;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ message: "Nenhuma alteração necessária." });
-    }
-
-    // 4. Perform Update
-    await prisma.player.update({
       where: { id: userId },
-      data: updates
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        apiKeys: true,
+        apiEnabled: true,
+        aiPreferences: true,
+        usageStats: true,
+        mfaEnabled: true,
+      }
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      requiresLogout: isEmailChanging || isPasswordChanging,
-      message: "Pergaminho de identidade atualizado com sucesso!" 
+    if (!player) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
+
+    // Descriptografar e mascarar chaves para o front
+    const rawKeys = (player.apiKeys as any) || {};
+    const maskedKeys: Record<string, string> = {};
+    
+    Object.keys(rawKeys).forEach(provider => {
+      const encryptedValue = rawKeys[provider];
+      if (encryptedValue && typeof encryptedValue === 'string') {
+        const decrypted = decrypt(encryptedValue);
+        maskedKeys[provider] = decrypted ? maskKey(decrypted) : '';
+      }
     });
 
+    return NextResponse.json({
+      id: player.id,
+      email: player.email,
+      name: player.name,
+      role: player.role,
+      apiKeys: maskedKeys,
+      apiEnabled: player.apiEnabled || {},
+      aiPreferences: player.aiPreferences || {},
+      usageStats: player.usageStats || {},
+      mfaEnabled: player.mfaEnabled,
+    });
   } catch (error: any) {
-    console.error("PROFILE_UPDATE_ERR:", error);
-    return NextResponse.json({ error: "Falha ao selar as alterações." }, { status: 500 });
+    console.error('PROFILE_GET_ERR:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+    const body = await req.json();
+    const { name, currentPassword, newPassword, apiKeys, apiEnabled, aiPreferences, mfaAction, mfaToken } = body;
+    const userId = (session.user as any).id;
+
+    const player = await prisma.player.findUnique({ where: { id: userId } });
+    if (!player) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
+
+    const updateData: any = {};
+
+    // 1. Atualizar Nome
+    if (name) updateData.name = name;
+
+    // 2. Trocar Senha
+    if (newPassword) {
+      if (!currentPassword) return NextResponse.json({ error: "Senha atual obrigatória" }, { status: 400 });
+      const isValid = await bcrypt.compare(currentPassword, player.passwordHash || '');
+      if (!isValid) return NextResponse.json({ error: "Senha atual incorreta" }, { status: 400 });
+      updateData.passwordHash = await bcrypt.hash(newPassword, 10);
+      updateData.forcePasswordChange = false;
+    }
+
+    // 3. Atualizar API Keys (BYOK)
+    if (apiKeys) {
+      const currentKeys = (player.apiKeys as any) || {};
+      const newKeys = { ...currentKeys };
+      
+      Object.entries(apiKeys).forEach(([provider, value]) => {
+        const val = value as string;
+        if (val === '') {
+          delete newKeys[provider]; // Remover chave
+        } else if (!val.includes('...')) { 
+          // Só atualiza se não for a versão mascarada que enviamos no GET
+          newKeys[provider] = encrypt(val);
+        }
+      });
+      updateData.apiKeys = newKeys;
+    }
+
+    // 3.1. Atualizar API Enabled (Toggles)
+    if (apiEnabled) {
+      updateData.apiEnabled = apiEnabled;
+    }
+
+    // 4. Preferências de IA
+    if (aiPreferences) {
+      updateData.aiPreferences = aiPreferences;
+    }
+
+    // 5. Lógica de MFA (Setup/Enable/Disable)
+    if (mfaAction === 'SETUP') {
+      const { secret, otpauth } = generateMfaSecret(player.email);
+      const qrCode = await generateQrCode(otpauth);
+      // Salva o secret temporariamente (criptografado)
+      await prisma.player.update({
+        where: { id: userId },
+        data: { mfaSecret: encrypt(secret) }
+      });
+      return NextResponse.json({ qrCode });
+    }
+
+    if (mfaAction === 'ENABLE') {
+      if (!mfaToken) return NextResponse.json({ error: "Token MFA obrigatório" }, { status: 400 });
+      const decryptedSecret = decrypt(player.mfaSecret || '');
+      const isValid = verifyMfaCode(mfaToken, decryptedSecret);
+      if (!isValid) return NextResponse.json({ error: "Código MFA inválido" }, { status: 400 });
+      updateData.mfaEnabled = true;
+    }
+
+    if (mfaAction === 'DISABLE') {
+      if (!mfaToken) return NextResponse.json({ error: "Token MFA obrigatório" }, { status: 400 });
+      const decryptedSecret = decrypt(player.mfaSecret || '');
+      if (!decryptedSecret) return NextResponse.json({ error: "MFA não configurado" }, { status: 400 });
+      const isValid = verifyMfaCode(mfaToken, decryptedSecret);
+      if (!isValid) return NextResponse.json({ error: "Código MFA inválido" }, { status: 400 });
+      updateData.mfaEnabled = false;
+      updateData.mfaSecret = null;
+    }
+
+    const updatedPlayer = await prisma.player.update({
+      where: { id: userId },
+      data: updateData,
+      select: { id: true, name: true, mfaEnabled: true }
+    });
+
+    return NextResponse.json(updatedPlayer);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

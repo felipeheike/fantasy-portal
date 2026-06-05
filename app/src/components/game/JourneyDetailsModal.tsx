@@ -17,7 +17,9 @@ import {
   Cpu,
   Activity,
   Zap,
-  Type
+  Type,
+  Link,
+  Crown
 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 
@@ -31,11 +33,13 @@ interface JourneyDetailsModalProps {
 interface AIStatus {
   text: {
     model: string;
+    isCustom: boolean;
     status: string;
     latency: string;
   };
   image: {
     model: string;
+    isCustom: boolean;
     status: string;
     latency: string;
   };
@@ -60,7 +64,9 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
     preview: 'Jornada Preview (1-10)',
     short: 'Jornada Curta (11-50)',
     medium: 'Jornada Média (51-99)',
-    long: 'Jornada Longa (100+)'
+    long: 'Jornada Longa (100-249)',
+    epic: 'Jornada Épica (250-499)',
+    'life-long': 'Jornada Eterna (500+)'
   };
 
   const narrativeDetailMap: Record<string, string> = {
@@ -209,39 +215,65 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
               {aiStatus && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Bloco de Texto (Mente) */}
-                  <div className="flex items-center justify-between p-4 bg-zinc-900 rounded-3xl border border-zinc-800">
-                    <div className="flex items-center gap-3">
-                      <Cpu className="w-5 h-5 text-zinc-500" />
+                  <div className="flex items-center justify-between p-4 bg-zinc-900 rounded-3xl border border-zinc-800 relative group overflow-hidden">
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className={`p-2 rounded-xl ${aiStatus.text.isCustom ? 'bg-primary/20 text-primary' : 'bg-zinc-800 text-zinc-500'}`}>
+                         {aiStatus.text.isCustom ? <Crown className="w-4 h-4" /> : <Cpu className="w-4 h-4" />}
+                      </div>
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Mente</p>
+                        <div className="flex items-center gap-2">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Mente</p>
+                           {aiStatus.text.isCustom && (
+                             <span className="text-[7px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-black uppercase border border-primary/20 flex items-center gap-1">
+                                <Link className="w-2 h-2" /> Vinculada à Alma
+                             </span>
+                           )}
+                        </div>
                         <p className="text-xs font-bold text-zinc-300">{aiStatus.text.model}</p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right relative z-10">
                       <div className="flex items-center gap-1.5 justify-end">
                         <Activity className={`w-3 h-3 ${aiStatus.text.status === 'Operacional' ? 'text-green-500' : 'text-red-500'}`} />
                         <span className={`text-[9px] font-bold uppercase ${aiStatus.text.status === 'Operacional' ? 'text-green-500' : 'text-red-500'}`}>{aiStatus.text.status}</span>
                       </div>
                       <span className="text-[9px] font-mono text-zinc-600">{aiStatus.text.latency}</span>
                     </div>
+                    {/* Thematic Glow if custom */}
+                    {aiStatus.text.isCustom && (
+                      <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/5 blur-2xl rounded-full group-hover:bg-primary/10 transition-all" />
+                    )}
                   </div>
 
                   {/* Bloco de Imagem (Visão) */}
-                  <div className="flex items-center justify-between p-4 bg-zinc-900 rounded-3xl border border-zinc-800">
-                    <div className="flex items-center gap-3">
-                      <Palette className="w-5 h-5 text-zinc-500" />
+                  <div className="flex items-center justify-between p-4 bg-zinc-900 rounded-3xl border border-zinc-800 relative group overflow-hidden">
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className={`p-2 rounded-xl ${aiStatus.image.isCustom ? 'bg-primary/20 text-primary' : 'bg-zinc-800 text-zinc-500'}`}>
+                         {aiStatus.image.isCustom ? <Crown className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
+                      </div>
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Visão</p>
+                        <div className="flex items-center gap-2">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Visão</p>
+                           {aiStatus.image.isCustom && (
+                             <span className="text-[7px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-black uppercase border border-primary/20 flex items-center gap-1">
+                                <Link className="w-2 h-2" /> Vinculada à Alma
+                             </span>
+                           )}
+                        </div>
                         <p className="text-xs font-bold text-zinc-300">{aiStatus.image.model}</p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right relative z-10">
                       <div className="flex items-center gap-1.5 justify-end">
                         <Activity className={`w-3 h-3 ${aiStatus.image.status === 'Operacional' ? 'text-green-500' : 'text-red-500'}`} />
                         <span className={`text-[9px] font-bold uppercase ${aiStatus.image.status === 'Operacional' ? 'text-green-500' : 'text-red-500'}`}>{aiStatus.image.status}</span>
                       </div>
                       <span className="text-[9px] font-mono text-zinc-600">{aiStatus.image.latency}</span>
                     </div>
+                    {/* Thematic Glow if custom */}
+                    {aiStatus.image.isCustom && (
+                      <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/5 blur-2xl rounded-full group-hover:bg-primary/10 transition-all" />
+                    )}
                   </div>
                 </div>
               )}

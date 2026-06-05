@@ -382,10 +382,36 @@ export default function GamePage() {
 
   // Sync state to DB on changes
   const lastSyncedRef = useRef<string>('');
+  const lastSyncedSceneIdRef = useRef<string>('');
 
   useEffect(() => {
     if (currentJourneyId && history.length > 0 && hasHydrated && authStatus === 'authenticated') {
-      const currentStateString = JSON.stringify({ history, status, inventory });
+      const currentScene = history[history.length - 1];
+      const isNewScene = currentScene.sceneId !== lastSyncedSceneIdRef.current;
+
+      // Se for uma nova cena, usamos o endpoint incremental POST /scenes
+      if (isNewScene) {
+        fetch(`/api/journey/${currentJourneyId}/scenes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            scene: currentScene,
+            playerStatus: status, 
+            inventory,
+            impersonatedPlayerId
+          })
+        })
+        .then(() => {
+          lastSyncedSceneIdRef.current = currentScene.sceneId;
+          // Também atualizamos o lastSyncedRef para evitar o PATCH logo em seguida
+          lastSyncedRef.current = JSON.stringify({ history, status, inventory });
+        })
+        .catch(err => console.error("INCREMENTAL_SYNC_ERR:", err));
+        return;
+      }
+
+      // Para outras mudanças (flags, memories, settings), mantemos o PATCH periódico
+      const currentStateString = JSON.stringify({ history, status, inventory, flags, memories, settings });
       if (currentStateString === lastSyncedRef.current) return;
 
       const timer = setTimeout(() => {

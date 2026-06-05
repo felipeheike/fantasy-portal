@@ -1,9 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { uploadBuffer } from './storage';
 import { spawn } from 'child_process';
 import { Readable } from 'stream';
+import { decrypt } from './security';
 
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AUDIO_MODEL = process.env.AUDIO_MODEL || "gemini-2.5-flash-preview-tts";
 
 /**
@@ -41,53 +44,86 @@ async function encodePcmToMp3(pcmBuffer: Buffer): Promise<Buffer> {
   });
 }
 
-export async function generateSpeech(text: string, journeyId: string, sceneId: string, gender: 'male' | 'female' = 'male'): Promise<string> {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
+/**
+ * Generates speech using OpenAI TTS
+ */
+async function generateOpenAISpeech(text: string, voice: string, apiKey: string): Promise<Buffer> {
+  const openai = new OpenAI({ apiKey });
+  const response = await openai.audio.speech.create({
+    model: "tts-1",
+    voice: (voice.split('-')[1] || "alloy") as any,
+    input: text,
+  });
+  return Buffer.from(await response.arrayBuffer());
+}
+
+/**
+ * Generates speech using Google Gemini TTS
+ */
+async function generateGoogleSpeech(text: string, gender: string, apiKey: string): Promise<Buffer> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ 
+    model: AUDIO_MODEL,
+    generationConfig: { responseModalities: ["audio"] } as any
+  });
+
+  const prompt = `Gere uma narração cinematográfica de um Mestre de RPG para o seguinte texto. 
+  Use uma voz ${gender === 'female' ? 'feminina' : 'masculina'} e expressiva.
+  
+  Texto: "${text}"`;
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const audioPart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.mimeType?.includes('audio'));
+
+  if (!audioPart || !audioPart.inlineData) {
+    throw new Error("O modelo Gemini não retornou dados de áudio.");
   }
 
-  console.log(`LOG: Generating Gemini TTS for [Scene: ${sceneId}] [Gender: ${gender}]`);
+  const rawPcmBuffer = Buffer.from(audioPart.inlineData.data, 'base64');
+  return encodePcmToMp3(rawPcmBuffer);
+}
+
+export async function generateSpeech(
+  text: string, 
+  journeyId: string, 
+  sceneId: string, 
+  gender: 'male' | 'female' = 'male',
+  userConfig?: { apiKeys?: any, apiEnabled?: any, aiPreferences?: any }
+): Promise<string> {
+  const preferences = userConfig?.aiPreferences || {};
+  const userKeys = userConfig?.apiKeys || {};
+  const apiEnabled = userConfig?.apiEnabled || {};
+  
+  const ttsProvider = preferences.ttsVoice || 'gemini-audio';
+  let audioBuffer: Buffer;
 
   try {
-    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: AUDIO_MODEL,
-      generationConfig: {
-        responseModalities: ["audio"],
-      } as any
-    });
+    if (ttsProvider.startsWith('openai')) {
+      const useUserKey = userKeys.openai && apiEnabled.openai !== false;
+      const apiKey = useUserKey ? decrypt(userKeys.openai) : OPENAI_API_KEY;
+      
+      if (!apiKey) throw new Error("API Key da OpenAI para áudio não configurada.");
+      console.log(`LOG: Generating OpenAI TTS (${ttsProvider}) ${useUserKey ? '(User Key)' : '(Global Key)'}`);
+      audioBuffer = await generateOpenAISpeech(text, ttsProvider, apiKey);
+    } else {
+      // Default: Google Gemini
+      const useUserKey = userKeys.gemini && apiEnabled.gemini !== false;
+      const apiKey = useUserKey ? decrypt(userKeys.gemini) : GOOGLE_API_KEY;
 
-    const prompt = `Gere uma narração cinematográfica de um Mestre de RPG para o seguinte texto. 
-    Use uma voz ${gender === 'female' ? 'feminina' : 'masculina'} e expressiva.
-    
-    Texto: "${text}"`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    
-    const parts = response.candidates?.[0]?.content?.parts;
-    const audioPart = parts?.find(p => p.inlineData?.mimeType?.includes('audio'));
-
-    if (!audioPart || !audioPart.inlineData) {
-      console.error("Gemini TTS Error: No audio part in response", JSON.stringify(response, null, 2));
-      throw new Error("O modelo Gemini não retornou dados de áudio.");
+      if (!apiKey) throw new Error("API Key do Google para áudio não configurada.");
+      console.log(`LOG: Generating Gemini TTS ${useUserKey ? '(User Key)' : '(Global Key)'}`);
+      audioBuffer = await generateGoogleSpeech(text, gender, apiKey);
     }
 
-    // Gemini returns raw PCM data even if it says 'audio/wav' in some cases
-    const rawPcmBuffer = Buffer.from(audioPart.inlineData.data, 'base64');
-    console.log(`LOG: Raw Audio Data received (${rawPcmBuffer.length} bytes). Encoding to MP3...`);
-
-    const mp3Buffer = await encodePcmToMp3(rawPcmBuffer);
-    console.log(`LOG: Audio encoded successfully (${mp3Buffer.length} bytes)`);
-
     const fileName = `journeys/${journeyId}/audio_${sceneId}.mp3`;
-    const audioUrl = await uploadBuffer(new Uint8Array(mp3Buffer), fileName, 'audio/mpeg');
+    const audioUrl = await uploadBuffer(new Uint8Array(audioBuffer), fileName, 'audio/mpeg');
 
-    console.log(`LOG: Gemini Speech generated and uploaded: ${audioUrl}`);
+    console.log(`LOG: Speech generated and uploaded: ${audioUrl}`);
     return audioUrl;
 
   } catch (error: any) {
-    console.error("!!! GEMINI TTS CRITICAL FAILURE !!!", error);
-    throw new Error(`Failed to generate speech with Gemini: ${error.message}`);
+    console.error("!!! TTS CRITICAL FAILURE !!!", error);
+    throw new Error(`Falha na narração (${ttsProvider}): ${error.message}`);
   }
 }

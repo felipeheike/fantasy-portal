@@ -43,6 +43,30 @@ export async function POST(req: Request) {
       ? impersonatedPlayerId 
       : (session.user as any).id;
 
+    // --- LIMIT VALIDATION (Tier System) ---
+    const player = await prisma.player.findUnique({
+      where: { id: targetUserId },
+      select: { 
+        apiKeys: true, 
+        apiEnabled: true,
+        _count: { select: { journeys: true } }
+      }
+    });
+
+    if (!player) return NextResponse.json({ error: "Aventureiro não encontrado" }, { status: 404 });
+
+    const userKeys = (player.apiKeys as any) || {};
+    const apiEnabled = (player.apiEnabled as any) || {};
+    const hasBYOK = Object.entries(userKeys).some(([p, k]) => k && k !== '' && apiEnabled[p] !== false);
+
+    // Limit to 3 journeys if no personal keys are enabled
+    if (!hasBYOK && player._count.journeys >= 3) {
+      return NextResponse.json({ 
+        error: "LIMIT_EXCEEDED", 
+        message: "O Portal está exausto. Como aventureiro do reino, você pode ter no máximo 3 crônicas ativas. Vincule sua própria fonte de poder (API Key) para criar jornadas ilimitadas." 
+      }, { status: 403 });
+    }
+
     const journey = await prisma.journey.create({
       data: {
         playerId: targetUserId,

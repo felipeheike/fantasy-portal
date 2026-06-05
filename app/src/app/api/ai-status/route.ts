@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAIConfigMetadata } from '@/lib/ai/providers';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
-async function checkGoogleStatus(model: string) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+async function checkGoogleStatus(model: string, customKey?: string) {
+  const apiKey = customKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   const start = Date.now();
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}?key=${apiKey}`);
@@ -15,13 +18,12 @@ async function checkGoogleStatus(model: string) {
   }
 }
 
-async function checkOpenAIStatus(model: string) {
-  const apiKey = process.env.OPENAI_API_KEY;
+async function checkOpenAIStatus(model: string, customKey?: string) {
+  const apiKey = customKey || process.env.OPENAI_API_KEY;
   if (!apiKey) return { status: 'Sem Chave', latency: 'N/A' };
   
   const start = Date.now();
   try {
-    // Ping models endpoint to check API health/connectivity
     const res = await fetch(`https://api.openai.com/v1/models/${model}`, {
       headers: { 'Authorization': `Bearer ${apiKey}` }
     });
@@ -36,40 +38,45 @@ async function checkOpenAIStatus(model: string) {
 
 export async function GET() {
   try {
-    const config = getAIConfigMetadata();
+    const session = await getServerSession(authOptions);
+    let userConfig: any = undefined;
+
+    if (session) {
+      const player = await prisma.player.findUnique({
+        where: { id: (session.user as any).id },
+        select: { apiKeys: true, apiEnabled: true, aiPreferences: true }
+      });
+      if (player) userConfig = player;
+    }
+
+    const config = getAIConfigMetadata(userConfig);
     
     let textInfo = { status: 'Configurado', latency: 'N/A' };
     let imageInfo = { status: 'Configurado', latency: 'N/A' };
 
     // Text Provider Check
-    if (config.text.provider === 'google') {
-      textInfo = await checkGoogleStatus(config.text.model);
-    } else if (config.text.provider === 'openai') {
-      textInfo = await checkOpenAIStatus(config.text.model);
-    } else if (config.text.provider === 'anthropic') {
-      // Anthropic ping is more restricted, simulating for now if key exists
-      textInfo = { 
-        status: process.env.ANTHROPIC_API_KEY ? 'Operacional' : 'Sem Chave', 
-        latency: '---' 
-      };
+    if (config.text.model.startsWith('gpt')) {
+      textInfo = await checkOpenAIStatus(config.text.model, userConfig?.apiKeys?.openai);
+    } else {
+      textInfo = await checkGoogleStatus(config.text.model, userConfig?.apiKeys?.gemini);
     }
 
     // Image Provider Check
-    if (config.image.provider === 'google') {
-      imageInfo = await checkGoogleStatus(config.image.model);
-    } else if (config.image.provider === 'openai') {
-      imageInfo = await checkOpenAIStatus(config.image.model);
+    if (config.image.model.startsWith('dall-e')) {
+      imageInfo = await checkOpenAIStatus(config.image.model, userConfig?.apiKeys?.openai);
+    } else {
+      imageInfo = await checkGoogleStatus(config.image.model, userConfig?.apiKeys?.gemini);
     }
 
     return NextResponse.json({
       text: {
         model: config.text.model,
-        provider: config.text.provider,
+        isCustom: config.text.isCustomKey,
         ...textInfo
       },
       image: {
         model: config.image.model,
-        provider: config.image.provider,
+        isCustom: config.image.isCustomKey,
         ...imageInfo
       }
     });

@@ -9,13 +9,15 @@ import {
   Shield as ShieldIcon, 
   Wine, 
   Scroll, 
-  Info,
   Trash2,
   Hammer,
   Lock,
   Camera,
   Loader2,
-  Sparkles
+  Sparkles,
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { InventoryItem } from '@/types';
@@ -29,7 +31,20 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
   const { inventory, discardItem, lockedItemName, addItem, settings, status } = useGameStore();
   const [filter, setFilter] = useState<InventoryItem['type'] | 'all'>('all');
   const [isVisionLoading, setIsVisionLoading] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleVisionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -178,21 +193,60 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                           {getItemIcon(item.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <h3 className={`font-bold truncate ${item.name === lockedItemName ? 'text-primary' : 'text-zinc-200'}`}>
-                              {item.name}
-                            </h3>
-                            <span className="text-[10px] font-black bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-700 text-zinc-400">
-                              x{item.quantity}
-                            </span>
+                          <div className="flex items-start justify-between mb-1 gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h3 className={`font-bold truncate ${item.name === lockedItemName ? 'text-primary' : 'text-zinc-200'}`}>
+                                {item.name}
+                              </h3>
+                            </div>
+                            
+                            <div className="flex items-center gap-1.5 shrink-0">
+                               <span className="text-[10px] font-black bg-zinc-900 px-2 py-1 rounded-md border border-zinc-700 text-zinc-400">
+                                 x{item.quantity}
+                               </span>
+
+                               <button 
+                                 onClick={() => toggleExpand(item.id)}
+                                 className={`p-1.5 rounded-lg transition-colors ${
+                                   expandedItems.has(item.id) 
+                                   ? 'bg-primary text-zinc-950' 
+                                   : 'bg-zinc-900 text-zinc-500 hover:text-zinc-200'
+                                 }`}
+                                 title={expandedItems.has(item.id) ? 'Recolher' : 'Detalhes'}
+                               >
+                                 <Info className="w-3.5 h-3.5" />
+                               </button>
+
+                               {item.type !== 'quest' && (
+                                 item.name === lockedItemName ? (
+                                   <div 
+                                     className="p-1.5 rounded-lg bg-zinc-900 text-primary/40 cursor-help"
+                                     title="Item em uso: não pode ser descartado"
+                                   >
+                                     <Lock className="w-3.5 h-3.5" />
+                                   </div>
+                                 ) : (
+                                   <button 
+                                     onClick={() => discardItem(item.id)}
+                                     className="p-1.5 rounded-lg bg-red-950/20 text-red-500/50 hover:bg-red-500 hover:text-white transition-all"
+                                     title="Descartar Item"
+                                   >
+                                     <Trash2 className="w-3.5 h-3.5" />
+                                   </button>
+                                 )
+                               )}
+                            </div>
                           </div>
-                          <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed font-serif italic">
+                          <motion.p 
+                            layout="position"
+                            className={`text-xs text-zinc-500 leading-relaxed font-serif italic ${expandedItems.has(item.id) ? '' : 'line-clamp-2'}`}
+                          >
                             {item.description}
-                          </p>
+                          </motion.p>
                           
                           {/* Durability Bar */}
                           {item.durability !== undefined && item.maxDurability !== undefined && (
-                            <div className="mt-2">
+                            <motion.div layout="position" className="mt-2">
                               <div className="flex items-center justify-between text-[8px] uppercase tracking-widest font-bold text-zinc-500 mb-1">
                                 <span className="flex items-center gap-1"><Hammer className="w-2 h-2" /> Durabilidade</span>
                                 <span>{item.durability}/{item.maxDurability}</span>
@@ -205,34 +259,9 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                                   style={{ width: `${(item.durability / item.maxDurability) * 100}%` }}
                                 />
                               </div>
-                            </div>
+                            </motion.div>
                           )}
                         </div>
-                      </div>
-                      
-                      {/* Action buttons (Appear on hover) */}
-                      <div className="mt-3 pt-3 border-t border-zinc-700/30 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-900 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-100 transition-colors">
-                           <Info className="w-3 h-3" /> Detalhes
-                         </button>
-                         {item.type !== 'quest' && (
-                           item.name === lockedItemName ? (
-                             <div 
-                               className="p-1.5 rounded-lg bg-zinc-900 text-primary/40 cursor-help"
-                               title="Item em uso: não pode ser descartado"
-                             >
-                               <Lock className="w-3.5 h-3.5" />
-                             </div>
-                           ) : (
-                             <button 
-                               onClick={() => discardItem(item.id)}
-                               className="p-1.5 rounded-lg bg-red-950/20 text-red-500/50 hover:bg-red-500 hover:text-white transition-all"
-                               title="Descartar Item"
-                             >
-                               <Trash2 className="w-3.5 h-3.5" />
-                             </button>
-                           )
-                         )}
                       </div>
                     </motion.div>
                   ))}

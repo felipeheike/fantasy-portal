@@ -12,6 +12,22 @@ export interface PlayerStatus {
   deathCount: number; // New: Track revivals for punishment systems
 }
 
+export interface AIPreferences {
+  textModel: string;
+  imageModel: string;
+  ttsVoice: string;
+}
+
+export interface PlayerProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  apiKeys?: Record<string, string>;
+  aiPreferences?: AIPreferences;
+  mfaEnabled: boolean;
+}
+
 export interface Skill {
   id: string;
   name: string;
