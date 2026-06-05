@@ -33,7 +33,8 @@ export default function JourneySetup() {
     readStyle: 'moderate',
     narrativeDetail: 'medium',
     enableImages: true,
-    enableAudio: true
+    enableAudio: true,
+    autoPlayAudio: false
   });
 
   const nextStep = () => setStep(s => s + 1);
@@ -135,41 +136,58 @@ export default function JourneySetup() {
       icon: Palette,
       content: (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { id: 'fantasy', label: 'Fantasia' },
-              { id: 'cyberpunk', label: 'Cyberpunk' },
-              { id: 'gothic-horror', label: 'Terror' },
-              { id: 'sci-fi', label: 'Sci-Fi' },
-            ].map((g) => (
-              <button
-                key={g.id}
-                onClick={() => setForm({ ...form, genre: g.id as any })}
-                className={`py-2 px-4 rounded-xl border text-[10px] font-black uppercase transition-all ${
-                  form.genre === g.id ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-zinc-800 text-zinc-500'
-                }`}
-              >
-                {g.label}
-              </button>
-            ))}
+          <div className="max-h-40 overflow-y-auto custom-scrollbar pr-2">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'fantasy', label: 'Fantasia' },
+                { id: 'medieval-epic', label: 'Épico Medieval' },
+                { id: 'cyberpunk', label: 'Cyberpunk' },
+                { id: 'sci-fi', label: 'Ficção Científica' },
+                { id: 'steampunk', label: 'Steampunk' },
+                { id: 'gothic-horror', label: 'Terror Gótico' },
+                { id: 'post-apocalyptic', label: 'Pós-Apocalipse' },
+                { id: 'pirates', label: 'Piratas' },
+                { id: 'western', label: 'Velho Oeste' },
+                { id: 'real-world', label: 'Mundo Real' },
+              ].map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => setForm({ ...form, genre: g.id as any })}
+                  className={`py-2 px-3 rounded-xl border text-[10px] font-black uppercase transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
+                    form.genre === g.id ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-zinc-800 text-zinc-500'
+                  }`}
+                  title={g.label}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 border-t border-zinc-800 pt-4">
-            {[
-              { id: 'anime', label: 'Anime' },
-              { id: 'pixel-art', label: 'Pixel Art' },
-              { id: 'dark-realism', label: 'Realismo' },
-              { id: 'sketch', label: 'Sketch' },
-            ].map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setForm({ ...form, visualStyle: s.id as any })}
-                className={`py-2 px-4 rounded-xl border text-[10px] font-black uppercase transition-all ${
-                  form.visualStyle === s.id ? 'bg-primary text-zinc-950 border-primary' : 'border-zinc-800 text-zinc-500'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
+          
+          <div className="border-t border-zinc-800 pt-4 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'anime', label: 'Anime' },
+                { id: 'manga', label: 'Mangá' },
+                { id: 'pixel-art', label: 'Pixel Art' },
+                { id: 'dark-realism', label: 'Realismo' },
+                { id: 'baroque', label: 'Pintura Barroca' },
+                { id: 'noir', label: 'Noir Cinematográfico' },
+                { id: 'digital-art', label: 'Arte Digital' },
+                { id: 'sketch', label: 'Rascunho a Lápis' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setForm({ ...form, visualStyle: s.id as any })}
+                  className={`py-2 px-3 rounded-xl border text-[10px] font-black uppercase transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
+                    form.visualStyle === s.id ? 'bg-primary text-zinc-950 border-primary' : 'border-zinc-800 text-zinc-500'
+                  }`}
+                  title={s.label}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )
@@ -274,6 +292,34 @@ export default function JourneySetup() {
                   />
                 </button>
              </div>
+
+             <AnimatePresence>
+               {form.enableAudio && (
+                 <motion.div 
+                   initial={{ opacity: 0, height: 0 }}
+                   animate={{ opacity: 1, height: 'auto' }}
+                   exit={{ opacity: 0, height: 0 }}
+                   className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-800/50"
+                 >
+                    <div className="flex items-center gap-3">
+                      <Volume2 className="w-4 h-4 text-primary animate-pulse" />
+                      <div>
+                         <p className="text-[10px] font-bold text-zinc-200 uppercase">Auto-Play do Áudio</p>
+                         <p className="text-[8px] text-zinc-600 uppercase font-black">Tocar áudio automaticamente</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setForm({ ...form, autoPlayAudio: !form.autoPlayAudio })}
+                      className={`w-10 h-5 rounded-full transition-all relative p-1 ${form.autoPlayAudio ? 'bg-primary' : 'bg-zinc-800'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: form.autoPlayAudio ? 20 : 0 }}
+                        className="w-3 h-3 bg-white rounded-full"
+                      />
+                    </button>
+                 </motion.div>
+               )}
+             </AnimatePresence>
           </div>
         </div>
       )

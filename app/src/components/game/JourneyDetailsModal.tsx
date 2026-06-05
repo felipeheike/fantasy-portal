@@ -177,6 +177,31 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
                         />
                       </button>
                     </div>
+
+                    <AnimatePresence>
+                      {settings.enableAudio && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="flex items-center justify-between p-4 bg-zinc-900 rounded-3xl border border-zinc-800"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Volume2 className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-bold text-zinc-200">Auto-Play</span>
+                          </div>
+                          <button 
+                            onClick={() => updateSettings({ autoPlayAudio: !settings.autoPlayAudio })}
+                            className={`w-10 h-5 rounded-full transition-all relative p-1 ${settings.autoPlayAudio ? 'bg-primary' : 'bg-zinc-800'}`}
+                          >
+                            <motion.div 
+                              animate={{ x: settings.autoPlayAudio ? 20 : 0 }}
+                              className="w-3 h-3 bg-white rounded-full shadow-md"
+                            />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                 </div>
               </div>
 

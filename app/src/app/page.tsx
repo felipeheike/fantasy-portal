@@ -96,7 +96,7 @@ export default function GamePage() {
     status, completeScene, currentScene, isGameStarted,
     settings, currentJourneyId, setJourneyId, history,
     inventory, resetGame, loadJourney, hasHydrated,
-    setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError, setAudioError,
+    setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError, setImageLoading, setAudioError, setAudioLoading,
     flags, memories, addNotification, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode
   } = useGameStore();
 
@@ -152,6 +152,7 @@ export default function GamePage() {
   }), [status, inventory, settings, currentScene?.sceneId, history.length, flags, memories]);
 
   const generateSceneImage = useCallback((sceneId: string, prompt: string) => {
+    setImageLoading(sceneId, true);
     setImageError(sceneId, false);
     fetch('/api/image', {
       method: 'POST',
@@ -166,14 +167,17 @@ export default function GamePage() {
       } else {
         setImageError(sceneId, true);
       }
+      setImageLoading(sceneId, false);
     })
     .catch(e => {
       console.error("IMAGE_GEN_ERR:", e);
       setImageError(sceneId, true);
+      setImageLoading(sceneId, false);
     });
-  }, [currentJourneyId, updateSceneImage, setImageError]);
+  }, [currentJourneyId, updateSceneImage, setImageError, setImageLoading]);
 
   const generateSceneAudio = useCallback((sceneId: string, text: string, gender?: 'male' | 'female') => {
+    setAudioLoading(sceneId, true);
     setAudioError(sceneId, false);
     fetch('/api/audio', {
       method: 'POST',
@@ -187,12 +191,14 @@ export default function GamePage() {
       } else {
         setAudioError(sceneId, true);
       }
+      setAudioLoading(sceneId, false);
     })
     .catch(e => {
       console.error("AUDIO_GEN_ERR:", e);
       setAudioError(sceneId, true);
+      setAudioLoading(sceneId, false);
     });
-  }, [currentJourneyId, updateSceneAudio, setAudioError]);
+  }, [currentJourneyId, updateSceneAudio, setAudioError, setAudioLoading]);
 
   const { object, submit, isLoading, error, stop } = useObject({
     api: '/api/chat',

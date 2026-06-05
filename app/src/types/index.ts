@@ -33,6 +33,7 @@ export interface JourneySettings {
   narrativeDetail: 'short' | 'medium' | 'long' | 'epic';
   enableImages?: boolean; // New: Toggle AI illustrations
   enableAudio?: boolean; // New: Toggle AI narration (TTS)
+  autoPlayAudio?: boolean; // New: Toggle automatic audio playback
 }
 
 export interface Player {
@@ -82,7 +83,9 @@ export interface NarrativeScene {
   isGameOver: boolean;
   requiresRoll?: boolean; // New for dice roll mechanics
   imageError?: boolean;
+  imageLoading?: boolean; // New: track explicit image loading state
   audioError?: boolean; // New: Track audio generation failure
+  audioLoading?: boolean; // New: track explicit audio loading state
   inquiries?: { question: string; answer: string; timestamp: number }[]; // New: Persist inquiries per scene
 }
 

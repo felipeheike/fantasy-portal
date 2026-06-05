@@ -19,7 +19,7 @@ import {
   Terminal,
   FileDown, 
   FileText,
-  Trophy, BookOpen, BookText, Eye, EyeOff,
+  Trophy, BookOpen, BookText, Eye, EyeOff, Palette,
   Skull,
   Ghost,
   Home,
@@ -48,6 +48,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [audioTimes, setAudioTimes] = useState<Record<string, { current: number, duration: number }>>({});
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
 
   // State mapping for Punishment System
@@ -211,6 +212,43 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
     return null;
   };
 
+  const renderNarrationWithPointer = (sceneId: string, text: string) => {
+    // 1. Quebrar em sentenças (usando regex para manter a pontuação na sentença)
+    // Regex explanation: match non-punctuation followed by punctuation OR any remaining non-punctuation at the end.
+    const sentences = text.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [text];
+    const totalChars = text.length;
+    let accumulatedChars = 0;
+
+    const timeData = audioTimes[sceneId] || { current: 0, duration: 1 };
+    const currentProgress = timeData.duration > 0 ? timeData.current / timeData.duration : 0;
+    
+    // Condição relaxada para "Áudio Ativo": Está tocando OU (já tocou algo e não chegou no fim exato)
+    const isAudioActive = isPlaying === sceneId || (timeData.current > 0 && timeData.current < timeData.duration - 0.5);
+
+    return (
+      <p className="text-xl md:text-2xl leading-relaxed text-zinc-200 font-serif selection:bg-primary/20">
+        {sentences.map((sentence, idx) => {
+          const sentenceChars = sentence.length;
+          const startRatio = accumulatedChars / totalChars;
+          accumulatedChars += sentenceChars;
+          const endRatio = accumulatedChars / totalChars;
+          
+          // Se o áudio está ativo e o progresso está dentro da janela da sentença
+          const isHighlighted = isAudioActive && currentProgress >= startRatio && currentProgress <= endRatio;
+
+          return (
+            <span 
+              key={idx} 
+              className={`transition-colors duration-300 ${isHighlighted ? 'text-primary drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'text-zinc-200'}`}
+            >
+              {sentence}
+            </span>
+          );
+        })}
+      </p>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-hidden relative">
       <div 
@@ -226,7 +264,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
                 className="max-w-4xl mx-auto space-y-6"
               >
                 {/* Scene Image */}
-                {(scene.imageUrl || scene.visualDescription) && (
+                {(scene.imageUrl || (settings?.enableImages && scene.visualDescription)) && (
                   <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl group">
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 z-10" />
                     
@@ -239,7 +277,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-[2s]"
                       />
                     ) : (
-                      <div className="absolute inset-0 bg-zinc-900 animate-pulse flex flex-col items-center justify-center gap-4 z-20">
+                      <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center gap-4 z-20">
                         {scene.imageError ? (
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -257,10 +295,27 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
                               <RefreshCcw className="w-3 h-3" /> Tentar Novamente
                             </button>
                           </motion.div>
-                        ) : (
-                          <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold">
+                        ) : scene.imageLoading ? (
+                          <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold animate-pulse">
                             Ilustrando Cena...
                           </span>
+                        ) : (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="text-center"
+                          >
+                            <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto mb-3">
+                              <Palette className="w-6 h-6 text-primary" />
+                            </div>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold mb-4">Ilustração Omitida</p>
+                            <button 
+                              onClick={() => onRetryImage?.(scene.sceneId, scene.visualDescription)}
+                              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-primary text-zinc-200 hover:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-zinc-700 active:scale-95"
+                            >
+                              <Sparkles className="w-3 h-3" /> Gerar Ilustração
+                            </button>
+                          </motion.div>
                         )}
                       </div>
                     )}
@@ -283,10 +338,20 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
                           <audio 
                             id={`audio-${scene.sceneId}`} 
                             src={scene.audioUrl} 
-                            autoPlay={index === history.length - 1 && settings?.enableAudio}
+                            autoPlay={index === history.length - 1 && settings?.autoPlayAudio}
                             onPlay={() => setIsPlaying(scene.sceneId)}
                             onEnded={() => setIsPlaying(null)}
                             onPause={() => setIsPlaying(null)}
+                            onTimeUpdate={(e) => {
+                              const target = e.target as HTMLAudioElement;
+                              setAudioTimes(prev => ({
+                                ...prev,
+                                [scene.sceneId]: {
+                                  current: target.currentTime,
+                                  duration: target.duration || 1
+                                }
+                              }));
+                            }}
                           />
                           <button 
                             onClick={() => {
@@ -365,20 +430,33 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
                           </button>
                         </div>
                       ) : (
-                        settings?.enableAudio && (
+                        (settings?.enableAudio || scene.audioError || scene.audioLoading) && (
                           <div className="flex items-center gap-3 border-l border-zinc-700 pl-4 py-1">
                              <button 
                                onClick={() => onRetryAudio?.(scene.sceneId, scene.narration, scene.audioVoice)}
                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all border ${
                                  scene.audioError
                                  ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20' 
-                                 : 'bg-zinc-800/30 border-zinc-700 text-zinc-500'
+                                 : scene.audioLoading
+                                 ? 'bg-zinc-800/30 border-zinc-700 text-zinc-500'
+                                 : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
                                }`}
                                disabled={!onRetryAudio}
                              >
-                               {scene.audioError ? <RefreshCcw className="w-3 h-3" /> : <Volume2 className="w-3.5 h-3.5 opacity-30 animate-pulse" />}
+                               {scene.audioError ? (
+                                 <RefreshCcw className="w-3 h-3" />
+                               ) : scene.audioLoading ? (
+                                 <Volume2 className="w-3.5 h-3.5 opacity-30 animate-pulse" />
+                               ) : (
+                                 <Headphones className="w-3.5 h-3.5" />
+                               )}
                                <span className="text-[8px] font-black uppercase tracking-widest">
-                                 {scene.audioError ? 'Falha / Tentar' : 'Gerando...'}
+                                 {scene.audioError 
+                                   ? 'Falha / Tentar' 
+                                   : scene.audioLoading
+                                   ? 'Gerando...'
+                                   : 'Narrar Cena'
+                                 }
                                </span>
                              </button>
                           </div>
@@ -386,9 +464,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
                       )}
                   </div>
                   
-                  <p className="text-xl md:text-2xl leading-relaxed text-zinc-200 font-serif selection:bg-primary/20">
-                    {scene.narration}
-                  </p>
+                  {renderNarrationWithPointer(scene.sceneId, scene.narration)}
 
                   {scene.audioDescription && (
                     <div className="mt-6 flex items-center gap-2 text-zinc-600">

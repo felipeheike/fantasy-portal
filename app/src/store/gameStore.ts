@@ -44,7 +44,9 @@ interface GameState {
   updateSceneImage: (sceneId: string, imageUrl: string) => void;
   updateSceneAudio: (sceneId: string, audioUrl: string) => void;
   setImageError: (sceneId: string, hasError: boolean) => void;
+  setImageLoading: (sceneId: string, isLoading: boolean) => void;
   setAudioError: (sceneId: string, hasError: boolean) => void;
+  setAudioLoading: (sceneId: string, isLoading: boolean) => void;
   addNotification: (notification: Omit<GameNotification, 'id' | 'timestamp' | 'read'>) => void;
   markNotificationsAsRead: () => void;
   clearNotifications: () => void;
@@ -156,6 +158,7 @@ export const useGameStore = create<GameState>()(
             narrativeDetail: data.settings?.narrativeDetail || 'medium',
             enableImages: data.settings?.enableImages ?? data.flags?.enableImages ?? true,
             enableAudio: data.settings?.enableAudio ?? data.flags?.enableAudio ?? true,
+            autoPlayAudio: data.settings?.autoPlayAudio ?? data.flags?.autoPlayAudio ?? false,
           } as JourneySettings,
           history: loadedHistory,
           currentScene: loadedHistory.length > 0 ? loadedHistory[loadedHistory.length - 1] : null,
@@ -365,10 +368,22 @@ export const useGameStore = create<GameState>()(
           currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, imageError: hasError } : state.currentScene
         })),
 
+      setImageLoading: (sceneId, isLoading) =>
+        set((state) => ({
+          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, imageLoading: isLoading } : scene),
+          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, imageLoading: isLoading } : state.currentScene
+        })),
+
       setAudioError: (sceneId, hasError) =>
         set((state) => ({
           history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, audioError: hasError } : scene),
           currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, audioError: hasError } : state.currentScene
+        })),
+
+      setAudioLoading: (sceneId, isLoading) =>
+        set((state) => ({
+          history: state.history.map((scene) => scene.sceneId === sceneId ? { ...scene, audioLoading: isLoading } : scene),
+          currentScene: state.currentScene?.sceneId === sceneId ? { ...state.currentScene, audioLoading: isLoading } : state.currentScene
         })),
 
       addNotification: (notification) => 
