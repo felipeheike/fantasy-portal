@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from 'sonner';
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import ThemeProvider from "@/components/providers/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,22 +30,24 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950">
+      <body className="min-h-full flex flex-col bg-portal-bg">
         <AuthProvider>
-          {children}
-          <Toaster 
-            position="bottom-right" 
-            theme="dark" 
-            richColors 
-            expand={true}
-            toastOptions={{
-              style: {
-                background: '#09090b',
-                border: '1px solid #27272a',
-                color: '#f4f4f5'
-              }
-            }}
-          />
+          <ThemeProvider>
+            {children}
+            <Toaster 
+              position="bottom-right" 
+              theme="dark" 
+              richColors 
+              expand={true}
+              toastOptions={{
+                style: {
+                  background: 'var(--portal-bg)',
+                  border: '1px solid var(--portal-border)',
+                  color: 'var(--portal-text)'
+                }
+              }}
+            />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

@@ -31,6 +31,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
     inventory,
     currentScene, 
     history, 
+    currentJourneyId,
     useInsightPoint, 
     addInquiryToCurrentScene,
     restoreInsightWithPotion, 
@@ -64,7 +65,12 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
       const res = await fetch('/api/chat/inquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: currentQ, currentScene, history }),
+        body: JSON.stringify({ 
+          question: currentQ, 
+          currentScene, 
+          history,
+          journeyId: currentJourneyId 
+        }),
       });
 
       const data = await res.json();

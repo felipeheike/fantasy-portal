@@ -1,100 +1,59 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { NarrativeScene, JourneySettings } from '@/types';
+import { toast } from 'sonner';
 
+/**
+ * Persistently exports a journey by calling the backend API.
+ * The backend handles hashing, server-side generation, and MinIO caching.
+ */
 export async function generateJourneyPDF(
   history: NarrativeScene[], 
   settings: JourneySettings | null,
-  playerName: string
+  playerName: string,
+  journeyId?: string | null,
+  includeImages: boolean = true
 ) {
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentWidth = pageWidth - (margin * 2);
-
-  // --- Capa ---
-  doc.setFillColor(15, 15, 15); // Dark background
-  doc.rect(0, 0, pageWidth, pageHeight, 'F');
-  
-  doc.setTextColor(245, 158, 11); // Primary color
-  doc.setFont('times', 'bold');
-  doc.setFontSize(40);
-  doc.text('FANTASY PORTAL', pageWidth / 2, 80, { align: 'center' });
-  
-  doc.setTextColor(200, 200, 200);
-  doc.setFontSize(24);
-  doc.text('As Crônicas de', pageWidth / 2, 100, { align: 'center' });
-  doc.setFontSize(32);
-  doc.text(playerName.toUpperCase(), pageWidth / 2, 115, { align: 'center' });
-
-  doc.setFontSize(14);
-  doc.text(`Gênero: ${settings?.genre || 'Fantasia'}`, margin, 250);
-  doc.text(`Data: ${new Date().toLocaleDateString()}`, margin, 260);
-
-  // --- Conteúdo das Cenas ---
-  for (let i = 0; i < history.length; i++) {
-    const scene = history[i];
-    doc.addPage();
-    
-    // Header do Capítulo
-    doc.setFillColor(30, 30, 30);
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    doc.setTextColor(245, 158, 11);
-    doc.setFontSize(18);
-    doc.text(`CAPÍTULO ${i + 1}`, margin, 25);
-    
-    let currentY = 55;
-
-    // Imagem da Cena (se houver)
-    if (scene.imageUrl) {
-      try {
-        // Nota: jsPDF as vezes tem problemas com URLs externas ou proxies. 
-        // Em um ambiente real, poderíamos precisar converter para base64 primeiro.
-        // Vamos tentar adicionar a imagem se possível.
-        // doc.addImage(scene.imageUrl, 'PNG', margin, currentY, contentWidth, 80);
-        // currentY += 90;
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`[Ilustração: ${scene.visualDescription.substring(0, 80)}...]`, margin, currentY);
-        currentY += 10;
-      } catch (e) {
-        console.warn("Could not add image to PDF", e);
-      }
-    }
-
-    // Narração
-    doc.setTextColor(40, 40, 40);
-    doc.setFont('times', 'normal');
-    doc.setFontSize(12);
-    
-    const lines = doc.splitTextToSize(scene.narration, contentWidth);
-    
-    // Verifica se precisa de nova página para o texto
-    if (currentY + (lines.length * 7) > pageHeight - margin) {
-        doc.addPage();
-        currentY = margin;
-    }
-    
-    doc.text(lines, margin, currentY);
-    currentY += (lines.length * 7) + 10;
-
-    // Escolha do Jogador
-    if (scene.selectedOption) {
-      doc.setFont('times', 'italic');
-      doc.setTextColor(245, 158, 11);
-      doc.text(`Sua decisão: "${scene.selectedOption}"`, margin, currentY);
-    }
+  if (!journeyId) {
+    toast.error("Identificador da jornada não encontrado. Não é possível exportar persistentemente.");
+    return;
   }
 
-  // --- Rodapé em todas as páginas exceto capa ---
-  const totalPages = doc.getNumberOfPages();
-  for (let j = 2; j <= totalPages; j++) {
-    doc.setPage(j);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Gerado por Fantasy Portal - Página ${j - 1} de ${totalPages - 1}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  }
+  const toastId = toast.loading("Sincronizando Crônicas...", {
+    description: includeImages 
+      ? "O mestre está consultando o grimório e forjando seu livro de arte."
+      : "O mestre está transcrevendo suas crônicas."
+  });
 
-  doc.save(`jornada-${playerName.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+  try {
+    const response = await fetch(`/api/journey/${journeyId}/export`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ includeImages })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Falha na forja do PDF");
+    }
+
+    // Trigger Download
+    const link = document.createElement('a');
+    link.href = data.url;
+    link.download = `jornada-${playerName.toLowerCase().replace(/\s+/g, '-')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success(data.cached ? "Recuperado do Grimório" : "PDF Forjado com Sucesso", {
+      id: toastId,
+      description: data.message
+    });
+
+  } catch (error: any) {
+    console.error("PDF_EXPORT_UI_ERR:", error);
+    toast.error("Erro na Manifestação", {
+      id: toastId,
+      description: "As sombras impediram a conclusão do seu livro de arte. Tente novamente em instantes."
+    });
+  }
 }

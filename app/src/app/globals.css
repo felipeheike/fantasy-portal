@@ -1,34 +1,54 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #f59e0b;
-  --color-primary-foreground: #78350f;
+  /* Semantic Tokens mapping to CSS Variables */
+  --color-portal-bg: var(--portal-bg);
+  --color-portal-surface: var(--portal-surface);
+  --color-portal-surface-hover: var(--portal-surface-hover);
+  --color-portal-border: var(--portal-border);
+  --color-portal-primary: var(--portal-primary);
+  --color-portal-primary-foreground: var(--portal-primary-foreground);
+  --color-portal-text: var(--portal-text);
+  --color-portal-text-muted: var(--portal-text-muted);
+
+  /* Legacy primary mappings for components not yet migrated */
+  --color-primary: var(--portal-primary);
+  --color-primary-foreground: var(--portal-primary-foreground);
 }
 
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
+  /* Default Theme (Dark Realism - strict mapping to existing hardcoded Tailwind colors) */
+  --portal-bg: #09090b; /* zinc-950 */
+  --portal-surface: #18181b; /* zinc-900 */
+  --portal-surface-hover: #27272a; /* zinc-800 */
+  --portal-border: #27272a; /* zinc-800 */
+  --portal-primary: #f59e0b; /* amber-500 */
+  --portal-primary-foreground: #09090b; /* zinc-950 */
+  --portal-text: #f4f4f5; /* zinc-100 */
+  --portal-text-muted: #71717a; /* zinc-500 */
+
+  /* Legacy background variables */
+  --background: var(--portal-bg);
+  --foreground: var(--portal-text);
   --card-bg: rgba(24, 24, 27, 0.4);
   --border-color: rgba(39, 39, 42, 0.5);
 }
 
 .light-mode {
-  --background: #f4f4f5;
-  --foreground: #09090b;
+  /* Default Theme - Light Mode Explicit Palette */
+  --portal-bg: #f4f4f5; /* zinc-100 */
+  --portal-surface: #ffffff; /* white */
+  --portal-surface-hover: #e4e4e7; /* zinc-200 */
+  --portal-border: #d4d4d8; /* zinc-300 */
+  --portal-primary: #d97706; /* amber-600 (slightly darker for contrast on light bg) */
+  --portal-primary-foreground: #ffffff; /* white */
+  --portal-text: #09090b; /* zinc-950 */
+  --portal-text-muted: #52525b; /* zinc-600 */
+
+  --background: var(--portal-bg);
+  --foreground: var(--portal-text);
   --card-bg: rgba(255, 255, 255, 0.8);
   --border-color: rgba(212, 212, 216, 0.8);
-  
-  /* Global contrast adjustment for light mode */
-  filter: invert(0.9) hue-rotate(180deg);
-}
-
-/* Exclude specific elements from inversion to keep original colors */
-.light-mode img, 
-.light-mode video, 
-.light-mode .no-invert,
-.light-mode .player-status-bar,
-.light-mode .action-orchestrator {
-  filter: invert(1) hue-rotate(180deg);
 }
 
 body {
@@ -47,16 +67,17 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--portal-border);
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: var(--portal-text-muted);
 }
 
 /* For Firefox */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #27272a rgba(0, 0, 0, 0.2);
+  scrollbar-color: var(--portal-border) rgba(0, 0, 0, 0.2);
 }
+

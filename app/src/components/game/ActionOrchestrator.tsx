@@ -58,8 +58,13 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
     }
   }, [selectedTactical, onAction, setLockedItem]);
 
-  const handleDiceRoll = useCallback((result: number) => {
-    onAction(`RESULTADO DO DADO: ${result}. Narre o desfecho da minha ação anterior considerando este valor de sorte (1-10).`);
+  const handleDiceRoll = useCallback((result: number, skill?: { name: string, bonus: number, spCost: number }) => {
+    let summary = `RESULTADO DO DADO: ${result}`;
+    if (skill) {
+      summary += ` [Skill: ${skill.name} (+${skill.bonus})] [SP: -${skill.spCost}]`;
+    }
+    summary += `. Narre o desfecho considerando este valor final de sorte.`;
+    onAction(summary);
   }, [onAction]);
 
   const handleSolvePuzzle = useCallback((solution: string) => {
@@ -320,8 +325,14 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
               animate={{ opacity: 1, y: 0 }}
             >
               {scene?.requiresRoll ? (
-                 <div className="flex justify-center">
-                    <DiceRoller onRollComplete={handleDiceRoll} isLoading={isLoading} />
+                 <div className="flex justify-center w-full">
+                    <DiceRoller 
+                      onRollComplete={handleDiceRoll} 
+                      isLoading={isLoading} 
+                      suggestedSkills={scene.suggestedSkills}
+                      playerSp={status.sp}
+                      playerSkills={status.skills}
+                    />
                  </div>
               ) : scene?.puzzle ? (
                  <PuzzleOrchestrator onSolve={handleSolvePuzzle} />

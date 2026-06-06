@@ -2,6 +2,26 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PlayerStatus, InventoryItem, NarrativeScene, JourneySettings, GameNotification, StatusLogEntry } from '@/types';
 
+export interface ThemePalette {
+  bg: string;
+  surface: string;
+  surfaceHover: string;
+  border: string;
+  primary: string;
+  primaryForeground: string;
+  text: string;
+  textMuted: string;
+}
+
+export interface CustomTheme {
+  id: string;
+  name: string;
+  colors: {
+    dark: ThemePalette;
+    light: ThemePalette;
+  }
+}
+
 interface GameState {
   status: PlayerStatus;
   inventory: InventoryItem[];
@@ -21,6 +41,9 @@ interface GameState {
   lastPendingChoice: string | null;
   lockedItemName: string | null;
   theme: 'light' | 'dark';
+  lightMode: boolean;
+  activeThemeId: string;
+  customThemes: CustomTheme[];
   forcedNextAction: string | null; // Admin tool: Force next scene type
   forcedEndingType: string | null; // Admin tool: Force ending type
   showDebugInfo: boolean; // Admin tool: Show AI models and latency
@@ -60,6 +83,12 @@ interface GameState {
   startImpersonation: (id: string, name: string) => void;
   stopImpersonation: () => void;
   toggleTheme: () => void;
+  toggleLightMode: () => void;
+  setActiveTheme: (id: string) => void;
+  setCustomThemes: (themes: CustomTheme[]) => void;
+  createTheme: (theme: Omit<CustomTheme, 'id'>) => void;
+  updateTheme: (id: string, themeData: Partial<CustomTheme>) => void;
+  deleteTheme: (id: string) => void;
   setForcedNextAction: (type: string | null) => void;
   setForcedEndingType: (type: string | null) => void;
   toggleShowDebugInfo: () => void;
@@ -108,6 +137,9 @@ export const useGameStore = create<GameState>()(
       lastPendingChoice: null,
       lockedItemName: null,
       theme: 'dark',
+      lightMode: false,
+      activeThemeId: 'default',
+      customThemes: [],
       forcedNextAction: null,
       forcedEndingType: null,
       showDebugInfo: false,
@@ -126,7 +158,26 @@ export const useGameStore = create<GameState>()(
         flags: initialFlags ? { ...state.flags, ...initialFlags } : state.flags
       })),
       startGame: () => set({ isGameStarted: true, isSetupMode: false }),
-      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      toggleTheme: () => set((state) => ({ 
+        theme: state.theme === 'dark' ? 'light' : 'dark',
+        lightMode: state.theme === 'dark' // Sync lightMode with legacy theme toggle for compatibility
+      })),
+      toggleLightMode: () => set((state) => ({ lightMode: !state.lightMode, theme: !state.lightMode ? 'light' : 'dark' })),
+      
+      // Theme Actions
+      setActiveTheme: (id) => set({ activeThemeId: id }),
+      setCustomThemes: (themes) => set({ customThemes: themes }),
+      createTheme: (themeData) => set((state) => ({
+        customThemes: [...(state.customThemes || []), { ...themeData as any, id: `theme-${Date.now()}` }]
+      })),
+      updateTheme: (id, themeData) => set((state) => ({
+        customThemes: (state.customThemes || []).map(t => t.id === id ? { ...t, ...themeData } : t)
+      })),
+      deleteTheme: (id) => set((state) => ({
+        customThemes: (state.customThemes || []).filter(t => t.id !== id),
+        activeThemeId: state.activeThemeId === id ? 'default' : state.activeThemeId
+      })),
+
       setForcedNextAction: (type) => set({ forcedNextAction: type }),
       setForcedEndingType: (type) => set({ forcedEndingType: type }),
 
@@ -136,8 +187,6 @@ export const useGameStore = create<GameState>()(
 
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
-        // data.history pode vir vazio se estivermos usando o novo modelo
-        // No carregamento inicial, o history virá da coluna 'history' do banco (compatibilidade)
         const loadedHistory = data.history || [];
         const playerData = data.player || {};
         const rawInventory = (playerData.inventory || []) as InventoryItem[];
@@ -182,7 +231,7 @@ export const useGameStore = create<GameState>()(
           statusHistory: data.settings?.statusHistory || [],
           forcedNextAction: null,
           forcedEndingType: null,
-          hasMoreHistory: true, // Resetar para novas jornadas
+          hasMoreHistory: true,
           isLoadingHistory: false
         });
       },
@@ -190,27 +239,17 @@ export const useGameStore = create<GameState>()(
       fetchMoreScenes: async () => {
         const { currentJourneyId, history, isLoadingHistory, hasMoreHistory } = get();
         if (!currentJourneyId || isLoadingHistory || !hasMoreHistory) return;
-
         set({ isLoadingHistory: true });
-
         try {
-          // Pegar a ordem da cena mais antiga carregada
           const firstOrder = (history[0] as any).order || 1;
-          
           const response = await fetch(`/api/journey/${currentJourneyId}/scenes?beforeOrder=${firstOrder}&limit=10`);
           if (!response.ok) throw new Error("Falha ao carregar histórico");
-          
           const olderScenes: NarrativeScene[] = await response.json();
-          
           if (olderScenes.length === 0) {
             set({ hasMoreHistory: false, isLoadingHistory: false });
             return;
           }
-
-          // As cenas vem em ordem desc (mais recentes primeiro), 
-          // então precisamos inverter para anexar no início do histórico (que é asc)
           const formattedOlderScenes = [...olderScenes].reverse();
-
           set((state) => ({
             history: [...formattedOlderScenes, ...state.history],
             isLoadingHistory: false,
@@ -226,14 +265,12 @@ export const useGameStore = create<GameState>()(
         set((state) => {
           const newHp = Math.max(0, Math.min(state.status.maxHp, (changes.hp !== undefined ? changes.hp : state.status.hp)));
           const newSp = Math.max(0, Math.min(state.status.maxSp, (changes.sp !== undefined ? changes.sp : state.status.sp)));
-          
           let updatedReputations = { ...(state.status.reputations || {}) };
           if ((changes as any).reputations) {
             Object.entries((changes as any).reputations).forEach(([name, value]: [string, any]) => {
               updatedReputations[name] = (updatedReputations[name] || 0) + value;
             });
           }
-
           return {
             status: { 
               ...state.status, 
@@ -283,10 +320,14 @@ export const useGameStore = create<GameState>()(
 
       completeScene: (scene, statusChanges) =>
         set((state) => {
+          // --- Idempotency Check ---
+          const isExisting = state.history.some(s => s.sceneId === scene.sceneId);
+          
           let updatedStatus = { ...state.status };
           let newLogEntries: StatusLogEntry[] = [];
 
-          if (statusChanges) {
+          // Only apply side effects (HP, SP, Inventory, Moral) if it's a NEW scene
+          if (!isExisting && statusChanges) {
             // Detect HP change for Log
             if (statusChanges.hp !== undefined) {
               const diff = statusChanges.hp - state.status.hp;
@@ -331,9 +372,39 @@ export const useGameStore = create<GameState>()(
             }
           }
           
+          // --- Luck & Skill Outcome Processing (Only for NEW scenes) ---
+          if (!isExisting && scene.lastRollOutcome) {
+            const outcome = scene.lastRollOutcome;
+            if (outcome.spConsumed && outcome.spConsumed > 0) {
+               updatedStatus.sp = Math.max(0, updatedStatus.sp - outcome.spConsumed);
+               newLogEntries.push({
+                 id: `log-sp-roll-${Date.now()}`,
+                 type: 'sp',
+                 amount: -outcome.spConsumed,
+                 source: `Habilidade: ${outcome.skillUsed || 'Canalização'}`,
+                 timestamp: Date.now(),
+                 sceneId: scene.sceneId
+               });
+            }
+            const outcomeTitles = {
+               critical_success: '🌟 Sucesso Crítico!',
+               success: '✅ Sucesso!',
+               fail: '❌ Falha',
+               critical_fail: '💀 Falha Crítica'
+            };
+            const skillText = outcome.skillUsed ? `Sua habilidade '${outcome.skillUsed}' (+${outcome.bonusApplied}) influenciou o destino.` : 'Você confiou apenas na sorte.';
+            
+            setTimeout(() => {
+              get().addNotification({
+                type: outcome.successLevel === 'critical_fail' ? 'status' : 'info',
+                title: `${outcomeTitles[outcome.successLevel]}`,
+                description: `Resultado Final: ${outcome.finalValue}. ${skillText}`
+              });
+            }, 100);
+          }
+
           let updatedFlags = { ...state.flags };
           let updatedMemories = [...state.memories];
-
           if (scene.worldUpdate) {
             if (scene.worldUpdate.flags) updatedFlags = { ...updatedFlags, ...scene.worldUpdate.flags };
             if (scene.worldUpdate.memories) {
@@ -344,7 +415,7 @@ export const useGameStore = create<GameState>()(
           }
 
           let updatedInventory = [...state.inventory];
-          if (scene.inventoryChanges) {
+          if (!isExisting && scene.inventoryChanges) {
             if (scene.inventoryChanges.removed) {
               updatedInventory = updatedInventory.filter(item => 
                 !scene.inventoryChanges!.removed.some(nameToRemove => 
@@ -366,7 +437,7 @@ export const useGameStore = create<GameState>()(
             }
           }
 
-          if (scene.skillChanges) {
+          if (!isExisting && scene.skillChanges) {
             scene.skillChanges.forEach(newSkill => {
               const existingIndex = updatedStatus.skills.findIndex(s => s.id === newSkill.id);
               if (existingIndex > -1) updatedStatus.skills[existingIndex] = { ...updatedStatus.skills[existingIndex], ...newSkill };
@@ -379,9 +450,18 @@ export const useGameStore = create<GameState>()(
             updatedHistory[updatedHistory.length - 1] = { ...updatedHistory[updatedHistory.length - 1], selectedOption: state.lastPendingChoice };
           }
 
+          let cleanHistory = updatedHistory.filter(s => s.sceneId && s.sceneId !== 'undefined');
+          
+          if (!isExisting && scene.sceneId && scene.sceneId !== 'undefined') {
+            cleanHistory.push(scene);
+          } else if (isExisting) {
+            // Se for duplicada, apenas atualizamos a versão existente (metadados como URLs de imagem/áudio)
+            cleanHistory = cleanHistory.map(s => s.sceneId === scene.sceneId ? { ...s, ...scene } : s);
+          }
+
           return {
             currentScene: scene,
-            history: [...updatedHistory, scene],
+            history: cleanHistory,
             status: updatedStatus,
             inventory: updatedInventory,
             flags: updatedFlags,
@@ -390,7 +470,7 @@ export const useGameStore = create<GameState>()(
             lastPendingChoice: null,
             lockedItemName: null,
             forcedNextAction: null,
-            forcedEndingType: null // Clear forced ending after scene completion
+            forcedEndingType: null
           };
         }),
 
@@ -450,17 +530,13 @@ export const useGameStore = create<GameState>()(
 
       addInquiryToCurrentScene: (question, answer) => set((state) => {
         if (!state.currentScene) return state;
-        
         const newInquiry = { question, answer, timestamp: Date.now() };
         const updatedInquiries = [...(state.currentScene.inquiries || []), newInquiry];
-        
         const updatedScene = { ...state.currentScene, inquiries: updatedInquiries };
         const updatedHistory = [...state.history];
-        
         if (updatedHistory.length > 0) {
           updatedHistory[updatedHistory.length - 1] = updatedScene;
         }
-
         return {
           currentScene: updatedScene,
           history: updatedHistory
@@ -471,16 +547,13 @@ export const useGameStore = create<GameState>()(
         const state = get();
         const itemIndex = state.inventory.findIndex(i => i.id === potionId);
         if (itemIndex === -1) return false;
-
         const updatedInventory = [...state.inventory];
         const item = updatedInventory[itemIndex];
-        
         if (item.quantity > 1) {
           updatedInventory[itemIndex] = { ...item, quantity: item.quantity - 1 };
         } else {
           updatedInventory.splice(itemIndex, 1);
         }
-
         set({
           inventory: updatedInventory,
           status: { ...state.status, insightPoints: state.status.insightPoints + 2 }
@@ -491,7 +564,6 @@ export const useGameStore = create<GameState>()(
       restoreInsightWithSacrifice: () => {
         const state = get();
         if (state.status.hp < 5) return false;
-
         const newHp = state.status.hp - 4;
         const newLogEntry: StatusLogEntry = {
           id: `log-hp-sacrifice-${Date.now()}`,
@@ -501,7 +573,6 @@ export const useGameStore = create<GameState>()(
           timestamp: Date.now(),
           sceneId: state.currentScene?.sceneId
         };
-
         set({
           status: { ...state.status, hp: newHp, insightPoints: state.status.insightPoints + 1 },
           statusHistory: [newLogEntry, ...state.statusHistory].slice(0, MAX_LOG_ENTRIES)
@@ -515,26 +586,22 @@ export const useGameStore = create<GameState>()(
       revivePlayer: () => {
         const state = get();
         if (!state.currentScene) return;
-
         const newHp = Math.ceil(state.status.maxHp * 0.5);
         const updatedStatus = { 
           ...state.status, 
           hp: newHp, 
           deathCount: state.status.deathCount + 1 
         };
-
         const revivedScene = { ...state.currentScene, isGameOver: false };
         const updatedHistory = [...state.history];
         if (updatedHistory.length > 0) {
           updatedHistory[updatedHistory.length - 1] = revivedScene;
         }
-
         set({
           status: updatedStatus,
           currentScene: revivedScene,
           history: updatedHistory
         });
-
         get().addNotification({
           type: 'status',
           title: '✨ Renascimento',
@@ -554,15 +621,15 @@ export const useGameStore = create<GameState>()(
           memories: [],
           notificationHistory: [],
           statusHistory: [],
-          // Preserve supervision mode
           impersonatedPlayerId: state.impersonatedPlayerId,
           impersonatedPlayerName: state.impersonatedPlayerName,
           isGameStarted: false,
           isSetupMode: false,
-          lastPendingChoice: null,
-          lockedItemName: null,
           hasHydrated: true,
           theme: state.theme,
+          lightMode: state.lightMode,
+          activeThemeId: state.activeThemeId,
+          customThemes: state.customThemes,
           forcedNextAction: null,
           forcedEndingType: null,
           isLoadingHistory: false,
@@ -591,6 +658,9 @@ export const useGameStore = create<GameState>()(
         impersonatedPlayerId: state.impersonatedPlayerId,
         impersonatedPlayerName: state.impersonatedPlayerName,
         theme: state.theme,
+        lightMode: state.lightMode,
+        activeThemeId: state.activeThemeId,
+        customThemes: state.customThemes,
         forcedNextAction: state.forcedNextAction,
         forcedEndingType: state.forcedEndingType
       }),

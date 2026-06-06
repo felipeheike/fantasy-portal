@@ -98,6 +98,14 @@ export interface NarrativeScene {
   };
   isGameOver: boolean;
   requiresRoll?: boolean; // New for dice roll mechanics
+  suggestedSkills?: { id: string; name: string; spCost: number }[]; // New: Skills for roll boost
+  lastRollOutcome?: {
+    successLevel: 'critical_success' | 'success' | 'fail' | 'critical_fail';
+    skillUsed?: string;
+    bonusApplied?: number;
+    finalValue: number;
+    spConsumed?: number;
+  };
   imageError?: boolean;
   imageLoading?: boolean; // New: track explicit image loading state
   audioError?: boolean; // New: Track audio generation failure

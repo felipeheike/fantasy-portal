@@ -1,6 +1,7 @@
 # AI & Operations (Personal)
 Prompts/
 actions/
+private/
 
 # Tests & Simulations
 test-*.mjs

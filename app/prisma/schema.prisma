@@ -24,23 +24,28 @@ model Player {
   mfaSecret           String?
   usageStats          Json?
   apiEnabled          Json?
+  customThemes        Json?
   journeys            Journey[]
 }
 
 model Journey {
-  id        String   @id @default(cuid())
-  playerId  String
-  genre     String
-  status    String   @default("active")
-  history   Json
-  flags     Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  memories  Json?
-  settings  Json?
-  assets    Asset[]
-  player    Player   @relation(fields: [playerId], references: [id])
-  scenes    Scene[]
+  id              String   @id @default(cuid())
+  playerId        String
+  genre           String
+  status          String   @default("active")
+  history         Json
+  flags           Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  memories        Json?
+  settings        Json?
+  lastPdfUrl      String?
+  lastPdfHash     String?
+  lastTextPdfUrl  String?
+  lastTextPdfHash String?
+  assets          Asset[]
+  player          Player   @relation(fields: [playerId], references: [id])
+  scenes          Scene[]
 }
 
 model Scene {

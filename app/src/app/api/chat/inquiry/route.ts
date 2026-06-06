@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const maxDuration = 60;
 
@@ -11,7 +12,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-    const { question, currentScene, history } = await req.json();
+    const { question, currentScene, history, journeyId } = await req.json();
 
     if (!question || !currentScene) {
       return NextResponse.json({ error: "Pergunta ou cena ausentes." }, { status: 400 });
@@ -42,6 +43,49 @@ ${history.slice(-3).map((h: any) => h.narration).join('\n---\n')}
 `,
       prompt: `Pergunta do Jogador: "${question}"`,
     });
+
+    // --- Persistência em Tempo Real ---
+    if (journeyId && currentScene.sceneId) {
+      try {
+        const newInquiry = { question, answer: text, timestamp: Date.now() };
+
+        // 1. Atualizar no modelo Scene individual
+        await prisma.scene.updateMany({
+          where: { journeyId, sceneId: currentScene.sceneId },
+          data: {
+            inquiries: {
+              push: newInquiry
+            }
+          }
+        });
+
+        // 2. Atualizar no JSON history da Journey (Sincronia Global)
+        const journey = await prisma.journey.findUnique({
+          where: { id: journeyId },
+          select: { history: true }
+        });
+
+        if (journey && Array.isArray(journey.history)) {
+          const updatedHistory = journey.history.map((s: any) => {
+            if (s.sceneId === currentScene.sceneId) {
+              return {
+                ...s,
+                inquiries: [...(s.inquiries || []), newInquiry]
+              };
+            }
+            return s;
+          });
+
+          await prisma.journey.update({
+            where: { id: journeyId },
+            data: { history: updatedHistory }
+          });
+        }
+      } catch (dbErr) {
+        console.error('INQUIRY_PERSISTENCE_ERR:', dbErr);
+        // Não falhamos a requisição se o log falhar, apenas logamos
+      }
+    }
 
     return NextResponse.json({ answer: text });
 

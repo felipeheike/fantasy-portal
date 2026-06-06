@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2, LogOut, ShieldCheck, Eye, X, User, Moon, Sun } from 'lucide-react';
+import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Settings2, LogOut, ShieldCheck, Eye, X, User, Moon, Sun, Palette } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import JourneyDetailsModal from './JourneyDetailsModal';
@@ -132,6 +132,14 @@ export default function MainMenu() {
             <span className="hidden md:inline">{theme === 'dark' ? 'Modo Luz' : 'Modo Sombras'}</span>
           </button>
 
+          {/* Theme Hub Button */}
+          <button 
+            onClick={() => router.push('/theme-hub')}
+            className="p-2.5 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-primary hover:bg-zinc-800 transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group"
+          >
+            <Palette className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden md:inline">Hub de Temas</span>
+          </button>
+
           {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
@@ -177,7 +185,7 @@ export default function MainMenu() {
             whileHover={{ scale: 1.02, translateY: -5 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNewGame}
-            className="lg:col-span-1 h-full min-h-[200px] md:min-h-[300px] p-6 md:p-10 bg-white rounded-[32px] md:rounded-[40px] flex flex-col items-start justify-between text-left group shadow-2xl relative overflow-hidden"
+            className="lg:col-span-1 h-[200px] md:h-[300px] p-6 md:p-10 bg-white rounded-[32px] md:rounded-[40px] flex flex-col items-start justify-between text-left group shadow-2xl relative overflow-hidden w-full max-w-[400px] mx-auto lg:mx-0"
           >
             <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 md:opacity-10 group-hover:opacity-100 group-hover:scale-110 transition-all text-zinc-950">
                <Plus className="w-16 h-16 md:w-24 md:h-24" />

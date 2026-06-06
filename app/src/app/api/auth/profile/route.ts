@@ -28,6 +28,7 @@ export async function GET(req: Request) {
         apiKeys: true,
         apiEnabled: true,
         aiPreferences: true,
+        customThemes: true,
         usageStats: true,
         mfaEnabled: true,
       }
@@ -55,6 +56,7 @@ export async function GET(req: Request) {
       apiKeys: maskedKeys,
       apiEnabled: player.apiEnabled || {},
       aiPreferences: player.aiPreferences || {},
+      customThemes: player.customThemes || [],
       usageStats: player.usageStats || {},
       mfaEnabled: player.mfaEnabled,
       isImpersonated: userId !== (session.user as any).id
@@ -71,7 +73,7 @@ export async function PATCH(req: Request) {
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { name, currentPassword, newPassword, apiKeys, apiEnabled, aiPreferences, mfaAction, mfaToken, targetUserId } = body;
+    const { name, currentPassword, newPassword, apiKeys, apiEnabled, aiPreferences, customThemes, mfaAction, mfaToken, targetUserId } = body;
     
     const isAdmin = (session.user as any).role === 'ADMIN';
     const userId = (targetUserId && isAdmin) ? targetUserId : (session.user as any).id;
@@ -122,6 +124,11 @@ export async function PATCH(req: Request) {
     // 4. Preferências de IA
     if (aiPreferences) {
       updateData.aiPreferences = aiPreferences;
+    }
+
+    // 4.1. Temas Customizados
+    if (customThemes) {
+      updateData.customThemes = customThemes;
     }
 
     // 5. Lógica de MFA (Setup/Enable/Disable)

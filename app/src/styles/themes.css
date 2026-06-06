@@ -1,0 +1,62 @@
+:root {
+  /* Presets: 🌌 Dark Realism (Baseline) */
+  --portal-bg: #09090b; /* zinc-950 */
+  --portal-surface: #121214; /* zinc-900-ish */
+  --portal-surface-hover: #18181b; /* zinc-900 */
+  --portal-border: #27272a; /* zinc-800 */
+  --portal-primary: #f59e0b; /* amber-500 */
+  --portal-primary-foreground: #78350f;
+  --portal-text: #fafafa; /* zinc-50 */
+  --portal-text-muted: #71717a; /* zinc-500 */
+
+  /* Legacy and Overrides */
+  --background: var(--portal-bg);
+  --foreground: var(--portal-text);
+  --card-bg: rgba(24, 24, 27, 0.4);
+  --border-color: rgba(39, 39, 42, 0.5);
+  --portal-font: 'Inter', sans-serif;
+}
+
+[data-theme='classic-rpg'] {
+  --portal-bg: #1a1512;
+  --portal-surface: #2b231d;
+  --portal-surface-hover: #3d3129;
+  --portal-border: #4d3d33;
+  --portal-primary: #d4a017;
+  --portal-primary-foreground: #3d2b1f;
+  --portal-text: #e8d5b5;
+  --portal-text-muted: #a68b6d;
+}
+
+[data-theme='cyberpunk'] {
+  --portal-bg: #050505;
+  --portal-surface: #0a0a0a;
+  --portal-surface-hover: #111111;
+  --portal-border: #00f3ff;
+  --portal-primary: #00f3ff;
+  --portal-primary-foreground: #000000;
+  --portal-text: #ffffff;
+  --portal-text-muted: rgba(0, 243, 255, 0.5);
+}
+
+[data-theme='grimdark'] {
+  --portal-bg: #0c0c0c;
+  --portal-surface: #1a1a1a;
+  --portal-surface-hover: #261111;
+  --portal-border: #3f3f3f;
+  --portal-primary: #991b1b; /* red-800 */
+  --portal-primary-foreground: #ffffff;
+  --portal-text: #d1d5db;
+  --portal-text-muted: #6b7280;
+}
+
+[data-theme='ethereal'] {
+  --portal-bg: #f8fafc;
+  --portal-surface: #ffffff;
+  --portal-surface-hover: #f1f5f9;
+  --portal-border: #e2e8f0;
+  --portal-primary: #3b82f6; /* blue-500 */
+  --portal-primary-foreground: #ffffff;
+  --portal-text: #0f172a;
+  --portal-text-muted: #64748b;
+}

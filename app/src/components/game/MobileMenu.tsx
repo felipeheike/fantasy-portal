@@ -229,8 +229,9 @@ export default function MobileMenu({
                           onChange={(e) => setForcedNextAction(e.target.value || null)}
                           className="w-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-300 focus:text-orange-500"
                         >
-                          <option value="">🎲 Aleatório</option>
+                          <option value="">❓ Aleatório</option>
                           <option value="puzzle">🧩 Desafio</option>
+                          <option value="luck">🎲 Sorte</option>
                           <option value="combined">⚔️ Combate</option>
                           <option value="binary">🌓 Escolha</option>
                           <option value="interpretative">✍️ Texto</option>

@@ -16,6 +16,7 @@ import JourneySetup from '@/components/game/JourneySetup';
 import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
 import ScreenEffects from '@/components/game/ScreenEffects';
+import ExportPDFModal from '@/components/game/ExportPDFModal';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -97,7 +98,8 @@ export default function GamePage() {
     settings, currentJourneyId, setJourneyId, history,
     inventory, resetGame, loadJourney, hasHydrated,
     setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError, setImageLoading, setAudioError, setAudioLoading,
-    flags, memories, addNotification, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode
+    flags, memories, addNotification, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode,
+    setCustomThemes
   } = useGameStore();
 
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -108,6 +110,8 @@ export default function GamePage() {
   const [isSPLogOpen, setIsSPLogOpen] = useState(false);
   const [isInquiryOpen, setIsInquiryOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [persistentError, setPersistentError] = useState<string | null>(null);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
   const [aiModels, setAiModels] = useState<{ text?: string, image?: string }>({});
@@ -121,9 +125,10 @@ export default function GamePage() {
     }
   }, [isGameStarted]);
 
-  // Fetch AI status
+  // Fetch AI status & Profile Data (Themes)
   useEffect(() => {
-    if (hasHydrated) {
+    if (hasHydrated && authStatus === 'authenticated') {
+      // AI Status
       fetch('/api/ai-status')
         .then(r => r.json())
         .then(data => {
@@ -133,8 +138,18 @@ export default function GamePage() {
           });
         })
         .catch(() => {});
+
+      // Profile (Themes)
+      fetch('/api/auth/profile')
+        .then(r => r.json())
+        .then(data => {
+          if (data.customThemes) {
+            setCustomThemes(data.customThemes);
+          }
+        })
+        .catch(err => console.error("PROFILE_HYDRATION_ERR:", err));
     }
-  }, [hasHydrated]);
+  }, [hasHydrated, authStatus, setCustomThemes]);
 
   const initialTriggerDone = useRef(false);
   const creationInProgress = useRef(false);
@@ -165,7 +180,9 @@ export default function GamePage() {
         const url = URL.createObjectURL(blob);
         updateSceneImage(sceneId, url);
       } else {
-        setImageError(sceneId, true);
+        // Fallback: Tenta construir a URL via Proxy se o blob falhar ou para consistência
+        const proxyUrl = `/api/assets/scenes/${currentJourneyId}/${sceneId}.png`;
+        updateSceneImage(sceneId, proxyUrl);
       }
       setImageLoading(sceneId, false);
     })
@@ -204,6 +221,7 @@ export default function GamePage() {
     api: '/api/chat',
     schema: sceneSchema,
     onFinish: ({ object }) => {
+      setIsProcessingAction(false);
       const endTime = Date.now();
       if (startTimeRef.current) {
         setLastResponseTime(endTime - startTimeRef.current);
@@ -214,6 +232,15 @@ export default function GamePage() {
         
         if (!scene.sceneId || !scene.narration) {
           setPersistentError("O Mestre se calou subitamente. Verifique sua cota ou conexão.");
+          return;
+        }
+
+        setPersistentError(null);
+        
+        // --- Idempotency Check for Toasts/Notifications ---
+        const isExisting = useGameStore.getState().history.some(s => s.sceneId === scene.sceneId);
+        if (isExisting) {
+          completeScene(scene, scene.statusChanges);
           return;
         }
 
@@ -317,6 +344,7 @@ export default function GamePage() {
       }
     },
     onError: (err) => {
+      setIsProcessingAction(false);
       console.error("LOG: useObject Error Callback:", err);
       const msg = err.message || "";
       if (msg.includes('429') || msg.includes('quota') || msg.includes('limit')) {
@@ -328,7 +356,8 @@ export default function GamePage() {
   });
 
   const triggerAI = useCallback((prompt: string) => {
-    if (isLoading) return;
+    if (isLoading || isProcessingAction) return;
+    setIsProcessingAction(true);
     
     startTimeRef.current = Date.now();
     const scene = (object as unknown as NarrativeScene) || currentScene;
@@ -344,16 +373,16 @@ export default function GamePage() {
     ].filter(m => m.content);
 
     submit({ messages, playerContext });
-  }, [isLoading, history, currentScene, object, playerContext, submit, setPendingChoice]);
+  }, [isLoading, isProcessingAction, history, currentScene, object, playerContext, submit, setPendingChoice]);
 
   const handleExportMarkdown = useCallback(() => {
     const markdown = exportJourneyToMarkdown(history, settings, settings?.playerName || 'Viajante', currentScene);
     downloadMarkdown(markdown, `jornada-${settings?.playerName || 'viajante'}.md`);
   }, [history, settings, currentScene]);
 
-  const handleExportPDF = useCallback(async () => {
-    await generateJourneyPDF(history, settings, settings?.playerName || 'Viajante');
-  }, [history, settings]);
+  const handleExportPDF = useCallback(async (includeImages: boolean) => {
+    await generateJourneyPDF(history, settings, settings?.playerName || 'Viajante', currentJourneyId, includeImages);
+  }, [history, settings, currentJourneyId]);
 
   // DB Record Creation & Persistence Sync
   useEffect(() => {
@@ -499,7 +528,7 @@ export default function GamePage() {
         onToggleNotifications={() => setIsNotificationsOpen(true)}
         onToggleSettings={() => setIsDetailsOpen(true)}
         onToggleInquiry={() => setIsInquiryOpen(true)}
-        onDownloadPDF={handleExportPDF}
+        onDownloadPDF={() => setIsExportModalOpen(true)}
         onDownloadMD={handleExportMarkdown}
         onToggleHPLog={() => setIsHPLogOpen(true)}
         onToggleSPLog={() => setIsSPLogOpen(true)}
@@ -574,9 +603,10 @@ export default function GamePage() {
           </div>
         )}
 
-        <NarrativePanel 
-          onRetryImage={(sceneId, prompt) => generateSceneImage(sceneId, prompt)} 
+        <NarrativePanel
+          onRetryImage={(sceneId, prompt) => generateSceneImage(sceneId, prompt)}
           onRetryAudio={(sceneId, text, gender) => generateSceneAudio(sceneId, text, gender)}
+          onDownloadPDF={() => setIsExportModalOpen(true)}
         />
         
         {/* Performance & Model Info */}
@@ -647,6 +677,12 @@ export default function GamePage() {
         onClose={() => setIsDetailsOpen(false)} 
         settings={settings}
         historyCount={history.length}
+      />
+      <ExportPDFModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportPDF}
+        playerName={settings?.playerName || 'Viajante'}
       />
     </div>
   );

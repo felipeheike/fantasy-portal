@@ -135,7 +135,11 @@ export async function POST(req: Request) {
         forceRule = "\n!!! REGRA ABSOLUTA: FINALIZE A HISTÓRIA COM DERROTA AMARGA. O herói sobrevive, mas falha em seu objetivo principal. Defina 'isGameOver: true'.";
       }
     } else if (forcedType) {
-      forceRule = `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente uma interação do tipo '${forcedType}'. Ignore as regras normais de diversificação para esta cena.`;
+      if (forcedType === 'luck') {
+        forceRule = `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente um desafio que exija sorte e o uso do dado. Defina 'requiresRoll: true'. Ignore as regras normais de diversificação.`;
+      } else {
+        forceRule = `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente uma interação do tipo '${forcedType}'. Ignore as regras normais de diversificação para esta cena.`;
+      }
     }
 
     console.log(
@@ -158,7 +162,22 @@ REGRAS DE DIVERSIFICAÇÃO (ANTI-REPETIÇÃO):
 3. PRIORIDADE TÁTICA: SEMPRE use o modo 'combined' (Escolha Estruturada) em situações de conflito físico, perseguição ou obstáculos técnicos.
 4. USO DE HABILIDADES: Ofereça pelo menos uma opção que utilize as habilidades do jogador em cada 3 cenas.
 
-REGRAS DE CONTROLE DE JORNADA (STEPS):
+SISTEMA DE SORTE E ACASO (DICE ROLLS):
+1. GATILHO DE ROLAGEM: Defina 'requiresRoll: true' SEMPRE que o jogador tentar uma ação de alto risco ou houver incerteza física/mágica (ex: saltar abismo, abrir baú misterioso, golpe final em boss).
+2. DIFICULDADE CONTEXTUAL (DC): Narre implicitamente ou explicitamente a dificuldade (ex: "Você precisará de um 7 ou mais no dado para não ser detectado").
+3. HABILIDADES SUGERIDAS (STRATEGY): Sempre que 'requiresRoll' for true, preencha o array 'suggestedSkills' com habilidades do jogador que sejam úteis.
+   - Cada habilidade sugerida deve ter um 'spCost' (geralmente entre 1 e 3 SP).
+   - O jogador decidirá se gasta a estamina para ganhar o bônus.
+4. MODIFICADORES NO DESFECHO: Se a última mensagem for "RESULTADO DO DADO: X [Skill: Nome (+Y)] [SP: -Z]", você DEVE:
+   - Calcular o valor final (X + Y).
+   - Narrar o sucesso ou falha baseando-se nesse valor final.
+   - Preencher 'lastRollOutcome' com os detalhes da rolagem (successLevel, finalValue, bonusApplied, spConsumed).
+   - Nível de Sucesso: 1-3 (Falha Crítica/Grave), 4-5 (Falha/Revés), 6-8 (Sucesso), 9-10+ (Sucesso Crítico/Épico).
+5. LOOT PROGRESSIVO (BÊNÇÃOS): Ao encontrar itens, a raridade é ditada pelo dado (considerando bônus de skills de Sorte/Percepção):
+   - 1-3: Item Comum/Quebrado.
+   - 4-7: Item Útil/Raro.
+   - 8-10+: Item Épico/Lendário (ex: "Lâmina da Aurora" se tirar 10).
+6. RESOLUÇÃO: Se a última mensagem for "RESULTADO DO DADO: X", narre o desfecho considerando o valor (1-10) e AVANCE para uma NOVA cena com 'requiresRoll: false'.
 1. LIMITE ATUAL: ${effectiveLimit} cenas.
 2. CENA ATUAL: ${actualSceneCount + 1}.
 
@@ -223,7 +242,7 @@ ESTILO NARRATIVO:
 
 CONTEXTO ATUAL:
 - Protagonista: ${playerContext?.settings?.playerName}
-- HP/SP: ${playerContext?.status?.hp}/${playerContext?.status?.maxHp} | ${playerContext?.status?.sp}/${playerContext?.status?.maxSp}
+- Status: HP ${playerContext?.status?.hp}/${playerContext?.status?.maxHp} | SP ${playerContext?.status?.sp}/${playerContext?.status?.maxSp} | Agilidade: ${playerContext?.status?.agility} | Sorte: ${playerContext?.status?.luck}
 - Moral/Karma Global: ${playerContext?.status?.moral || 0}
 - Reputações Locais: ${JSON.stringify(playerContext?.status?.reputations || {})}
 - Mochila: ${playerContext?.inventory?.map((i: any) => i.name).join(', ') || 'Vazia'}

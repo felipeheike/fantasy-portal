@@ -2,17 +2,27 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Dices } from 'lucide-react';
+import { Sparkles, Dices, Zap, Check, Lock } from 'lucide-react';
 
 interface DiceRollerProps {
-  onRollComplete: (result: number) => void;
+  onRollComplete: (result: number, selectedSkill?: { name: string, bonus: number, spCost: number }) => void;
   isLoading?: boolean;
+  suggestedSkills?: { id: string; name: string; spCost: number }[];
+  playerSp?: number;
+  playerSkills?: { id: string, name: string, level: number }[];
 }
 
-export default function DiceRoller({ onRollComplete, isLoading }: DiceRollerProps) {
+export default function DiceRoller({ 
+  onRollComplete, 
+  isLoading, 
+  suggestedSkills = [], 
+  playerSp = 0,
+  playerSkills = []
+}: DiceRollerProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [hasTriggered, setHasTriggered] = useState(false);
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   
   const rollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const completionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -24,6 +34,17 @@ export default function DiceRoller({ onRollComplete, isLoading }: DiceRollerProp
       if (completionTimeoutRef.current) clearTimeout(completionTimeoutRef.current);
     };
   }, []);
+
+  // Filter skills that the player actually has and has enough SP for
+  const availableSkills = suggestedSkills.map(suggested => {
+    const playerSkill = playerSkills.find(s => s.id === suggested.id || s.name === suggested.name);
+    return {
+      ...suggested,
+      level: playerSkill?.level || 0,
+      canAfford: playerSp >= suggested.spCost,
+      hasSkill: !!playerSkill
+    };
+  }).filter(s => s.hasSkill);
 
   const handleRoll = () => {
     if (isRolling || isLoading || hasTriggered) return;
@@ -38,16 +59,18 @@ export default function DiceRoller({ onRollComplete, isLoading }: DiceRollerProp
       setResult(newResult);
       setIsRolling(false); // Stop animation
       
+      const skill = availableSkills.find(s => s.id === selectedSkillId);
+      
       // Give the user a moment to see the result before sending
       completionTimeoutRef.current = setTimeout(() => {
         setHasTriggered(true);
-        onRollComplete(newResult);
+        onRollComplete(newResult, skill ? { name: skill.name, bonus: skill.level, spCost: skill.spCost } : undefined);
       }, 1500);
     }, 1200);
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 p-8 bg-zinc-900/60 border border-zinc-800 rounded-[40px] backdrop-blur-xl shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col items-center gap-6 p-8 bg-zinc-900/60 border border-zinc-800 rounded-[40px] backdrop-blur-xl shadow-2xl relative overflow-hidden max-w-md w-full">
       <div className="relative">
         {/* Decorative background glow */}
         <div className={`absolute inset-0 bg-primary/20 blur-[60px] rounded-full transition-opacity duration-500 ${isRolling ? 'opacity-100' : 'opacity-0'}`} />
@@ -84,11 +107,52 @@ export default function DiceRoller({ onRollComplete, isLoading }: DiceRollerProp
         <h3 className="text-xs font-black uppercase tracking-[0.4em] text-zinc-500">
           {isRolling ? 'Consultando o Destino...' : result !== null ? 'Sorte Manifestada!' : 'Toque para Rolar'}
         </h3>
-        <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest max-w-[200px]">
-          {result !== null 
-            ? `Seu valor: ${result}. Aguarde a resolução...` 
-            : 'Um valor alto garante sucesso crítico, um baixo pode ser fatal.'}
-        </p>
+        
+        <AnimatePresence mode="wait">
+          {!isRolling && result === null && availableSkills.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4 pt-2"
+            >
+              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Canalizar Habilidade?</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {availableSkills.map(skill => (
+                  <button
+                    key={skill.id}
+                    disabled={!skill.canAfford}
+                    onClick={() => setSelectedSkillId(selectedSkillId === skill.id ? null : skill.id)}
+                    className={`px-3 py-2 rounded-xl border-2 transition-all flex items-center gap-2 ${
+                      selectedSkillId === skill.id
+                      ? 'bg-primary border-primary text-zinc-950'
+                      : skill.canAfford
+                        ? 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                        : 'bg-zinc-950 border-zinc-900 text-zinc-700 cursor-not-allowed opacity-50'
+                    }`}
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="text-[10px] font-black uppercase">{skill.name}</span>
+                      <span className="text-[8px] font-bold opacity-70">Bônus: +{skill.level}</span>
+                    </div>
+                    <div className={`px-1.5 py-0.5 rounded-md text-[8px] font-black ${
+                      selectedSkillId === skill.id ? 'bg-zinc-950 text-primary' : 'bg-zinc-800 text-zinc-500'
+                    }`}>
+                      {skill.spCost} SP
+                    </div>
+                    {selectedSkillId === skill.id ? <Check className="w-3 h-3" /> : !skill.canAfford && <Lock className="w-3 h-3" />}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {result !== null && (
+          <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest max-w-[200px] mt-2">
+            Seu valor: {result}. Aguarde a resolução...
+          </p>
+        )}
       </div>
 
       {/* Numerical particles around the dice */}

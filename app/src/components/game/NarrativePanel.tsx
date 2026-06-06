@@ -35,12 +35,13 @@ interface NarrativePanelProps {
   onRetryImage?: (sceneId: string, prompt: string) => void;
   onRetryAudio?: (sceneId: string, text: string, gender?: 'male' | 'female') => void;
   onRevive?: () => void;
+  onDownloadPDF?: () => void;
 }
 
-export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }: NarrativePanelProps) {
+export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, onDownloadPDF }: NarrativePanelProps) {
   const { data: session } = useSession();
   const { 
-    history, currentScene, status, settings, resetGame, 
+    history, currentScene, status, settings, resetGame, currentJourneyId,
     theme, toggleTheme, hasHydrated,
     forcedNextAction, setForcedNextAction,
     forcedEndingType, setForcedEndingType, showDebugInfo, toggleShowDebugInfo, readingMode, toggleReadingMode,
@@ -69,10 +70,6 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
   const handleExportMarkdown = () => {
     const markdown = exportJourneyToMarkdown(history, settings, settings?.playerName || 'Viajante', currentScene);
     downloadMarkdown(markdown, `jornada-${settings?.playerName || 'viajante'}.md`);
-  };
-
-  const handleExportPDF = async () => {
-    await generateJourneyPDF(history, settings, settings?.playerName || 'Viajante');
   };
 
   const handleStartNewJourney = () => {
@@ -195,7 +192,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
               <Home className="w-4 h-4" /> Voltar ao Menu Principal
             </button>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={handleExportPDF} className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">PDF Arte</button>
+              <button onClick={onDownloadPDF} className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">PDF Arte</button>
               <button onClick={handleExportMarkdown} className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">Crônicas .MD</button>
             </div>
           </div>
@@ -619,8 +616,9 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
               onChange={(e) => setForcedNextAction(e.target.value || null)}
               className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-orange-500 transition-colors cursor-pointer"
             >
-              <option value="">🎲 Ação Aleatória</option>
+              <option value="">❓ Ação Aleatória</option>
               <option value="puzzle">🧩 Desafio Mental</option>
+              <option value="luck">🎲 Sorte / Acaso</option>
               <option value="combined">⚔️ Combate Tático</option>
               <option value="binary">🌓 Escolha Binária</option>
               <option value="multiple">📜 Múltipla Escolha</option>
@@ -675,7 +673,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive }:
           <div className="flex flex-col lg:flex-row items-center gap-1">
             {/* PDF Option */}
             <motion.button
-              onClick={handleExportPDF}
+              onClick={onDownloadPDF}
               className="p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-zinc-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2 group/pdf"
               title="Livro de Arte (PDF)"
             >
