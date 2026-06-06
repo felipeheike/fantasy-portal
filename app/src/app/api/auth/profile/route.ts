@@ -5,12 +5,19 @@ import { authOptions } from "@/lib/auth";
 import { encrypt, decrypt, maskKey, generateMfaSecret, generateQrCode, verifyMfaCode } from "@/lib/security";
 import bcrypt from "bcrypt";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-    const userId = (session.user as any).id;
+    const { searchParams } = new URL(req.url);
+    const requestedUserId = searchParams.get('userId');
+    const isAdmin = (session.user as any).role === 'ADMIN';
+
+    // Se um ID foi solicitado e quem pede é ADMIN, usamos o ID alvo. 
+    // Caso contrário, usamos o ID da própria sessão.
+    const userId = (requestedUserId && isAdmin) ? requestedUserId : (session.user as any).id;
+
     const player = await prisma.player.findUnique({
       where: { id: userId },
       select: {
@@ -50,6 +57,7 @@ export async function GET() {
       aiPreferences: player.aiPreferences || {},
       usageStats: player.usageStats || {},
       mfaEnabled: player.mfaEnabled,
+      isImpersonated: userId !== (session.user as any).id
     });
   } catch (error: any) {
     console.error('PROFILE_GET_ERR:', error);
@@ -63,8 +71,10 @@ export async function PATCH(req: Request) {
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { name, currentPassword, newPassword, apiKeys, apiEnabled, aiPreferences, mfaAction, mfaToken } = body;
-    const userId = (session.user as any).id;
+    const { name, currentPassword, newPassword, apiKeys, apiEnabled, aiPreferences, mfaAction, mfaToken, targetUserId } = body;
+    
+    const isAdmin = (session.user as any).role === 'ADMIN';
+    const userId = (targetUserId && isAdmin) ? targetUserId : (session.user as any).id;
 
     const player = await prisma.player.findUnique({ where: { id: userId } });
     if (!player) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
@@ -74,11 +84,15 @@ export async function PATCH(req: Request) {
     // 1. Atualizar Nome
     if (name) updateData.name = name;
 
-    // 2. Trocar Senha
+    // 2. Trocar Senha (Só permitida para o próprio usuário ou Admin sem checar senha atual)
     if (newPassword) {
-      if (!currentPassword) return NextResponse.json({ error: "Senha atual obrigatória" }, { status: 400 });
-      const isValid = await bcrypt.compare(currentPassword, player.passwordHash || '');
-      if (!isValid) return NextResponse.json({ error: "Senha atual incorreta" }, { status: 400 });
+      const isSelf = userId === (session.user as any).id;
+      if (isSelf) {
+        if (!currentPassword) return NextResponse.json({ error: "Senha atual obrigatória" }, { status: 400 });
+        const isValid = await bcrypt.compare(currentPassword, player.passwordHash || '');
+        if (!isValid) return NextResponse.json({ error: "Senha atual incorreta" }, { status: 400 });
+      }
+      // Se for Admin trocando de outro, pula a validação de currentPassword
       updateData.passwordHash = await bcrypt.hash(newPassword, 10);
       updateData.forcePasswordChange = false;
     }

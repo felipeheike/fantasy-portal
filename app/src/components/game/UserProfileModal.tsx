@@ -63,7 +63,6 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
   
   // API Keys State
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-
   const [apiEnabled, setApiEnabled] = useState<Record<string, boolean>>({});
 
   // Preferences State
@@ -90,7 +89,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
   // Fetch complete profile data
   useEffect(() => {
-    if (isOpen && !impersonatedPlayerId) {
+    if (isOpen) {
       fetchProfile();
     }
   }, [isOpen, impersonatedPlayerId]);
@@ -100,13 +99,17 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
     if (activeTab === 'preferences' && hasPersonalKeys) {
       fetchDiscoveredModels();
     }
-  }, [activeTab, hasPersonalKeys]);
+  }, [activeTab, hasPersonalKeys, impersonatedPlayerId]);
 
   const fetchProfile = async () => {
     setIsInitialLoading(true);
     setLoadError(false);
     try {
-      const res = await fetch('/api/auth/profile');
+      const url = impersonatedPlayerId 
+        ? `/api/auth/profile?userId=${impersonatedPlayerId}` 
+        : '/api/auth/profile';
+
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setName(data.name || '');
@@ -133,7 +136,11 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
   const fetchDiscoveredModels = async () => {
     setIsDiscovering(true);
     try {
-      const res = await fetch('/api/auth/profile/models');
+      const url = impersonatedPlayerId 
+        ? `/api/auth/profile/models?userId=${impersonatedPlayerId}` 
+        : '/api/auth/profile/models';
+
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setDiscoveredModels(data);
@@ -147,7 +154,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (impersonatedPlayerId || isInitialLoading || loadError) return;
+    if (isInitialLoading || loadError) return;
 
     if (activeTab === 'security' && newPassword) {
       if (newPassword !== confirmPassword) {
@@ -167,7 +174,8 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
           newPassword: newPassword || undefined,
           apiKeys,
           apiEnabled,
-          aiPreferences
+          aiPreferences,
+          targetUserId: impersonatedPlayerId || undefined
         }),
       });
 
@@ -175,11 +183,18 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
       if (res.ok) {
         toast.success('Alterações seladas com sucesso.');
-        if (newPassword || email !== session?.user?.email) {
+        
+        // Se for o próprio admin alterando seus dados sensíveis, desloga
+        if (!impersonatedPlayerId && (newPassword || email !== session?.user?.email)) {
           toast.info('Credenciais sensíveis alteradas. Reiniciando portal...');
           setTimeout(() => signOut(), 2000);
-        } else {
+        } else if (!impersonatedPlayerId) {
+          // Se for o próprio admin alterando dados normais, atualiza a sessão
           await updateSession();
+          if (activeTab === 'identity') onClose();
+        } else {
+          // Se for admin alterando player supervisionado, apenas fecha ou recarrega
+          fetchProfile();
           if (activeTab === 'identity') onClose();
         }
       } else {
@@ -198,7 +213,10 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
       const res = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mfaAction: 'SETUP' }),
+        body: JSON.stringify({ 
+          mfaAction: 'SETUP',
+          targetUserId: impersonatedPlayerId || undefined
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -218,7 +236,11 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
       const res = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mfaAction: action, mfaToken }),
+        body: JSON.stringify({ 
+          mfaAction: action, 
+          mfaToken,
+          targetUserId: impersonatedPlayerId || undefined
+        }),
       });
       if (res.ok) {
         toast.success(action === 'ENABLE' ? 'Escudo de Almas ativado!' : 'Escudo desativado.');
@@ -270,8 +292,17 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                     <Fingerprint className="w-6 h-6" />
                  </div>
                  <div>
-                    <h2 className="text-2xl font-black uppercase tracking-tighter text-white italic">Câmara do <span className="text-primary">Viajante</span></h2>
-                    <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Gerencie sua Essência e Poderes de IA</p>
+                    <div className="flex items-center gap-2">
+                       <h2 className="text-2xl font-black uppercase tracking-tighter text-white italic">Câmara do <span className="text-primary">Viajante</span></h2>
+                       {impersonatedPlayerId && (
+                         <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[8px] font-black uppercase tracking-widest rounded-full flex items-center gap-1">
+                            <Eye className="w-2.5 h-2.5" /> Supervisão
+                         </span>
+                       )}
+                    </div>
+                    <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">
+                       {impersonatedPlayerId ? `Observando Essência de: ${name || 'Aventureiro'}` : 'Gerencie sua Essência e Poderes de IA'}
+                    </p>
                  </div>
               </div>
               <button 
@@ -331,7 +362,6 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                               className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-primary transition-all disabled:opacity-50"
                               value={name}
                               onChange={(e) => setName(e.target.value)}
-                              disabled={!!impersonatedPlayerId}
                             />
                          </div>
                       </div>
@@ -417,7 +447,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                               />
                            </div>
                         </div>
-                        {newPassword && (
+                        {newPassword && !impersonatedPlayerId && (
                           <div className="space-y-2 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
                              <label className="text-[10px] font-black uppercase tracking-widest text-red-400 ml-4">Senha Atual (Para Validar Alteração)</label>
                              <input 
@@ -427,6 +457,14 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                onChange={(e) => setCurrentPassword(e.target.value)}
                                required
                              />
+                          </div>
+                        )}
+                        {newPassword && impersonatedPlayerId && (
+                          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
+                             <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0" />
+                             <p className="text-[9px] text-amber-200/70 font-bold uppercase leading-relaxed">
+                                Como Admin, você está alterando a senha de outro jogador sem precisar da senha atual dele. Use com responsabilidade.
+                             </p>
                           </div>
                         )}
                       </div>
@@ -600,7 +638,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             </div>
 
             {/* Actions */}
-            {!impersonatedPlayerId && !isInitialLoading && !loadError && (
+            {!isInitialLoading && !loadError && (
               <div className="p-8 bg-zinc-900/30 border-t border-zinc-800">
                  <button 
                    onClick={() => handleSubmit()}

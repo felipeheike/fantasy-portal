@@ -4,13 +4,19 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { discoverAllModels } from "@/lib/ai/discovery";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
+    const { searchParams } = new URL(req.url);
+    const requestedUserId = searchParams.get('userId');
+    const isAdmin = (session.user as any).role === 'ADMIN';
+
+    const userId = (requestedUserId && isAdmin) ? requestedUserId : (session.user as any).id;
+
     const player = await prisma.player.findUnique({
-      where: { id: (session.user as any).id },
+      where: { id: userId },
       select: { apiKeys: true, apiEnabled: true }
     });
 
