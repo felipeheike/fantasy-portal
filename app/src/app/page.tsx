@@ -11,6 +11,7 @@ import InfluencePanel from '@/components/game/InfluencePanel';
 import NotificationsPanel from '@/components/game/NotificationsPanel';
 import StatusLogPanel from '@/components/game/StatusLogPanel';
 import InquiryPanel from '@/components/game/InquiryPanel';
+import SpotifyPlayerWidget from '@/components/game/SpotifyPlayerWidget';
 import ForcePasswordChangeModal from '@/components/game/ForcePasswordChangeModal';
 import JourneySetup from '@/components/game/JourneySetup';
 import MainMenu from '@/components/game/MainMenu';
@@ -27,6 +28,7 @@ import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, Refresh
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
 import { generateJourneyPDF } from '@/lib/pdfUtils';
+import { SPOTIFY_THEMES } from '@/lib/audio/spotifyPlaylists';
 
 const sceneSchema = z.object({
   sceneId: z.string(),
@@ -82,6 +84,10 @@ const sceneSchema = z.object({
     flags: z.record(z.string(), z.any()).optional(),
     memories: z.array(z.string()).optional()
   }).optional(),
+  audioTheme: z.object({
+    mood: z.enum(['exploration', 'combat', 'mystery', 'melancholic', 'victory']).optional(),
+    ambientEffects: z.array(z.string()).optional()
+  }).optional(),
   isGameOver: z.boolean(),
   requiresRoll: z.boolean().optional(),
 });
@@ -119,6 +125,9 @@ export default function GamePage() {
   const [persistentError, setPersistentError] = useState<string | null>(null);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
   const [aiModels, setAiModels] = useState<{ text?: string, image?: string }>({});
+  const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
+  const [isSpotifyPlayerOpen, setIsSpotifyPlayerOpen] = useState(false);
+  const [isSpotifyPlaying, setIsSpotifyPlaying] = useState(false);
   const startTimeRef = useRef<number | null>(null);
 
   // Reset semaphores when game is not started
@@ -153,10 +162,48 @@ export default function GamePage() {
           if (data.activeThemeId) {
             setActiveTheme(data.activeThemeId);
           }
+          if (data.apiKeys && data.apiKeys.spotifyAccessToken) {
+            setIsSpotifyConnected(true);
+          } else {
+            setIsSpotifyConnected(false);
+          }
         })
         .catch(err => console.error("PROFILE_HYDRATION_ERR:", err));
     }
   }, [hasHydrated, authStatus, setCustomThemes, setActiveTheme]);
+
+  // Trigger Spotify music playback when scene mood changes
+  useEffect(() => {
+    if (!isGameStarted || !currentScene || !isSpotifyConnected) return;
+
+    const genre = settings?.genre?.toLowerCase() || 'fantasy';
+    const mood = currentScene.audioTheme?.mood || 'exploration';
+    const playlistUri = SPOTIFY_THEMES[genre]?.[mood];
+
+    if (playlistUri) {
+      console.log(`LOG: Triggering Spotify playback [Genre: ${genre}, Mood: ${mood}]`);
+      fetch('/api/audio/spotify/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contextUri: playlistUri })
+      })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          if (data.code === 'NO_ACTIVE_DEVICE') {
+            toast.warning("Spotify: Nenhum dispositivo ativo encontrado. Abra o app do Spotify e dê play.");
+          } else if (data.code === 'NOT_PREMIUM') {
+            toast.error("Spotify: Controle de player exige conta Spotify Premium.");
+          } else {
+            console.warn("Spotify Playback warning:", data.error);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Spotify Playback critical warning:", err);
+      });
+    }
+  }, [currentScene?.sceneId, isSpotifyConnected, isGameStarted, settings?.genre]);
 
   const initialTriggerDone = useRef(false);
   const creationInProgress = useRef(false);
@@ -661,6 +708,10 @@ export default function GamePage() {
           onRetryAudio={(sceneId, text, gender) => generateSceneAudio(sceneId, text, gender)}
           onDownloadPDF={() => setIsExportModalOpen(true)}
           onRegenerate={handleRegenerateScene}
+          isSpotifyConnected={isSpotifyConnected}
+          isSpotifyPlaying={isSpotifyPlaying}
+          isSpotifyPlayerOpen={isSpotifyPlayerOpen}
+          onToggleSpotifyPlayer={() => setIsSpotifyPlayerOpen(prev => !prev)}
         />
         
         {/* Performance & Model Info */}
@@ -726,6 +777,12 @@ export default function GamePage() {
       <StatusLogPanel type="hp" isOpen={isHPLogOpen} onClose={() => setIsHPLogOpen(false)} />
       <StatusLogPanel type="sp" isOpen={isSPLogOpen} onClose={() => setIsSPLogOpen(false)} />
       <InquiryPanel isOpen={isInquiryOpen} onClose={() => setIsInquiryOpen(false)} />
+      <SpotifyPlayerWidget 
+        isSpotifyConnected={isSpotifyConnected} 
+        isOpen={isSpotifyPlayerOpen}
+        onClose={() => setIsSpotifyPlayerOpen(false)}
+        onPlaybackStateChange={setIsSpotifyPlaying}
+      />
       <JourneyDetailsModal 
         isOpen={isDetailsOpen} 
         onClose={() => setIsDetailsOpen(false)} 

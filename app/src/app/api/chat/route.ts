@@ -72,6 +72,10 @@ const sceneSchema = z.object({
     reputations: z.record(z.string(), z.number()).optional().describe('Atualização de flags globais do mundo (ex: { "taverna_queimada": true }).'),
     memories: z.array(z.string()).optional().describe('Memórias importantes para o World Knowledge Graph.')
   }).optional(),
+  audioTheme: z.object({
+    mood: z.enum(['exploration', 'combat', 'mystery', 'melancholic', 'victory']).describe('Clima emocional predominante da cena para trilha sonora adaptativa.'),
+    ambientEffects: z.array(z.string()).optional().describe('Sons de ambiente em camadas (ex: ["rain", "wind", "crickets", "neon_hum", "whispers"]).')
+  }).optional().describe('Configuração de trilha sonora adaptativa.'),
   isGameOver: z.boolean(),
   requiresRoll: z.boolean().optional(),
 });

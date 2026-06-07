@@ -16,6 +16,7 @@ services:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
       - NEXTAUTH_URL=http://localhost:25039
+      - SPOTIFY_REDIRECT_URI=http://127.0.0.1:25039/api/audio/spotify/callback
       - DATABASE_URL=postgresql://fp_user:fp_password@db_postgres_dev:5432/fantasy_portal_db?schema=public
       - REDIS_URL=redis://cache_redis_dev:6379
       - MINIO_ENDPOINT_INTERNAL=http://storage-minio-dev:9000

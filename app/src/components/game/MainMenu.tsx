@@ -7,7 +7,6 @@ import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Setti
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import JourneyDetailsModal from './JourneyDetailsModal';
-import UserProfileModal from './UserProfileModal';
 
 export default function MainMenu() {
   const { data: session } = useSession();
@@ -21,7 +20,6 @@ export default function MainMenu() {
   const [journeys, setJourneys] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJourneyForSettings, setSelectedJourneyForSettings] = useState<any | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Apply theme to document element
   useEffect(() => {
@@ -150,10 +148,10 @@ export default function MainMenu() {
           )}
 
           <button
-            onClick={() => setIsProfileOpen(true)}
-            className="p-2.5 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-portal-text-muted hover:text-primary transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group"
+            onClick={() => router.push('/traveler-chamber')}
+            className="p-2.5 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-portal-text-muted hover:text-primary transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group cursor-pointer"
           >
-            <User className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden md:inline">Identidade</span>
+            <User className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden md:inline">Câmara do Viajante</span>
           </button>
 
           <button
@@ -283,11 +281,7 @@ export default function MainMenu() {
         </div>
       </div>
 
-      {/* User Profile Modal */}
-      <UserProfileModal 
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-      />
+
 
       {/* Details/Settings Modal for Menu */}
       <JourneyDetailsModal 

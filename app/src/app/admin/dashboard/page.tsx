@@ -22,14 +22,16 @@ import {
   Loader2,
   MoreVertical,
   Eye,
-  Key
+  EyeOff,
+  Key,
+  LayoutPanelLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { startImpersonation } = useGameStore();
+  const { startImpersonation, showAdminPanel, toggleShowAdminPanel } = useGameStore();
   const [players, setPlayers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchText] = useState('');
@@ -196,6 +198,58 @@ export default function AdminDashboard() {
               <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-green-500 mb-1">Ativos</p>
               <h3 className="text-xl md:text-3xl font-black text-white">{players.filter(p => p.accountStatus === 'ACTIVE').length}</h3>
            </div>
+        </div>
+
+        {/* Narrative Panel Admin Controls Toggle */}
+        <div className="p-5 md:p-6 bg-portal-surface/40 border-2 border-portal-border rounded-[32px] flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8">
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-2xl transition-colors ${
+              showAdminPanel 
+                ? 'bg-orange-500/10 text-orange-500' 
+                : 'bg-portal-surface text-portal-text-muted'
+            }`}>
+              <LayoutPanelLeft className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-portal-text">Painel de Controle Narrativo</p>
+              <p className="text-[9px] text-portal-text-muted uppercase font-bold mt-0.5">
+                {showAdminPanel 
+                  ? 'Botões de admin visíveis no painel' 
+                  : 'Botões de admin ocultos no painel'
+                }
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              toggleShowAdminPanel();
+              toast.success(
+                showAdminPanel 
+                  ? 'Botões de admin ocultados no painel narrativo.' 
+                  : 'Botões de admin exibidos no painel narrativo.',
+                { icon: showAdminPanel ? '🙈' : '👁️' }
+              );
+            }}
+            className={`relative flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 cursor-pointer shrink-0 ${
+              showAdminPanel
+                ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500 hover:text-white hover:border-orange-500'
+                : 'bg-portal-bg border-portal-border text-portal-text-muted hover:border-primary/50 hover:text-primary'
+            }`}
+          >
+            {/* Toggle pill */}
+            <span className={`w-10 h-5 rounded-full relative flex items-center transition-colors ${
+              showAdminPanel ? 'bg-orange-500' : 'bg-portal-surface-hover'
+            }`}>
+              <span className={`absolute w-3.5 h-3.5 bg-white rounded-full shadow-md transition-all ${
+                showAdminPanel ? 'left-[22px]' : 'left-[3px]'
+              }`} />
+            </span>
+            {showAdminPanel 
+              ? <><Eye className="w-3.5 h-3.5" /> Visível</> 
+              : <><EyeOff className="w-3.5 h-3.5" /> Oculto</>
+            }
+          </button>
         </div>
 
         {/* Players List */}

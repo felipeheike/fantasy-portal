@@ -25,7 +25,8 @@ import {
   Home,
   Sparkles,
   Zap,
-  Loader2
+  Loader2,
+  Music
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
@@ -37,16 +38,31 @@ interface NarrativePanelProps {
   onRevive?: () => void;
   onDownloadPDF?: () => void;
   onRegenerate?: () => void;
+  isSpotifyConnected?: boolean;
+  isSpotifyPlaying?: boolean;
+  isSpotifyPlayerOpen?: boolean;
+  onToggleSpotifyPlayer?: () => void;
 }
 
-export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, onDownloadPDF, onRegenerate }: NarrativePanelProps) {
+export default function NarrativePanel({ 
+  onRetryImage, 
+  onRetryAudio, 
+  onRevive, 
+  onDownloadPDF, 
+  onRegenerate,
+  isSpotifyConnected = false,
+  isSpotifyPlaying = false,
+  isSpotifyPlayerOpen = false,
+  onToggleSpotifyPlayer
+}: NarrativePanelProps) {
   const { data: session } = useSession();
   const { 
     history, currentScene, status, settings, resetGame, currentJourneyId,
     theme, toggleTheme, hasHydrated,
     forcedNextAction, setForcedNextAction,
     forcedEndingType, setForcedEndingType, showDebugInfo, toggleShowDebugInfo, readingMode, toggleReadingMode,
-    revivePlayer, setSetupMode, fetchMoreScenes, isLoadingHistory, hasMoreHistory, isGameStarted
+    revivePlayer, setSetupMode, fetchMoreScenes, isLoadingHistory, hasMoreHistory, isGameStarted,
+    showAdminPanel
   } = useGameStore();
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -603,10 +619,33 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
         >
           {readingMode ? <BookOpen className="w-5 h-5" /> : <BookText className="w-5 h-5" />}
         </motion.button>
+
+        {/* Position 3: Spotify Player Toggle */}
+        {isSpotifyConnected && !readingMode && (
+          <motion.button 
+            onClick={onToggleSpotifyPlayer}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className={`p-4 rounded-full backdrop-blur-xl shadow-2xl transition-all border relative flex items-center justify-center ${
+              isSpotifyPlayerOpen 
+              ? 'bg-primary border-primary text-black shadow-[0_0_25px_rgba(29,185,84,0.4)]' 
+              : 'bg-portal-bg/80 border-portal-border text-portal-text-muted hover:text-primary hover:border-primary/50'
+            }`}
+            title="Player de Música (Spotify)"
+          >
+            <Music className={`w-5 h-5 ${isSpotifyPlaying ? 'animate-pulse' : ''} ${isSpotifyPlayerOpen ? 'text-black' : ''}`} />
+            {isSpotifyPlaying && (
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-primary rounded-full animate-ping"></span>
+            )}
+            {isSpotifyPlaying && (
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-primary rounded-full"></span>
+            )}
+          </motion.button>
+        )}
       </div>
 
       {/* Admin Dropdowns - Top Left (Desktop Only) */}
-      {isAdmin && !readingMode && (
+      {isAdmin && !readingMode && showAdminPanel && (
         <div className="absolute top-28 left-10 z-50 hidden lg:flex flex-col items-start gap-2">
           {/* Force Action Selector */}
           <div className="flex items-center gap-3 bg-portal-bg/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">

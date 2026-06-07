@@ -135,6 +135,10 @@ export interface NarrativeScene {
   audioError?: boolean; // New: Track audio generation failure
   audioLoading?: boolean; // New: track explicit audio loading state
   inquiries?: { question: string; answer: string; timestamp: number }[]; // New: Persist inquiries per scene
+  audioTheme?: {
+    mood?: 'exploration' | 'combat' | 'mystery' | 'melancholic' | 'victory';
+    ambientEffects?: string[];
+  };
 }
 
 export interface TacticalOptions {

@@ -12,6 +12,8 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - NEXTAUTH_URL=https://fantasyportal.duplecake.space
+      - SPOTIFY_REDIRECT_URI=https://fantasyportal.duplecake.space/api/audio/spotify/callback
       - DATABASE_URL=postgresql://fp_user:fp_password@db_postgres_prd:5432/fantasy_portal_db?schema=public
       - REDIS_URL=redis://cache_redis_prd:6379
       - MINIO_ENDPOINT_INTERNAL=http://storage-minio-prd:9000

@@ -54,6 +54,7 @@ interface GameState {
   forcedNextAction: string | null; // Admin tool: Force next scene type
   forcedEndingType: string | null; // Admin tool: Force ending type
   showDebugInfo: boolean; // Admin tool: Show AI models and latency
+  showAdminPanel: boolean; // Admin tool: Show/hide narrative panel admin buttons
   readingMode: boolean; // Immersion: Hide all UI except narrative
   isLoadingHistory: boolean;
   hasMoreHistory: boolean;
@@ -99,6 +100,7 @@ interface GameState {
   setForcedNextAction: (type: string | null) => void;
   setForcedEndingType: (type: string | null) => void;
   toggleShowDebugInfo: () => void;
+  toggleShowAdminPanel: () => void;
   toggleReadingMode: () => void;
   revivePlayer: () => void;
   resetGame: () => void;
@@ -152,6 +154,7 @@ export const useGameStore = create<GameState>()(
       forcedNextAction: null,
       forcedEndingType: null,
       showDebugInfo: false,
+      showAdminPanel: true,
       readingMode: false,
       isLoadingHistory: false,
       hasMoreHistory: true,
@@ -191,6 +194,8 @@ export const useGameStore = create<GameState>()(
       setForcedEndingType: (type) => set({ forcedEndingType: type }),
 
       toggleShowDebugInfo: () => set((state) => ({ showDebugInfo: !state.showDebugInfo })),
+
+      toggleShowAdminPanel: () => set((state) => ({ showAdminPanel: !state.showAdminPanel })),
 
       toggleReadingMode: () => set((state) => ({ readingMode: !state.readingMode })),
 
