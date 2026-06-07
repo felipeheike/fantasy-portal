@@ -114,23 +114,14 @@ export async function POST(
       // --- LEGACY SNAPSHOT (Cofre da Lenda) ---
       if (scene.isGameOver) {
         console.log(`LOG: Capture total legacy snapshot for journey ${journeyId}`);
-        
-        // Buscar o player atualizado para ter o histórico e skills mais recentes
-        const currentPlayer = await tx.player.findUnique({
-          where: { id: targetUserId },
-          select: { status: true, inventory: true }
-        });
-
-        const statusData = (currentPlayer?.status as any) || playerStatus;
-        const inventoryData = (currentPlayer?.inventory as any) || inventory;
 
         await tx.journey.update({
           where: { id: journeyId },
           data: {
             status: 'completed',
-            finalStatus: statusData,
-            finalInventory: inventoryData,
-            finalSkills: statusData?.skills || [],
+            finalStatus: playerStatus || undefined,
+            finalInventory: inventory || undefined,
+            finalSkills: playerStatus?.skills || [],
             // O histórico de status é extraído das settings/flags da jornada se estiver lá
             finalStatusHistory: body.statusHistory || []
           }

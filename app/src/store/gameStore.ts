@@ -31,7 +31,7 @@ export interface CustomTheme {
 
 interface GameState {
   status: PlayerStatus;
-  inventory: InventoryItem[];
+  inventory: InventoryItem[]; SPECTRAL_CAPACITY: number;
   history: NarrativeScene[];
   currentScene: NarrativeScene | null;
   settings: JourneySettings | null;
@@ -102,6 +102,7 @@ interface GameState {
   toggleReadingMode: () => void;
   revivePlayer: () => void;
   resetGame: () => void;
+  popLastScene: () => void;
 }
 
 const INITIAL_INSIGHT_POINTS = Number(process.env.NEXT_PUBLIC_INITIAL_INSIGHT_POINTS || 5);
@@ -120,6 +121,7 @@ const initialStatus: PlayerStatus = {
 };
 
 export const INVENTORY_CAPACITY = 10;
+export const SPECTRAL_CAPACITY = 3;
 export const MAX_NOTIFICATIONS = 50;
 export const MAX_LOG_ENTRIES = 100;
 
@@ -127,7 +129,7 @@ export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
       status: initialStatus,
-      inventory: [],
+      inventory: [], SPECTRAL_CAPACITY: 3,
       history: [],
       currentScene: null,
       settings: null,
@@ -193,7 +195,6 @@ export const useGameStore = create<GameState>()(
       toggleReadingMode: () => set((state) => ({ readingMode: !state.readingMode })),
 
       loadJourney: (id, data) => {
-        console.log("STORE: Loading Journey", id);
         const loadedHistory = data.history || [];
         const finalHistory = [...loadedHistory];
         
@@ -243,14 +244,6 @@ export const useGameStore = create<GameState>()(
         const museumNotifications = (isMuseum && data.finalNotifications && Array.isArray(data.finalNotifications) && data.finalNotifications.length > 0) 
           ? data.finalNotifications 
           : (data.settings?.notificationHistory || []);
-
-        console.log(`STORE: FINAL HYDRATION CHECK for ${id}:`, {
-          isCompleted,
-          isMuseum,
-          inv: museumInventory.length,
-          skills: finalSkillsData.length,
-          notifs: museumNotifications.length
-        });
 
         set({
           currentJourneyId: id,
@@ -340,7 +333,12 @@ export const useGameStore = create<GameState>()(
             };
             return { inventory: updatedInventory };
           }
+          
+          // Enforce capacity limits
+          const spectralCount = state.inventory.filter(i => i.isSpectral).length;
+          if (item.isSpectral && spectralCount >= SPECTRAL_CAPACITY) return state;
           if (state.inventory.length >= INVENTORY_CAPACITY) return state;
+
           return {
             inventory: [...state.inventory, { ...item, quantity: item.quantity || 1 }]
           };
@@ -354,7 +352,8 @@ export const useGameStore = create<GameState>()(
       discardItem: (itemId) =>
         set((state) => {
           const item = state.inventory.find(i => i.id === itemId);
-          if (item?.type === 'quest' || item?.name === state.lockedItemName) return state;
+          // If the item is spectral, it can ALWAYS be discarded (overriding the quest lock)
+          if (!item?.isSpectral && (item?.type === 'quest' || item?.name === state.lockedItemName)) return state;
           return {
             inventory: state.inventory.filter((i) => i.id !== itemId)
           };
@@ -364,6 +363,13 @@ export const useGameStore = create<GameState>()(
 
       completeScene: (scene, statusChanges) =>
         set((state) => {
+          // --- Normalização de InputType ---
+          // A API envia como 'recommendedInputType', o frontend usa 'inputType'.
+          // Convertemos para uppercase para manter o padrão do Orchestrator.
+          if ((scene as any).recommendedInputType) {
+            scene.inputType = (scene as any).recommendedInputType.toUpperCase();
+          }
+
           // --- Idempotency Check ---
           const isExisting = state.history.some(s => s.sceneId === scene.sceneId);
           
@@ -447,7 +453,65 @@ export const useGameStore = create<GameState>()(
             }, 100);
           }
 
-          let updatedFlags = { ...state.flags };
+          // --- Processamento de Bênçãos e Maldições (Only for NEW scenes) ---
+          if (!isExisting) {
+            // Decrementar duração das maldições atuais
+            if (updatedStatus.activeCurses && updatedStatus.activeCurses.length > 0) {
+              const remainingCurses: any[] = [];
+              updatedStatus.activeCurses.forEach(curse => {
+                if (typeof curse.remainingScenes === 'number') {
+                  const newRemaining = curse.remainingScenes - 1;
+                  if (newRemaining > 0) {
+                    remainingCurses.push({ ...curse, remainingScenes: newRemaining });
+                  } else {
+                    // Notificar dissipação
+                    setTimeout(() => {
+                      get().addNotification({
+                        type: 'info',
+                        title: `🕊️ Maldição Dissipada: ${curse.name}`,
+                        description: `A influência de "${curse.name}" deixou sua alma.`
+                      });
+                    }, 100);
+                  }
+                } else {
+                  remainingCurses.push(curse);
+                }
+              });
+              updatedStatus.activeCurses = remainingCurses;
+            }
+
+            // Adicionar novas bênçãos com notificação
+            if (statusChanges?.blessings && statusChanges.blessings.length > 0) {
+              const currentBlessings = updatedStatus.activeBlessings || [];
+              updatedStatus.activeBlessings = [...currentBlessings, ...statusChanges.blessings];
+              statusChanges.blessings.forEach((b: any) => {
+                setTimeout(() => {
+                  get().addNotification({
+                    type: 'status',
+                    title: `✨ Nova Bênção: ${b.name}`,
+                    description: `Efeito ativo: ${b.effect}`
+                  });
+                }, 150);
+              });
+            }
+
+            // Adicionar novas maldições com notificação
+            if (statusChanges?.curses && statusChanges.curses.length > 0) {
+              const currentCurses = updatedStatus.activeCurses || [];
+              updatedStatus.activeCurses = [...currentCurses, ...statusChanges.curses];
+              statusChanges.curses.forEach((c: any) => {
+                setTimeout(() => {
+                  get().addNotification({
+                    type: 'status',
+                    title: `💀 Nova Maldição: ${c.name}`,
+                    description: `Efeito ativo: ${c.effect} (${c.remainingScenes === 'permanent' ? 'Eterno' : `${c.remainingScenes} Cenas`})`
+                  });
+                }, 200);
+              });
+            }
+          }
+
+            let updatedFlags = { ...state.flags };
           let updatedMemories = [...state.memories];
           if (scene.worldUpdate) {
             if (scene.worldUpdate.flags) updatedFlags = { ...updatedFlags, ...scene.worldUpdate.flags };
@@ -656,7 +720,7 @@ export const useGameStore = create<GameState>()(
       resetGame: () => {
         set((state) => ({
           status: initialStatus,
-          inventory: [],
+          inventory: [], SPECTRAL_CAPACITY: 3,
           history: [],
           currentScene: null,
           settings: null,
@@ -680,6 +744,15 @@ export const useGameStore = create<GameState>()(
           hasMoreHistory: true
         }));
       },
+      popLastScene: () => set((state) => {
+        if (state.history.length === 0) return state;
+        const newHistory = state.history.slice(0, -1);
+        return {
+          history: newHistory,
+          currentScene: newHistory.length > 0 ? newHistory[newHistory.length - 1] : null,
+          lastPendingChoice: null
+        };
+      }),
     }),
     {
       name: 'fantasy-portal-storage',

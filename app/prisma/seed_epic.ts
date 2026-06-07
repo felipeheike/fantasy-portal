@@ -4,7 +4,7 @@ import pg from 'pg';
 import bcrypt from 'bcrypt';
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL || "postgresql://fp_user:fp_password@localhost:5434/fantasy_portal_db?schema=public";
   const pool = new pg.Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
@@ -22,7 +22,6 @@ async function main() {
         role: "ADMIN",
         accountStatus: "ACTIVE",
         passwordHash: adminHash,
-        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 30, moral: 0, skills: [], reputations: {}, insightPoints: 5 }
       },
       create: {
         email: "admin@fantasyportal.com",
@@ -30,8 +29,6 @@ async function main() {
         passwordHash: adminHash,
         role: "ADMIN",
         accountStatus: "ACTIVE",
-        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 30, moral: 0, skills: [], reputations: {}, insightPoints: 5 },
-        inventory: []
       }
     });
 
@@ -45,7 +42,27 @@ async function main() {
         passwordHash: passwordHash,
         role: "PLAYER",
         accountStatus: "ACTIVE",
-        status: {
+      },
+      create: {
+        id: leonelsonId,
+        email: "tester@duplecake.com",
+        name: "Leonelson",
+        passwordHash: passwordHash,
+        role: "PLAYER",
+        accountStatus: "ACTIVE",
+      }
+    });
+
+    // 3. Criar Jornada Leonelson
+    await prisma.journey.deleteMany({ where: { playerId: leonelsonId } });
+    await prisma.journey.create({
+      data: {
+        id: "journey-leonelson-seed",
+        playerId: leonelsonId,
+        genre: "fantasy",
+        status: "active",
+        history: [{ sceneId: "scene_1", narration: "Leonelson desperta...", isGameOver: false }],
+        playerStatus: {
           hp: 18,
           maxHp: 20,
           sp: 12,
@@ -59,33 +76,11 @@ async function main() {
           ],
           reputations: { "Vila de Alvorada": 15, "Guilda dos Mercadores": 5 }
         },
-        inventory: [
+        playerInventory: [
           { id: "rusted_sword", name: "Espada de Ferro Desgastada", type: "weapon", quantity: 1, description: "Uma lâmina confiável.", durability: 8, maxDurability: 20 },
           { id: "minor_healing", name: "Frasco de Essência Vital", type: "consumable", quantity: 2, description: "Recupera 5 HP." },
           { id: "wisdom_potion_1", name: "Poção da Sabedoria Ancestral", type: "consumable", quantity: 1, description: "Restaura cargas de visão." }
-        ]
-      },
-      create: {
-        id: leonelsonId,
-        email: "tester@duplecake.com",
-        name: "Leonelson",
-        passwordHash: passwordHash,
-        role: "PLAYER",
-        accountStatus: "ACTIVE",
-        status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 10, moral: 0, skills: [], reputations: {}, insightPoints: 5 },
-        inventory: []
-      }
-    });
-
-    // 3. Criar Jornada Leonelson
-    await prisma.journey.deleteMany({ where: { playerId: leonelsonId } });
-    await prisma.journey.create({
-      data: {
-        id: "journey-leonelson-seed",
-        playerId: leonelsonId,
-        genre: "fantasy",
-        status: "active",
-        history: [{ sceneId: "scene_1", narration: "Leonelson desperta...", isGameOver: false }],
+        ],
         flags: { playerName: "Leonelson", journeyLength: "medium", enableImages: true, enableAudio: true },
         settings: {
           enableImages: true,

@@ -35,7 +35,8 @@ const sceneSchema = z.object({
   audioDescription: z.string().optional(),
   imageUrl: z.string().optional(),
   audioUrl: z.string().optional(),
-  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle']),
+  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle', 'vision_requirement']),
+  visionPrompt: z.string().optional(),
   options: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
   tacticalOptions: z.object({
     actions: z.array(z.object({ 
@@ -63,7 +64,9 @@ const sceneSchema = z.object({
     spSource: z.string().optional(),
     combatPower: z.number().optional(), 
     moral: z.number().optional(),
-    reputations: z.record(z.string(), z.number()).optional()
+    reputations: z.record(z.string(), z.number()).optional() ,
+    blessings: z.array(z.any()).optional(),
+    curses: z.array(z.any()).optional()
   }).optional(),
   inventoryChanges: z.object({
     added: z.array(z.object({
@@ -71,7 +74,7 @@ const sceneSchema = z.object({
       name: z.string(),
       description: z.string(),
       quantity: z.number(),
-      type: z.enum(['weapon', 'armor', 'consumable', 'quest'])
+      type: z.enum(['weapon', 'armor', 'consumable', 'quest', 'companion']) , isSpectral: z.boolean().optional()
     })).optional(),
     removed: z.array(z.string()).optional()
   }).optional(),
@@ -99,7 +102,7 @@ export default function GamePage() {
     inventory, resetGame, loadJourney, hasHydrated,
     setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError, setImageLoading, setAudioError, setAudioLoading,
     flags, memories, addNotification, statusHistory, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode,
-    setCustomThemes, setActiveTheme
+    setCustomThemes, setActiveTheme, forcedNextAction, forcedEndingType
   } = useGameStore();
 
 
@@ -166,9 +169,9 @@ export default function GamePage() {
     memories,
     lastSceneId: currentScene?.sceneId,
     sceneCount: history.length,
-    forcedNextAction: useGameStore.getState().forcedNextAction,
-    forcedEndingType: useGameStore.getState().forcedEndingType
-  }), [status, inventory, settings, currentScene?.sceneId, history.length, flags, memories]);
+    forcedNextAction,
+    forcedEndingType
+  }), [status, inventory, settings, currentScene?.sceneId, history.length, flags, memories, forcedNextAction, forcedEndingType]);
 
   const generateSceneImage = useCallback((sceneId: string, prompt: string) => {
     setImageLoading(sceneId, true);
@@ -180,13 +183,12 @@ export default function GamePage() {
     })
     .then(async r => {
       if (r.ok) {
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
-        updateSceneImage(sceneId, url);
-      } else {
-        // Fallback: Tenta construir a URL via Proxy se o blob falhar ou para consistência
-        const proxyUrl = `/api/assets/scenes/${currentJourneyId}/${sceneId}.png`;
+        const proxyUrl = `/api/assets/journeys/${currentJourneyId}/${sceneId}.png`;
         updateSceneImage(sceneId, proxyUrl);
+        setImageError(sceneId, false);
+      } else {
+        // Falha na geração da imagem (ex: erro de chave, cota, etc.)
+        setImageError(sceneId, true);
       }
       setImageLoading(sceneId, false);
     })
@@ -359,7 +361,7 @@ export default function GamePage() {
     }
   });
 
-  const triggerAI = useCallback((prompt: string) => {
+  const triggerAI = useCallback((prompt: string, overrideHistory?: NarrativeScene[], overrideContext?: any) => {
     if (isLoading || isProcessingAction) return;
     setIsProcessingAction(true);
     
@@ -368,16 +370,51 @@ export default function GamePage() {
 
     if (prompt) setPendingChoice(prompt);
 
+    const activeHistory = overrideHistory || history;
+    const activeContext = overrideContext || playerContext;
+
     const messages = [
-      ...history.map(s => ([
+      ...activeHistory.map(s => ([
         { role: 'assistant' as const, content: s.narration },
         { role: 'user' as const, content: s.selectedOption || '' }
       ])).flat(),
       { role: 'user' as const, content: prompt }
     ].filter(m => m.content);
 
-    submit({ messages, playerContext });
+    submit({ messages, playerContext: activeContext });
   }, [isLoading, isProcessingAction, history, currentScene, object, playerContext, submit, setPendingChoice]);
+
+  const handleRegenerateScene = useCallback(() => {
+    if (isLoading || isProcessingAction || history.length === 0) return;
+    
+    // Get the previous prompt
+    let previousPrompt = `Inicie a jornada para ${settings?.playerName}`;
+    if (history.length > 1) {
+      previousPrompt = history[history.length - 2].selectedOption || previousPrompt;
+    }
+    
+    // Pop last scene from store
+    useGameStore.getState().popLastScene();
+    
+    // Get the updated state immediately for the AI request
+    const updatedState = useGameStore.getState();
+    const updatedHistory = updatedState.history;
+    
+    const updatedContext = {
+      status: updatedState.status,
+      inventory: updatedState.inventory,
+      settings: updatedState.settings,
+      flags: updatedState.flags,
+      memories: updatedState.memories,
+      lastSceneId: updatedState.currentScene?.sceneId,
+      sceneCount: updatedHistory.length,
+      forcedNextAction: updatedState.forcedNextAction,
+      forcedEndingType: updatedState.forcedEndingType
+    };
+    
+    // Trigger AI with the previous prompt, passing the updated history and context
+    triggerAI(previousPrompt, updatedHistory, updatedContext);
+  }, [isLoading, isProcessingAction, history, settings?.playerName, triggerAI]);
 
   const handleExportMarkdown = useCallback(() => {
     const markdown = exportJourneyToMarkdown(history, settings, settings?.playerName || 'Viajante', currentScene);
@@ -499,8 +536,8 @@ export default function GamePage() {
         <MainMenu />
         <JourneySetup />
       </div>
-    );
-  }
+      );
+      }
 
   const isGameOver = object?.isGameOver || currentScene?.isGameOver || status.hp <= 0;
 
@@ -623,6 +660,7 @@ export default function GamePage() {
           onRetryImage={(sceneId, prompt) => generateSceneImage(sceneId, prompt)}
           onRetryAudio={(sceneId, text, gender) => generateSceneAudio(sceneId, text, gender)}
           onDownloadPDF={() => setIsExportModalOpen(true)}
+          onRegenerate={handleRegenerateScene}
         />
         
         {/* Performance & Model Info */}

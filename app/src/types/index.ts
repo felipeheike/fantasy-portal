@@ -10,6 +10,24 @@ export interface PlayerStatus {
   reputations: Record<string, number>; // New: Granular Karma
   insightPoints: number; // Cargas para questionar o mestre
   deathCount: number; // New: Track revivals for punishment systems
+  activeBlessings?: SpectralBlessing[];
+  activeCurses?: SpectralCurse[];
+}
+
+export interface SpectralBlessing {
+  id: string;
+  name: string;
+  effect: string;
+  type: 'hp_max' | 'sp_max' | 'luck' | 'combat' | 'protection';
+  value: number;
+}
+
+export interface SpectralCurse {
+  id: string;
+  name: string;
+  effect: string;
+  remainingScenes: number | 'permanent';
+  type: 'hp_drain' | 'sp_reduction' | 'moral_hit' | 'blindness';
 }
 
 export interface AIPreferences {
@@ -63,9 +81,10 @@ export interface InventoryItem {
   name: string;
   description: string;
   quantity: number;
-  type: 'weapon' | 'armor' | 'consumable' | 'quest';
+  type: 'weapon' | 'armor' | 'consumable' | 'quest' | 'companion'; // Added companion
   durability?: number;
   maxDurability?: number;
+  isSpectral?: boolean; // New: Flag for items materializing from real world
 }
 
 export interface NarrativeScene {
@@ -77,6 +96,8 @@ export interface NarrativeScene {
   imageUrl?: string;
   audioUrl?: string; // For "Soundscapes"
   options: NarrativeOption[];
+  inputType?: 'BINARY' | 'MULTIPLE' | 'COMBINED' | 'INTERPRETATIVE' | 'TACTICAL' | 'LUCK_ROLL' | 'PUZZLE' | 'VISION_REQUIREMENT'; // Unified input mapping
+  visionPrompt?: string; // Requirement for VISION_REQUIREMENT mode
   tacticalOptions?: TacticalOptions; 
   puzzle?: {
     type: 'hangman' | 'anagram' | 'cipher' | 'riddle';
@@ -86,7 +107,10 @@ export interface NarrativeScene {
     maxAttempts: number;  // Limite de erros antes da penalidade
   };
   selectedOption?: string; // The choice made by the player
-  statusChanges?: Partial<PlayerStatus>;
+  statusChanges?: Partial<PlayerStatus> & {
+    blessings?: SpectralBlessing[];
+    curses?: SpectralCurse[];
+  };
   inventoryChanges?: {
     added: InventoryItem[];
     removed: string[];

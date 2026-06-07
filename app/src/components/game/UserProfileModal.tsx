@@ -117,8 +117,8 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
         setApiKeys(data.apiKeys || {});
         setApiEnabled(data.apiEnabled || { gemini: true, openai: true, anthropic: true });
         setAiPreferences(data.aiPreferences || {
-          textModel: 'gemini-1.5-flash',
-          imageModel: 'imagen-3.0-fast-generate-001',
+          textModel: '',
+          imageModel: '',
           ttsVoice: 'gemini-audio'
         });
         setMfaEnabled(data.mfaEnabled);
@@ -569,6 +569,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                     value={aiPreferences?.textModel || ''}
                                     onChange={(e) => setAiPreferences({ ...aiPreferences, textModel: e.target.value })}
                                   >
+                                     <option value="">Padrão do Sistema (Usar .env)</option>
                                      <optgroup label="Descobertos via sua Chave">
                                         {discoveredModels.filter(m => m.type === 'text').length > 0 ? (
                                           discoveredModels.filter(m => m.type === 'text').map(model => (
@@ -592,6 +593,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                     value={aiPreferences?.imageModel || ''}
                                     onChange={(e) => setAiPreferences({ ...aiPreferences, imageModel: e.target.value })}
                                   >
+                                     <option value="">Padrão do Sistema (Usar .env)</option>
                                      <optgroup label="Descobertos via sua Chave">
                                         {discoveredModels.filter(m => m.type === 'image').length > 0 ? (
                                           discoveredModels.filter(m => m.type === 'image').map(model => (

@@ -14,9 +14,11 @@ import {
   TrendingDown,
   Info,
   Sparkles,
-  Globe
+  Globe,
+  Zap,
+  Ghost,
+  Clock
 } from 'lucide-react';
-import { useState } from 'react';
 
 interface InfluencePanelProps {
   isOpen: boolean;
@@ -25,9 +27,13 @@ interface InfluencePanelProps {
 
 export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps) {
   const { status } = useGameStore();
-  const reputations = status.reputations || {};
-  const globalMoral = status.moral || 0;
   
+  const reputations = status?.reputations || {};
+  const globalMoral = status?.moral || 0;
+  const activeBlessings = status?.activeBlessings || [];
+  const activeCurses = status?.activeCurses || [];
+  
+
   // Categorize reputations
   const categorized = Object.entries(reputations).reduce((acc: any, [name, value]) => {
     const n = name.toLowerCase();
@@ -127,8 +133,75 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-8 space-y-12 custom-scrollbar">
-              {/* Summary Card - ALWAYS VISIBLE */}
-              <div className="p-8 bg-gradient-to-br from-zinc-800 to-zinc-950 rounded-[40px] border border-zinc-700/50 relative overflow-hidden shadow-2xl">
+              
+              {/* Conditional States (Blessings & Curses) */}
+              {(activeBlessings.length > 0 || activeCurses.length > 0) && (
+                <div className="space-y-6">
+                  {activeBlessings.length > 0 && (
+                    <div className="space-y-3">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500 flex items-center gap-2 px-2">
+                         <Sparkles className="w-3.5 h-3.5" /> Bênçãos Ativas
+                       </h3>
+                       <div className="grid gap-3">
+                         {activeBlessings.map((blessing) => (
+                           <motion.div 
+                             key={blessing.id}
+                             initial={{ opacity: 0, x: -10 }}
+                             animate={{ opacity: 1, x: 0 }}
+                             className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex items-start gap-4"
+                           >
+                              <div className="p-2 bg-amber-500/20 rounded-xl text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                                <Zap className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-black text-amber-200 uppercase tracking-tight leading-none mb-1">{blessing.name}</p>
+                                <p className="text-[10px] text-amber-500/80 font-body italic leading-relaxed">{blessing.effect}</p>
+                              </div>
+                           </motion.div>
+                         ))}
+                       </div>
+                    </div>
+                  )}
+
+                  {activeCurses.length > 0 && (
+                    <div className="space-y-3">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-purple-500 flex items-center gap-2 px-2">
+                         <Ghost className="w-3.5 h-3.5" /> Maldições Ativas
+                       </h3>
+                       <div className="grid gap-3">
+                         {activeCurses.map((curse) => (
+                           <motion.div 
+                             key={curse.id}
+                             initial={{ opacity: 0, x: -10 }}
+                             animate={{ opacity: 1, x: 0 }}
+                             className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl flex items-start gap-4 group"
+                           >
+                              <div className="p-2 bg-purple-500/20 rounded-xl text-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)] group-hover:animate-pulse">
+                                <ShieldAlert className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <p className="text-sm font-black text-purple-200 uppercase tracking-tight leading-none">{curse.name}</p>
+                                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-purple-950/40 rounded-full border border-purple-500/20">
+                                    <Clock className="w-2.5 h-2.5 text-purple-400" />
+                                    <span className="text-[8px] font-black uppercase text-purple-400">
+                                      {curse.remainingScenes === 'permanent' ? 'Eterno' : `${curse.remainingScenes} Cenas`}
+                                    </span>
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-purple-500/80 font-body italic leading-relaxed">{curse.effect}</p>
+                              </div>
+                           </motion.div>
+                         ))}
+                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Karma Global */}
+              <div className="space-y-6">
+                <div className="relative">
                   <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12">
                     <Scale className="w-40 h-40" />
                   </div>
@@ -148,52 +221,53 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
                         </div>
                     </div>
                   </div>
-              </div>
+                </div>
 
-              {!hasGranularReputations && globalMoral !== 0 ? (
-                /* Fallback entry if IA forgot reputations but updated global moral */
-                <div className="space-y-4">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 ml-2 flex items-center gap-2">
-                    <Globe className="w-3 h-3 text-blue-500" /> Reputação Mundial
-                  </h3>
-                  <div className="p-4 bg-portal-surface-hover/40 border border-zinc-700/50 rounded-2xl flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                       <div className={`p-2 rounded-lg ${globalMoral > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                          {globalMoral > 0 ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
-                       </div>
-                       <div>
-                          <p className="text-sm font-bold text-zinc-200">Essência da Jornada</p>
-                          <p className="text-[9px] uppercase font-black text-zinc-600">Impacto Geral no Destino</p>
-                       </div>
+                {!hasGranularReputations && globalMoral !== 0 ? (
+                  /* Fallback entry if IA forgot reputations but updated global moral */
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 ml-2 flex items-center gap-2">
+                      <Globe className="w-3 h-3 text-blue-500" /> Reputação Mundial
+                    </h3>
+                    <div className="p-4 bg-portal-surface-hover/40 border border-zinc-700/50 rounded-2xl flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${globalMoral > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            {globalMoral > 0 ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-zinc-200">Essência da Jornada</p>
+                            <p className="text-[9px] uppercase font-black text-zinc-600">Impacto Geral no Destino</p>
+                        </div>
+                      </div>
+                      <div className="text-right text-xs font-mono font-bold text-zinc-400">
+                        {globalMoral > 0 ? `+${globalMoral}` : globalMoral}
+                      </div>
                     </div>
-                    <div className="text-right text-xs font-mono font-bold text-zinc-400">
-                      {globalMoral > 0 ? `+${globalMoral}` : globalMoral}
+                    <p className="text-[9px] text-zinc-700 italic px-2">Nota: O Narrador ainda não identificou entidades específicas para estas ações.</p>
+                  </div>
+                ) : !hasGranularReputations ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
+                    <div className="relative mb-6">
+                      <Users className="w-20 h-20 text-zinc-700" />
+                      <motion.div 
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 3 }}
+                        className="absolute -top-2 -right-2 bg-primary rounded-full p-2"
+                      >
+                        <Sparkles className="w-4 h-4 text-zinc-950" />
+                      </motion.div>
                     </div>
+                    <p className="text-zinc-400 font-body italic text-lg">Você ainda é um desconhecido...</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] mt-3 font-black text-zinc-600">Suas decisões moldarão como o mundo o vê</p>
                   </div>
-                  <p className="text-[9px] text-zinc-700 italic px-2">Nota: O Narrador ainda não identificou entidades específicas para estas ações.</p>
-                </div>
-              ) : !hasGranularReputations ? (
-                <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
-                  <div className="relative mb-6">
-                    <Users className="w-20 h-20 text-zinc-700" />
-                    <motion.div 
-                      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                      transition={{ repeat: Infinity, duration: 3 }}
-                      className="absolute -top-2 -right-2 bg-primary rounded-full p-2"
-                    >
-                      <Sparkles className="w-4 h-4 text-zinc-950" />
-                    </motion.div>
-                  </div>
-                  <p className="text-zinc-400 font-body italic text-lg">Você ainda é um desconhecido...</p>
-                  <p className="text-[10px] uppercase tracking-[0.2em] mt-3 font-black text-zinc-600">Suas decisões moldarão como o mundo o vê</p>
-                </div>
-              ) : (
-                <>
-                  {renderReputationList(categorized.people, <Users className="w-3.5 h-3.5 text-blue-500" />, "Personagens Conhecidos")}
-                  {renderReputationList(categorized.places, <MapPin className="w-3.5 h-3.5 text-emerald-500" />, "Locais e Regiões")}
-                  {renderReputationList(categorized.factions, <Flag className="w-3.5 h-3.5 text-purple-500" />, "Facções e Alianças")}
-                </>
-              )}
+                ) : (
+                  <>
+                    {renderReputationList(categorized.people, <Users className="w-3.5 h-3.5 text-blue-500" />, "Personagens Conhecidos")}
+                    {renderReputationList(categorized.places, <MapPin className="w-3.5 h-3.5 text-emerald-500" />, "Locais e Regiões")}
+                    {renderReputationList(categorized.factions, <Flag className="w-3.5 h-3.5 text-purple-500" />, "Facções e Alianças")}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Footer Lore */}

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useGameStore } from '@/store/gameStore';
+import { useGameStore, SPECTRAL_CAPACITY } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NarrativeScene, NarrativeOption, TacticalOptions, InventoryItem } from '@/types';
 import DiceRoller from './DiceRoller';
 import PuzzleOrchestrator from './PuzzleOrchestrator';
+import { toast } from 'sonner';
 import { 
   Send, 
   Sword, 
@@ -19,7 +20,13 @@ import {
   MessageSquare,
   Lock,
   Unlock,
-  Filter
+  Filter,
+  Camera,
+  Eye,
+  X,
+  CheckCircle,
+  RefreshCcw,
+  Ghost
 } from 'lucide-react';
 
 interface ActionOrchestratorProps {
@@ -29,9 +36,13 @@ interface ActionOrchestratorProps {
 }
 
 export default function ActionOrchestrator({ scene, onAction, isLoading }: ActionOrchestratorProps) {
-  const { status, setLockedItem, inventory } = useGameStore();
+  const { status, setLockedItem, inventory, addItem, discardItem } = useGameStore();
   const [inputText, setInputText] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
+  const [visionState, setVisionState] = useState<'choice' | 'scanning' | 'validating' | 'overflow'>('choice');
+  const [visionError, setVisionError] = useState<string | null>(null);
+  const [pendingVisionResult, setPendingVisionResult] = useState<any | null>(null);
+
   const [selectedTactical, setSelectedTactical] = useState<{
     actionId?: string;
     actionLabel?: string;
@@ -71,6 +82,253 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
     onAction(`RESOLUÇÃO DO ENIGMA: ${solution}. Prossiga com as consequências.`);
   }, [onAction]);
 
+  const handleVisionAction = async (base64Image: string) => {
+    setVisionState('validating');
+    setVisionError(null);
+    try {
+      const res = await fetch('/api/vision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          image: base64Image,
+          visionPrompt: scene?.visionPrompt,
+          playerContext: { status }
+        })
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success) {
+          const spectralItems = inventory.filter(i => i.isSpectral);
+          const incomingItems = Array.isArray(result.generatedItem) ? result.generatedItem : (result.generatedItem ? [result.generatedItem] : []);
+          const incomingCount = incomingItems.length;
+
+          if (incomingCount > 0 && spectralItems.length + incomingCount > SPECTRAL_CAPACITY) {
+            setPendingVisionResult(result);
+            setVisionState('overflow');
+          } else {
+            incomingItems.forEach((item: any) => addItem({ ...item, isSpectral: true }));
+            onAction(`RESSONÂNCIA MATERIAL SUCESSO: ${result.description}. O objeto se materializou perfeitamente.`);
+          }
+        } else {
+          setVisionError(result.message || "O objeto não ressoa com este portal.");
+          setVisionState('scanning');
+        }
+      } else {
+        setVisionError("Conexão instável. Tente novamente.");
+        setVisionState('scanning');
+      }
+    } catch (e) {
+      setVisionError("Erro na conexão mística.");
+      setVisionState('scanning');
+    }
+  };
+
+  const handleSacrificeItem = (itemIdToDiscard: string | null) => {
+    const incomingItems = Array.isArray(pendingVisionResult?.generatedItem) 
+      ? pendingVisionResult.generatedItem 
+      : (pendingVisionResult?.generatedItem ? [pendingVisionResult.generatedItem] : []);
+    const incomingCount = incomingItems.length;
+
+    if (itemIdToDiscard) {
+      discardItem(itemIdToDiscard);
+      toast('Vínculo Rompido', { description: 'Um item espectral se desfez no ar.' });
+      
+      // Calculate remaining spectral items manually since Zustand state might not be fully flushed to this closure yet
+      const remainingSpectral = inventory.filter(i => i.isSpectral && i.id !== itemIdToDiscard);
+      
+      if (remainingSpectral.length + incomingCount <= SPECTRAL_CAPACITY) {
+        incomingItems.forEach((item: any) => addItem({ ...item, isSpectral: true }));
+        onAction(`RESSONÂNCIA MATERIAL SUCESSO: ${pendingVisionResult.description}. O objeto se materializou após o sacrifício.`);
+        setVisionState('choice');
+        setPendingVisionResult(null);
+      } else {
+        const needed = (remainingSpectral.length + incomingCount) - SPECTRAL_CAPACITY;
+        toast.warning('Alma Sobrecarregada', { description: `Você ainda possui muitos vínculos. Rompa mais ${needed} para abrir espaço.` });
+      }
+    } else {
+      toast('Oferenda Rejeitada', { description: 'A nova conexão material foi dissipada no vazio.' });
+      onAction(`RESSONÂNCIA MATERIAL SUCESSO: ${pendingVisionResult.description}. Porém o herói recusou o item por falta de espaço.`);
+      setVisionState('choice');
+      setPendingVisionResult(null);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleVisionAction(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const renderVisionRequirement = () => (
+    <div className="bg-portal-surface/90 p-6 md:p-8 rounded-[40px] border border-portal-border backdrop-blur-xl shadow-2xl relative overflow-hidden">
+      <AnimatePresence mode="wait">
+        {visionState === 'choice' ? (
+          <motion.div 
+            key="choice"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="space-y-6 text-center"
+          >
+            <div className="inline-block p-4 bg-primary/10 rounded-3xl border border-primary/20 mb-2">
+              <Eye className="w-8 h-8 text-primary animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black uppercase tracking-tight text-portal-text">Ressonância Material Requerida</h3>
+              <p className="text-sm font-body italic text-portal-text-muted max-w-md mx-auto">
+                {scene?.visionPrompt || "O portal exige uma âncora do seu mundo para prosseguir."}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto pt-4">
+              <button
+                onClick={() => setVisionState('scanning')}
+                className="flex items-center justify-center gap-3 px-8 py-5 bg-portal-primary text-portal-primary-foreground rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-xl"
+              >
+                <Camera className="w-5 h-5" /> Estabelecer Conexão
+              </button>
+              <button
+                onClick={() => onAction("Eu escolho ignorar o desafio de visão e seguir em frente, aceitando as consequências do vácuo.")}
+                className="flex items-center justify-center gap-3 px-8 py-5 bg-portal-bg border border-portal-border text-portal-text-muted rounded-2xl font-black uppercase tracking-widest text-[10px] hover:text-red-500 hover:border-red-500/30 transition-all"
+              >
+                <X className="w-5 h-5" /> Seguir em Frente
+              </button>
+            </div>
+          </motion.div>
+        ) : visionState === 'scanning' ? (
+          <motion.div 
+            key="scanning"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+               <button onClick={() => setVisionState('choice')} className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted hover:text-portal-text flex items-center gap-2">
+                 <X className="w-3 h-3" /> Voltar
+               </button>
+               <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+                 <span className="text-[9px] font-black uppercase text-primary">Câmera Ativa</span>
+               </div>
+            </div>
+
+            <div className="p-12 border-2 border-dashed border-portal-border rounded-[32px] bg-portal-bg/50 text-center space-y-4">
+               {visionError && (
+                 <p className="text-xs font-bold text-red-500 bg-red-500/10 py-2 rounded-xl mb-4 animate-bounce">
+                   {visionError}
+                 </p>
+               )}
+               <div className="w-16 h-16 bg-portal-surface rounded-full flex items-center justify-center mx-auto shadow-lg border border-portal-border">
+                 <Camera className="w-8 h-8 text-portal-text-muted" />
+               </div>
+               <div className="space-y-1">
+                 <p className="text-sm font-black text-portal-text uppercase">Aponte para o Objeto</p>
+                 <p className="text-[10px] text-portal-text-muted font-body italic">Clique abaixo para capturar ou enviar foto</p>
+               </div>
+
+               <input 
+                 type="file" 
+                 accept="image/*" 
+                 capture="environment"
+                 onChange={handleFileUpload}
+                 id="vision-upload-orchestrator"
+                 className="hidden"
+               />
+               <label 
+                htmlFor="vision-upload-orchestrator"
+                className="inline-flex items-center gap-3 px-10 py-4 bg-portal-text text-portal-bg rounded-2xl font-black uppercase tracking-widest text-[10px] cursor-pointer hover:scale-105 transition-all shadow-2xl"
+               >
+                 Abrir Obturador
+               </label>
+            </div>
+          </motion.div>
+        ) : visionState === 'overflow' ? (
+          <motion.div 
+            key="overflow"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-8"
+          >
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500/10 rounded-full border border-red-500/20 mb-2 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                <RefreshCcw className="w-8 h-8 text-red-400" />
+              </div>
+              <h3 className="text-xl font-black uppercase tracking-tighter text-red-400">Limite Espectral Excedido</h3>
+              <p className="text-sm font-body text-portal-text-muted max-w-md mx-auto">
+                Sua alma só pode ancorar <span className="text-portal-text font-bold">3 vínculos materiais</span> simultâneos. Para absorver as novas oferendas, rompa vínculos antigos ou descarte o que foi gerado.
+              </p>
+            </div>
+
+            <div className="bg-portal-bg/50 border border-portal-border rounded-3xl p-6 space-y-4">
+               <div className="flex items-center gap-3 mb-2">
+                 <Sparkles className="w-4 h-4 text-emerald-400" />
+                 <span className="text-xs font-black uppercase tracking-widest text-emerald-400">Nova Oferenda Forjada:</span>
+                 <span className="text-xs font-bold text-portal-text ml-auto text-right">
+                   {Array.isArray(pendingVisionResult?.generatedItem) 
+                     ? pendingVisionResult.generatedItem.map((i: any) => i.name).join(', ') 
+                     : pendingVisionResult?.generatedItem?.name}
+                 </span>
+               </div>
+
+               <div className="h-px w-full bg-gradient-to-r from-transparent via-portal-border to-transparent my-4" />
+
+               <p className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted mb-2 text-center">Seus Vínculos Atuais</p>
+
+               <div className="space-y-3">
+                 {inventory.filter(i => i.isSpectral).map((item) => (
+                   <button
+                     key={item.id}
+                     onClick={() => handleSacrificeItem(item.id)}
+                     className="w-full flex flex-col md:flex-row md:items-center gap-3 md:gap-4 p-4 rounded-2xl bg-portal-surface border border-portal-border hover:border-red-500 hover:bg-red-500/5 transition-all text-left group"
+                   >
+                     <div className="w-10 h-10 bg-portal-bg border border-portal-border rounded-full flex items-center justify-center shrink-0 group-hover:border-red-500/50">
+                       <Eye className="w-5 h-5 text-portal-text-muted group-hover:text-red-400" />
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <p className="text-sm font-bold text-portal-text truncate">{item.name}</p>
+                       <p className="text-[10px] text-portal-text-muted font-body italic truncate">{item.description}</p>
+                     </div>
+                     <span className="text-[9px] font-black uppercase tracking-widest text-red-500/50 group-hover:text-red-500 shrink-0 mt-2 md:mt-0">
+                       Romper Vínculo
+                     </span>
+                   </button>
+                 ))}
+               </div>
+            </div>
+
+            <button
+              onClick={() => handleSacrificeItem(null)}
+              className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-portal-text-muted hover:text-portal-text transition-colors flex items-center justify-center gap-2"
+            >
+              <X className="w-4 h-4" /> Descartar nova oferenda e manter os atuais
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="validating"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="py-12 text-center space-y-6"
+          >
+            <div className="relative w-24 h-24 mx-auto">
+               <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+               <RefreshCcw className="w-full h-full text-primary animate-spin-slow p-4 relative z-10" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black uppercase tracking-tighter text-portal-text animate-pulse">Sincronizando Realidades...</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-portal-text-muted">Aguarde o julgamento do mestre</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
   // Derived state for validation
   const selectedActionData = useMemo(() => 
     scene?.tacticalOptions?.actions?.find(a => a.id === selectedTactical.actionId),
@@ -99,6 +357,8 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
     setInputText('');
     setLockedItem(null);
     setIsMinimized(false);
+    setVisionState('choice');
+    setVisionError(null);
   }, [scene?.sceneId, setLockedItem]);
 
   if ((!scene && !isLoading) || scene?.isGameOver || status.hp <= 0) return null;
@@ -336,6 +596,8 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                  </div>
               ) : scene?.puzzle ? (
                  <PuzzleOrchestrator onSolve={handleSolvePuzzle} />
+              ) : scene?.inputType === 'VISION_REQUIREMENT' || (scene as any)?.recommendedInputType === 'vision_requirement' ? (
+                 renderVisionRequirement()
               ) : scene?.tacticalOptions ? renderTactical() : scene?.options?.length ? renderOptions() : renderInterpretative()}
             </motion.div>
           )}

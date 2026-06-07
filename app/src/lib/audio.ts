@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 import { uploadBuffer } from './storage';
 import { spawn } from 'child_process';
@@ -61,22 +61,24 @@ async function generateOpenAISpeech(text: string, voice: string, apiKey: string)
  * Generates speech using Google Gemini TTS
  */
 async function generateGoogleSpeech(text: string, gender: string, apiKey: string): Promise<Buffer> {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ 
-    model: AUDIO_MODEL,
-    generationConfig: { responseModalities: ["audio"] } as any
-  });
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `Gere uma narração cinematográfica de um Mestre de RPG para o seguinte texto. 
   Use uma voz ${gender === 'female' ? 'feminina' : 'masculina'} e expressiva.
   
   Texto: "${text}"`;
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
+  const response = await ai.models.generateContent({
+    model: AUDIO_MODEL,
+    contents: prompt,
+    config: {
+      responseModalities: ["audio"]
+    }
+  });
+
   const audioPart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.mimeType?.includes('audio'));
 
-  if (!audioPart || !audioPart.inlineData) {
+  if (!audioPart || !audioPart.inlineData || !audioPart.inlineData.data) {
     throw new Error("O modelo Gemini não retornou dados de áudio.");
   }
 

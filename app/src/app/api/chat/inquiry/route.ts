@@ -49,16 +49,6 @@ ${history.slice(-3).map((h: any) => h.narration).join('\n---\n')}
       try {
         const newInquiry = { question, answer: text, timestamp: Date.now() };
 
-        // 1. Atualizar no modelo Scene individual
-        await prisma.scene.updateMany({
-          where: { journeyId, sceneId: currentScene.sceneId },
-          data: {
-            inquiries: {
-              push: newInquiry
-            }
-          }
-        });
-
         // 2. Atualizar no JSON history da Journey (Sincronia Global)
         const journey = await prisma.journey.findUnique({
           where: { id: journeyId },

@@ -26,18 +26,7 @@ export async function POST(req: Request) {
         email,
         passwordHash,
         role: "PLAYER",
-        accountStatus: "PENDING",
-        status: {
-          hp: 20,
-          maxHp: 20,
-          sp: 15,
-          maxSp: 15,
-          combatPower: 10,
-          moral: 0,
-          skills: [],
-          reputations: {}
-        },
-        inventory: []
+        accountStatus: "PENDING"
       }
     });
 

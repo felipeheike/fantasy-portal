@@ -36,9 +36,10 @@ interface NarrativePanelProps {
   onRetryAudio?: (sceneId: string, text: string, gender?: 'male' | 'female') => void;
   onRevive?: () => void;
   onDownloadPDF?: () => void;
+  onRegenerate?: () => void;
 }
 
-export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, onDownloadPDF }: NarrativePanelProps) {
+export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, onDownloadPDF, onRegenerate }: NarrativePanelProps) {
   const { data: session } = useSession();
   const { 
     history, currentScene, status, settings, resetGame, currentJourneyId,
@@ -329,7 +330,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                 {/* Scene Image */}
                 {(scene.imageUrl || (settings?.enableImages && scene.visualDescription)) && (
                   <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-portal-border shadow-2xl group">
-                    <div className="absolute inset-0 bg-gradient-to-t from-portal-bg via-transparent to-transparent opacity-60 z-10" />
+                    <div className={`absolute inset-0 bg-gradient-to-t ${theme === 'light' ? 'from-zinc-950' : 'from-portal-bg'} via-transparent to-transparent opacity-60 z-10`} />
                     
                     {scene.imageUrl ? (
                       <motion.img 
@@ -624,6 +625,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
               <option value="binary">🌓 Escolha Binária</option>
               <option value="multiple">📜 Múltipla Escolha</option>
               <option value="interpretative">✍️ Interpretação Livre</option>
+              <option value="vision_requirement">👁️ Desafio de Visão</option>
             </select>
           </div>
 
@@ -644,6 +646,22 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
               <option value="defeat">🚩 Derrota Amarga</option>
             </select>
           </div>
+
+          {/* Regenerate Scene Button */}
+          {history.length > 0 && (
+            <button 
+              onClick={onRegenerate}
+              className="flex items-center gap-3 p-2 rounded-2xl backdrop-blur-xl shadow-2xl border transition-all bg-portal-bg/80 border-portal-border text-portal-text-muted hover:text-orange-500 hover:border-orange-500/50"
+              title="Regerar a última cena usando a ação forçada atual"
+            >
+              <div className="p-2 rounded-xl bg-portal-surface">
+                <RotateCcw className="w-4 h-4" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                Regerar Cena
+              </span>
+            </button>
+          )}
 
           {/* Debug Info Toggle */}
           <button 

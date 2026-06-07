@@ -1,6 +1,6 @@
 'use client';
 
-import { useGameStore, INVENTORY_CAPACITY } from '@/store/gameStore';
+import { useGameStore, INVENTORY_CAPACITY, SPECTRAL_CAPACITY } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, 
@@ -17,7 +17,7 @@ import {
   Sparkles,
   Info,
   ChevronDown,
-  ChevronUp
+  ChevronUp, Eye
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { InventoryItem } from '@/types';
@@ -30,9 +30,7 @@ interface InventoryPanelProps {
 export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps) {
   const { inventory, discardItem, lockedItemName, addItem, settings, status, currentScene } = useGameStore();
   const [filter, setFilter] = useState<InventoryItem['type'] | 'all'>('all');
-  const [isVisionLoading, setIsVisionLoading] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedItems(prev => {
@@ -44,52 +42,6 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
       }
       return next;
     });
-  };
-
-  const handleVisionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsVisionLoading(true);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Image = reader.result as string;
-        
-        const res = await fetch('/api/vision', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            image: base64Image,
-            playerContext: { settings, status }
-          })
-        });
-
-        if (res.ok) {
-          const { item: visionItem, narrative } = await res.json();
-          
-          const newItem: InventoryItem = {
-            id: `vision-${Date.now()}`,
-            name: visionItem.name,
-            description: visionItem.description,
-            quantity: 1,
-            type: visionItem.type,
-            durability: visionItem.stats?.durability,
-            maxDurability: visionItem.stats?.durability
-          };
-
-          addItem(newItem);
-          alert(`OLHO DO MESTRE:\n\n${narrative}\n\nVocê recebeu: ${newItem.name}`);
-        } else {
-          alert('O Portal não conseguiu ler este objeto. Tente novamente.');
-        }
-        setIsVisionLoading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      console.error("Vision Upload Err:", err);
-      setIsVisionLoading(false);
-    }
   };
 
   const filteredItems = filter === 'all' 
@@ -178,26 +130,32 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       key={item.id + index}
-                      className={`group p-4 bg-portal-surface-hover/40 border rounded-2xl transition-all shadow-lg ${
-                        item.name === lockedItemName 
-                        ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20' 
-                        : 'border-portal-border/50 hover:bg-portal-surface-hover/80 hover:border-primary/30'
+                      className={`group p-4 border rounded-2xl transition-all shadow-lg ${
+                        item.isSpectral
+                        ? 'bg-primary/5 border-primary/30 shadow-[0_0_20px_var(--portal-primary-glow-subtle)]'
+                        : item.name === lockedItemName 
+                        ? 'bg-primary/5 border-primary/50 ring-1 ring-primary/20' 
+                        : 'bg-portal-surface-hover/40 border-portal-border/50 hover:bg-portal-surface-hover/80 hover:border-primary/30'
                       }`}
                     >
                       <div className="flex gap-4">
                         <div className={`w-12 h-12 rounded-xl bg-portal-surface border flex items-center justify-center transition-all shrink-0 ${
+                          item.isSpectral ? 'text-primary border-primary/30' :
                           item.name === lockedItemName 
                           ? 'text-primary border-primary/50' 
                           : 'text-portal-text-muted border-portal-border group-hover:text-primary group-hover:border-primary/50'
                         }`}>
-                          {getItemIcon(item.type)}
+                          {item.isSpectral ? <Eye className="w-5 h-5" /> : getItemIcon(item.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between mb-1 gap-2">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`font-bold truncate ${item.name === lockedItemName ? 'text-primary' : 'text-portal-text'}`}>
-                                {item.name}
-                              </h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className={`font-bold truncate ${item.name === lockedItemName || item.isSpectral ? 'text-primary' : 'text-portal-text'}`}>
+                                  {item.name}
+                                </h3>
+                                {item.isSpectral && <span className="text-[6px] font-black uppercase bg-primary text-zinc-950 px-1 rounded-sm animate-pulse">Spectral</span>}
+                              </div>
                             </div>
                             
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -271,48 +229,32 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
             </div>
 
             {/* Footer / Stats Summary */}
-            <div className="p-6 border-t border-portal-border bg-portal-bg/50 space-y-6">
-               {/* Vision Feature */}
-               <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
-                    <Sparkles className="w-4 h-4 text-primary" />
+            <div className="p-6 border-t border-portal-border bg-portal-bg/50 space-y-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <div className="flex items-center justify-between text-[9px] font-black text-portal-text-muted uppercase tracking-widest mb-2">
+                      <span>Espaço da Bolsa</span>
+                      <span>{inventory.length} / {INVENTORY_CAPACITY}</span>
+                   </div>
+                   <div className="w-full h-1 bg-portal-surface rounded-full overflow-hidden border border-portal-border">
+                      <div 
+                        className="h-full bg-portal-text-muted" 
+                        style={{ width: `${(inventory.length / INVENTORY_CAPACITY) * 100}%` }}
+                      />
+                   </div>
                  </div>
-                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">Olho do Mestre</h4>
-                 <p className="text-[10px] text-portal-text-muted mb-3 font-body italic">Traga um objeto do mundo real para sua lenda.</p>
-                 
-                 <input 
-                   type="file" 
-                   accept="image/*" 
-                   ref={fileInputRef} 
-                   onChange={handleVisionUpload}
-                   className="hidden" 
-                 />
-                 
-                 <button 
-                   onClick={() => fileInputRef.current?.click()}
-                   disabled={isVisionLoading || inventory.length >= INVENTORY_CAPACITY || currentScene?.isGameOver}
-                   className="w-full flex items-center justify-center gap-2 py-2 bg-primary text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {isVisionLoading ? (
-                     <> <Loader2 className="w-3 h-3 animate-spin" /> Analisando Artefato... </>
-                   ) : currentScene?.isGameOver ? (
-                     <> <Lock className="w-3 h-3" /> Lenda Finalizada </>
-                   ) : (
-                     <> <Camera className="w-3 h-3" /> Capturar Objeto </>
-                   )}
-                 </button>
-               </div>
 
-               <div>
-                 <div className="flex items-center justify-between text-xs font-bold text-portal-text-muted uppercase tracking-widest">
-                    <span>Capacidade</span>
-                    <span>{inventory.length} / {INVENTORY_CAPACITY} Itens</span>
-                 </div>
-                 <div className="w-full h-1 bg-portal-surface-hover rounded-full mt-2 overflow-hidden">
-                    <div 
-                      className="h-full bg-primary" 
-                      style={{ width: `${(inventory.length / INVENTORY_CAPACITY) * 100}%` }}
-                    />
+                 <div>
+                   <div className="flex items-center justify-between text-[9px] font-black text-primary uppercase tracking-widest mb-2">
+                      <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" /> Itens Espectrais</span>
+                      <span>{inventory.filter(i => i.isSpectral).length} / {SPECTRAL_CAPACITY}</span>
+                   </div>
+                   <div className="w-full h-1 bg-primary/10 rounded-full overflow-hidden border border-primary/20">
+                      <div 
+                        className="h-full bg-primary shadow-[0_0_10px_var(--portal-primary-glow)]" 
+                        style={{ width: `${(inventory.filter(i => i.isSpectral).length / SPECTRAL_CAPACITY) * 100}%` }}
+                      />
+                   </div>
                  </div>
                </div>
             </div>

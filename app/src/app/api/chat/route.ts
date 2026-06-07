@@ -16,7 +16,8 @@ const sceneSchema = z.object({
   audioVoice: z.enum(['male', 'female']).optional().describe('Gênero da voz para narração.'),
   imageUrl: z.string().optional(),
   audioUrl: z.string().optional(),
-  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle']),
+  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle', 'vision_requirement']),
+  visionPrompt: z.string().optional().describe('Instrução para o desafio de visão (ex: "Escaneie um copo de água"). Obrigatório se recommendedInputType for vision_requirement.'),
   options: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
   tacticalOptions: z.object({
     actions: z.array(z.object({ 
@@ -44,7 +45,7 @@ const sceneSchema = z.object({
     spSource: z.string().optional().describe('Fonte do gasto ou ganho de estamina (ex: "Salto Acrobático", "Descanso").'),
     combatPower: z.number().optional(),
     moral: z.number().optional().describe('Alteração no Karma Global.'),
-    reputations: z.record(z.string(), z.number()).optional().describe('Alterações em reputações locais (NPCs, Cidades).')
+    reputations: z.record(z.string(), z.number()).optional().describe('Alterações em reputações locais.'), blessings: z.array(z.object({ id: z.string(), name: z.string(), effect: z.string(), type: z.enum(["hp_max", "sp_max", "luck", "combat", "protection"]), value: z.number() })).optional(), curses: z.array(z.object({ id: z.string(), name: z.string(), effect: z.string(), remainingScenes: z.union([z.number(), z.literal("permanent")]), type: z.enum(["hp_drain", "sp_reduction", "moral_hit", "blindness"]) })).optional()
   }).optional(),
   inventoryChanges: z.object({
     added: z.array(z.object({
@@ -52,9 +53,10 @@ const sceneSchema = z.object({
       name: z.string(),
       description: z.string(),
       quantity: z.number(),
-      type: z.enum(['weapon', 'armor', 'consumable', 'quest']),
+      type: z.enum(['weapon', 'armor', 'consumable', 'quest', 'companion']),
       durability: z.number().optional(),
       maxDurability: z.number().optional(),
+      isSpectral: z.boolean().optional().describe('Se true, este item é materializado via visão IA.'),
     })).optional(),
     removed: z.array(z.string()).optional(),
   }).optional(),
@@ -84,7 +86,7 @@ export async function POST(req: Request) {
     // Fetch User AI Config (BYOK)
     const player = await prisma.player.findUnique({
       where: { id: (session.user as any).id },
-      select: { apiKeys: true, aiPreferences: true }
+      select: { apiKeys: true, aiPreferences: true, apiEnabled: true }
     });
     
     // Total de cenas reais no histórico do banco
@@ -137,6 +139,8 @@ export async function POST(req: Request) {
     } else if (forcedType) {
       if (forcedType === 'luck') {
         forceRule = `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente um desafio que exija sorte e o uso do dado. Defina 'requiresRoll: true'. Ignore as regras normais de diversificação.`;
+      } else if (forcedType === 'vision_requirement') {
+        forceRule = `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente um DESAFIO DE VISÃO. Defina 'recommendedInputType: "vision_requirement"'. IMPORTANTE: A sua 'narration' final DEVE CONTER uma frase explícita instruindo o jogador a escanear algo do seu mundo real (ex: "Para destravar a porta, você precisa de uma chave. Aponte a câmera para uma chave do seu mundo"). E preencha também o campo 'visionPrompt'. IGNORE O LIMITE DE 3 ITENS ESPECTRAIS (O SISTEMA LIDARÁ COM O SACRIFÍCIO). APENAS GERE O DESAFIO DE VISÃO!`;
       } else {
         forceRule = `\n!!! REGRA ABSOLUTA PARA ESTA CENA !!!\nVocê DEVE gerar obrigatoriamente uma interação do tipo '${forcedType}'. Ignore as regras normais de diversificação para esta cena.`;
       }
@@ -157,7 +161,7 @@ Você é o Narrador soberano do "Fantasy Portal".
 ${forceRule}
 
 REGRAS DE DIVERSIFICAÇÃO (ANTI-REPETIÇÃO):
-1. LIMITE DE REPETIÇÃO: Você NÃO deve usar o same 'recommendedInputType' por more than ${process.env.MAX_REPETITIVE_INTERACTIONS || 2} cenas consecutivas.
+1. LIMITE DE REPETIÇÃO: Você NÃO deve usar o mesmo 'recommendedInputType' repetidamente, EXCETO se uma REGRA ABSOLUTA (como um tipo forçado) exigir o contrário.
 2. VARIEDADE: Alterne entre 'binary', 'multiple', 'combined' e 'interpretative' para manter o dinamismo.
 3. PRIORIDADE TÁTICA: SEMPRE use o modo 'combined' (Escolha Estruturada) em situações de conflito físico, perseguição ou obstáculos técnicos.
 4. USO DE HABILIDADES: Ofereça pelo menos uma opção que utilize as habilidades do jogador em cada 3 cenas.
@@ -216,6 +220,16 @@ SISTEMA DE DESAFIOS MENTAIS (puzzle):
 - 'riddle': Charada clássica. A resposta curta deve estar em 'solution'.
 - RECOMPENSA: Resolver um puzzle concede +1 Insight Point automaticamente.
 
+SISTEMA DE RESSONÂNCIA MATERIAL (vision_requirement):
+- Ocasionalmente, você pode exigir que o jogador escaneie um objeto do mundo real para progredir ou ganhar loot especial.
+- MODO: Defina 'recommendedInputType: "vision_requirement"' e preencha 'visionPrompt' com o que o jogador deve escanear (ex: "um copo com água", "seu animal de estimação", "uma fonte de luz", "um prato de comida").
+- ITENS ESPECTRAIS: Quando o jogador completar o desafio (no fluxo futuro), você deverá materializar o item com a tag 'isSpectral: true'. 
+- REGRA DE LIMITE (MUITO IMPORTANTE): O jogador pode carregar no máximo 3 itens espectrais. NO ENTANTO, você PODE e DEVE gerar o desafio de visão mesmo se o jogador já possuir 3 itens! O sistema do jogo cuidará automaticamente de forçar o jogador a "sacrificar" um item antigo. Não use o limite de inventário como desculpa para evitar gerar um desafio de visão.
+- CONSEQÜÊNCIAS (RISCO-RECOMPENSA):
+  - SUCESSO (Ouro): Se o jogador enviar uma oferenda perfeita, conceda uma 'blessings' (Ex: Resplendor Primordial - HP Max).
+  - FALHA (Vácuo): Se o jogador recusar ou o portal for corrompido, aplique uma 'curses' (Ex: Ecos do Vazio - Queda de Moral, Veneno Etéreo - Dano contínuo).
+  - ARMADILHA: Mesmo em sucesso, um item pode vir amaldiçoado se o destino assim desejar.
+
 SISTEMA DE PAISAGENS SONORAS:
 - Preencha 'audioDescription' com uma descrição rica do ambiente sonoro.
 - Use 'audioVoice' para definir se a narração deve ser 'male' (masculina) ou 'female' (feminina), baseando-se no tom da cena ou se há um narrador/NPC específico falando.
@@ -243,12 +257,15 @@ ESTILO NARRATIVO:
 CONTEXTO ATUAL:
 - Protagonista: ${playerContext?.settings?.playerName}
 - Status: HP ${playerContext?.status?.hp}/${playerContext?.status?.maxHp} | SP ${playerContext?.status?.sp}/${playerContext?.status?.maxSp} | Agilidade: ${playerContext?.status?.agility} | Sorte: ${playerContext?.status?.luck}
+- Bênçãos Ativas: ${JSON.stringify(playerContext?.status?.activeBlessings || [])}
+- Maldições Ativas (com Duração em Cenas): ${JSON.stringify(playerContext?.status?.activeCurses || [])}
 - Moral/Karma Global: ${playerContext?.status?.moral || 0}
 - Reputações Locais: ${JSON.stringify(playerContext?.status?.reputations || {})}
 - Mochila: ${playerContext?.inventory?.map((i: any) => i.name).join(', ') || 'Vazia'}
 - Habilidades: ${playerContext?.status?.skills?.map((s: any) => s.name).join(', ') || 'Nenhuma'}
 - Última Cena Resolvida: ${playerContext?.lastSceneId}
 - Flags do Mundo: ${JSON.stringify(playerContext?.flags || {})}
+
 `,
       messages,
     });

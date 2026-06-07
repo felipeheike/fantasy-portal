@@ -4,7 +4,7 @@ import pg from 'pg';
 import bcrypt from 'bcrypt';
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL || "postgresql://fp_user:fp_password@localhost:5434/fantasy_portal_db?schema=public";
   const pool = new pg.Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
@@ -19,30 +19,11 @@ async function main() {
       where: { id: felipelsonId },
       update: {
         name: "Felipelson",
-        status: {
-          hp: 12,
-          maxHp: 20,
-          sp: 5,
-          maxSp: 15,
-          combatPower: 25,
-          moral: -25,
-          insightPoints: 0, // Inicia zerado para testar recuperação
-          skills: [
-            { id: "skill_intimidacao", name: "Aura de Pavor", description: "Instila terror profundo.", level: 3, maxLevel: 5 }
-          ],
-          reputations: { "Vila de Alvorada": -30, "Culto das Sombras": 20 }
-        },
-        inventory: [
-          { id: "cursed_dagger", name: "Adaga Dente de Basilisco", type: "weapon", quantity: 1, description: "Lâmina envenenada.", durability: 15, maxDurability: 15 },
-          { id: "wisdom_elixir", name: "Elixir da Visão Sombria", type: "consumable", quantity: 1, description: "Restaura cargas de visão via magia negra." }
-        ]
       },
       create: {
         id: felipelsonId,
         email: "vilao@duplecake.com",
         name: "Felipelson",
-        status: { hp: 12, maxHp: 20, sp: 5, maxSp: 15, combatPower: 25, moral: -25, skills: [], reputations: {}, insightPoints: 0 },
-        inventory: []
       }
     });
 
@@ -56,6 +37,23 @@ async function main() {
         genre: "gothic-horror",
         status: "active",
         history: [{ sceneId: "scene_1", narration: "Felipelson caminha entre as chamas...", isGameOver: false }],
+        playerStatus: {
+          hp: 12,
+          maxHp: 20,
+          sp: 5,
+          maxSp: 15,
+          combatPower: 25,
+          moral: -25,
+          insightPoints: 0, // Inicia zerado para testar recuperação
+          skills: [
+            { id: "skill_intimidacao", name: "Aura de Pavor", description: "Instila terror profundo.", level: 3, maxLevel: 5 }
+          ],
+          reputations: { "Vila de Alvorada": -30, "Culto das Sombras": 20 }
+        },
+        playerInventory: [
+          { id: "cursed_dagger", name: "Adaga Dente de Basilisco", type: "weapon", quantity: 1, description: "Lâmina envenenada.", durability: 15, maxDurability: 15 },
+          { id: "wisdom_elixir", name: "Elixir da Visão Sombria", type: "consumable", quantity: 1, description: "Restaura cargas de visão via magia negra." }
+        ],
         flags: { playerName: "Felipelson", journeyLength: "epic", enableImages: true, enableAudio: true },
         settings: {
           enableImages: true,

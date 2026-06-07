@@ -25,9 +25,7 @@ async function main() {
       name: 'Mestre do Portal',
       passwordHash: adminHash,
       role: 'ADMIN',
-      accountStatus: 'ACTIVE',
-      status: { hp: 20, maxHp: 20, sp: 15, maxSp: 15, combatPower: 30, moral: 0, skills: [], reputations: {} },
-      inventory: []
+      accountStatus: 'ACTIVE'
     },
   });
 
@@ -43,18 +41,7 @@ async function main() {
       name: 'Leonelson',
       passwordHash: playerHash,
       role: 'PLAYER',
-      accountStatus: 'ACTIVE',
-      status: {
-        hp: 20,
-        maxHp: 20,
-        sp: 15,
-        maxSp: 15,
-        combatPower: 10,
-        moral: 0,
-        skills: [],
-        reputations: {}
-      },
-      inventory: []
+      accountStatus: 'ACTIVE'
     },
   })
 
