@@ -11,6 +11,7 @@ import {
   MessageSquare, 
   Eye,
   Loader2,
+  Lock,
   Info,
   Droplets,
   FlaskConical,
@@ -44,7 +45,10 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
   const [inquiryError, setInquiryError] = useState<string | null>(null);
 
   // Get inquiries directly from the current scene in the store for persistence
-  const sceneInquiries = currentScene?.inquiries || [];
+  // Or all inquiries from history if the game is over (Museum Mode)
+  const sceneInquiries = currentScene?.isGameOver 
+    ? history.flatMap(s => s.inquiries || [])
+    : currentScene?.inquiries || [];
 
   const wisdomItems = inventory.filter(i => 
     i.type === 'consumable' && 
@@ -56,7 +60,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
   const handleSubmit = async (e?: React.FormEvent, retryText?: string) => {
     e?.preventDefault();
     const currentQ = retryText || question;
-    if (!currentQ || status.insightPoints <= 0) return;
+    if (!currentQ || status.insightPoints <= 0 || currentScene?.isGameOver) return;
 
     setIsLoading(true);
     setInquiryError(null);
@@ -161,8 +165,12 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                     <Eye className="w-6 h-6" />
                  </div>
                  <div>
-                    <h2 className="text-xl font-black uppercase tracking-tighter text-white">Sussurros do <span className="text-primary">Mestre</span></h2>
-                    <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Questionamentos Contextuais</p>
+                    <h2 className="text-xl font-black uppercase tracking-tighter text-white">
+                      {currentScene?.isGameOver ? 'Arquivo de Sussurros' : 'Sussurros do Mestre'}
+                    </h2>
+                    <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">
+                      {currentScene?.isGameOver ? 'Histórico de Intuições' : 'Questionamentos Contextuais'}
+                    </p>
                  </div>
               </div>
               <button 
@@ -251,7 +259,8 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                         {/* Sacrifice Ritual */}
                         <button 
                           onClick={handleSacrifice}
-                          className="w-full p-6 bg-red-950/20 border border-red-900/30 hover:border-red-500 transition-all rounded-[32px] flex items-center justify-between group"
+                          disabled={currentScene?.isGameOver}
+                          className="w-full p-6 bg-red-950/20 border border-red-900/30 hover:border-red-500 transition-all rounded-[32px] flex items-center justify-between group disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                         >
                            <div className="flex items-center gap-4 text-left">
                               <div className="p-3 bg-red-500/10 rounded-2xl text-red-500 group-hover:scale-110 transition-transform">
@@ -270,7 +279,8 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                           <button 
                             key={item.id}
                             onClick={() => handlePotion(item.id, item.name)}
-                            className="w-full p-6 bg-primary/5 border border-primary/20 hover:border-primary transition-all rounded-[32px] flex items-center justify-between group"
+                            disabled={currentScene?.isGameOver}
+                            className="w-full p-6 bg-primary/5 border border-primary/20 hover:border-primary transition-all rounded-[32px] flex items-center justify-between group disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                           >
                             <div className="flex items-center gap-4 text-left">
                                 <div className="p-3 bg-primary/10 rounded-2xl text-primary group-hover:scale-110 transition-transform">
@@ -294,21 +304,21 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
             <div className="p-8 bg-zinc-900/50 border-t border-zinc-800">
                <form onSubmit={handleSubmit} className="relative">
                   <textarea 
-                    placeholder={status.insightPoints > 0 ? "O que deseja questionar ao mestre?" : "Sem cargas disponíveis..."}
+                    placeholder={currentScene?.isGameOver ? "Lenda finalizada. Consulte o histórico acima." : status.insightPoints > 0 ? "O que deseja questionar ao mestre?" : "Sem cargas disponíveis..."}
                     className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-3xl p-6 pr-16 text-sm text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-primary transition-all resize-none h-32 disabled:opacity-50"
                     value={question}
                     onChange={(e) => {
                       setQuestion(e.target.value);
                       if (inquiryError) setInquiryError(null);
                     }}
-                    disabled={isLoading || status.insightPoints <= 0}
+                    disabled={isLoading || status.insightPoints <= 0 || currentScene?.isGameOver}
                   />
                   <button 
                     type="submit"
-                    disabled={isLoading || !question || status.insightPoints <= 0}
+                    disabled={isLoading || !question || status.insightPoints <= 0 || currentScene?.isGameOver}
                     className="absolute bottom-4 right-4 p-4 bg-primary text-zinc-950 rounded-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
                   >
-                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : currentScene?.isGameOver ? <Lock className="w-5 h-5" /> : <Send className="w-5 h-5" />}
                   </button>
                </form>
                <div className="mt-4 flex items-center gap-2 px-2">

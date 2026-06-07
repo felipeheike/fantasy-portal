@@ -28,7 +28,7 @@ interface InventoryPanelProps {
 }
 
 export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps) {
-  const { inventory, discardItem, lockedItemName, addItem, settings, status } = useGameStore();
+  const { inventory, discardItem, lockedItemName, addItem, settings, status, currentScene } = useGameStore();
   const [filter, setFilter] = useState<InventoryItem['type'] | 'all'>('all');
   const [isVisionLoading, setIsVisionLoading] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -228,8 +228,9 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                                  ) : (
                                    <button 
                                      onClick={() => discardItem(item.id)}
-                                     className="p-1.5 rounded-lg bg-red-950/20 text-red-500/50 hover:bg-red-500 hover:text-white transition-all"
-                                     title="Descartar Item"
+                                     disabled={currentScene?.isGameOver}
+                                     className="p-1.5 rounded-lg bg-red-950/20 text-red-500/50 hover:bg-red-500 hover:text-white transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                                     title={currentScene?.isGameOver ? "Lenda finalizada" : "Descartar Item"}
                                    >
                                      <Trash2 className="w-3.5 h-3.5" />
                                    </button>
@@ -289,11 +290,13 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                  
                  <button 
                    onClick={() => fileInputRef.current?.click()}
-                   disabled={isVisionLoading || inventory.length >= INVENTORY_CAPACITY}
+                   disabled={isVisionLoading || inventory.length >= INVENTORY_CAPACITY || currentScene?.isGameOver}
                    className="w-full flex items-center justify-center gap-2 py-2 bg-primary text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                  >
                    {isVisionLoading ? (
                      <> <Loader2 className="w-3 h-3 animate-spin" /> Analisando Artefato... </>
+                   ) : currentScene?.isGameOver ? (
+                     <> <Lock className="w-3 h-3" /> Lenda Finalizada </>
                    ) : (
                      <> <Camera className="w-3 h-3" /> Capturar Objeto </>
                    )}

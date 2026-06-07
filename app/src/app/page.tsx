@@ -98,7 +98,7 @@ export default function GamePage() {
     settings, currentJourneyId, setJourneyId, history,
     inventory, resetGame, loadJourney, hasHydrated,
     setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError, setImageLoading, setAudioError, setAudioLoading,
-    flags, memories, addNotification, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode,
+    flags, memories, addNotification, statusHistory, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode,
     setCustomThemes
   } = useGameStore();
 
@@ -412,14 +412,19 @@ export default function GamePage() {
   // Sync state to DB on changes
   const lastSyncedRef = useRef<string>('');
   const lastSyncedSceneIdRef = useRef<string>('');
+  const syncInProgressRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (currentJourneyId && history.length > 0 && hasHydrated && authStatus === 'authenticated') {
       const currentScene = history[history.length - 1];
       const isNewScene = currentScene.sceneId !== lastSyncedSceneIdRef.current;
 
-      // Se for uma nova cena, usamos o endpoint incremental POST /scenes
-      if (isNewScene) {
+      // Se for uma nova cena e não houver sincronização em curso para este ID específico
+      if (isNewScene && !syncInProgressRef.current) {
+        // Bloqueio imediato para evitar race conditions no re-render
+        lastSyncedSceneIdRef.current = currentScene.sceneId;
+        syncInProgressRef.current = true;
+
         fetch(`/api/journey/${currentJourneyId}/scenes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -427,15 +432,22 @@ export default function GamePage() {
             scene: currentScene,
             playerStatus: status, 
             inventory,
+            statusHistory,
             impersonatedPlayerId
           })
         })
         .then(() => {
-          lastSyncedSceneIdRef.current = currentScene.sceneId;
-          // Também atualizamos o lastSyncedRef para evitar o PATCH logo em seguida
+          // Sincronização concluída
           lastSyncedRef.current = JSON.stringify({ history, status, inventory });
         })
-        .catch(err => console.error("INCREMENTAL_SYNC_ERR:", err));
+        .catch(err => {
+          console.error("INCREMENTAL_SYNC_ERR:", err);
+          // Em caso de erro, permitimos tentar novamente no próximo ciclo se o ID mudar
+          lastSyncedSceneIdRef.current = ''; 
+        })
+        .finally(() => {
+          syncInProgressRef.current = false;
+        });
         return;
       }
 
@@ -464,7 +476,7 @@ export default function GamePage() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [history, status, inventory, currentJourneyId, flags, memories, settings, hasHydrated, authStatus, impersonatedPlayerId]);
+  }, [history, status, inventory, statusHistory, currentJourneyId, flags, memories, settings, hasHydrated, authStatus, impersonatedPlayerId]);
 
   // Auto-trigger first scene
   useEffect(() => {
@@ -552,10 +564,10 @@ export default function GamePage() {
         </div>
 
         {/* Insight Hub (Questioning) - Floating above Export Hub */}
-        <div className={`fixed bottom-24 lg:bottom-32 right-4 lg:right-10 z-50 ${readingMode ? 'hidden' : 'hidden lg:flex'} flex-col items-center gap-4`}>
+        <div className={`fixed bottom-24 lg:bottom-32 right-4 lg:right-10 z-50 ${readingMode ? 'hidden' : 'flex'} flex-col items-center gap-4`}>
            <AnimatePresence>
-             {!isGameOver && history.length > 0 && (
-               <motion.button 
+             {history.length > 0 && (
+               <motion.button
                  initial={{ scale: 0, rotate: -45 }}
                  animate={{ scale: 1, rotate: 0 }}
                  exit={{ scale: 0, rotate: 45 }}

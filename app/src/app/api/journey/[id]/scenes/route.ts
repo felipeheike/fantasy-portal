@@ -68,6 +68,16 @@ export async function POST(
 
     // Criar a cena e atualizar o status do jogador em uma transação
     const result = await prisma.$transaction(async (tx) => {
+      // --- Verificação de Idempotência no Servidor ---
+      const existingScene = await tx.scene.findFirst({
+        where: { journeyId, sceneId: scene.sceneId }
+      });
+
+      if (existingScene) {
+        console.log(`LOG: Scene [${scene.sceneId}] already exists. Skipping duplication.`);
+        return existingScene;
+      }
+
       const newScene = await tx.scene.create({
         data: {
           journeyId,
@@ -92,25 +102,55 @@ export async function POST(
       });
 
       if (playerStatus || inventory) {
-        await tx.player.update({
-          where: { id: targetUserId },
+        await tx.journey.update({
+          where: { id: journeyId },
           data: {
-            status: playerStatus || undefined,
-            inventory: inventory || undefined
+            playerStatus: playerStatus || undefined,
+            playerInventory: inventory || undefined
           }
         });
       }
 
-      // IMPORTANTE: Manter compatibilidade com a coluna 'history' legada por enquanto
-      // para que o front antigo ou scripts de backup ainda funcionem.
+      // --- LEGACY SNAPSHOT (Cofre da Lenda) ---
+      if (scene.isGameOver) {
+        console.log(`LOG: Capture total legacy snapshot for journey ${journeyId}`);
+        
+        // Buscar o player atualizado para ter o histórico e skills mais recentes
+        const currentPlayer = await tx.player.findUnique({
+          where: { id: targetUserId },
+          select: { status: true, inventory: true }
+        });
+
+        const statusData = (currentPlayer?.status as any) || playerStatus;
+        const inventoryData = (currentPlayer?.inventory as any) || inventory;
+
+        await tx.journey.update({
+          where: { id: journeyId },
+          data: {
+            status: 'completed',
+            finalStatus: statusData,
+            finalInventory: inventoryData,
+            finalSkills: statusData?.skills || [],
+            // O histórico de status é extraído das settings/flags da jornada se estiver lá
+            finalStatusHistory: body.statusHistory || []
+          }
+        });
+      }
+
+      // IMPORTANTE: Manter compatibilidade com a coluna 'history' legada
       const currentJourney = await tx.journey.findUnique({ where: { id: journeyId }, select: { history: true } });
       const currentHistory = (currentJourney?.history as any[]) || [];
-      await tx.journey.update({
-        where: { id: journeyId },
-        data: {
-          history: [...currentHistory, scene]
-        }
-      });
+      
+      // Só adiciona se não estiver no array de history
+      const alreadyInHistory = currentHistory.some(s => s.sceneId === scene.sceneId);
+      if (!alreadyInHistory) {
+        await tx.journey.update({
+          where: { id: journeyId },
+          data: {
+            history: [...currentHistory, scene]
+          }
+        });
+      }
 
       return newScene;
     });

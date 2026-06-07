@@ -23,7 +23,7 @@ interface StatusLogPanelProps {
 }
 
 export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanelProps) {
-  const { statusHistory, status } = useGameStore();
+  const { statusHistory, status, currentScene } = useGameStore();
   
   const filteredLogs = statusHistory.filter(log => log.type === type);
 
@@ -88,7 +88,9 @@ export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanel
                    {type === 'hp' ? <Activity className="w-24 h-24" /> : <History className="w-24 h-24" />}
                  </div>
                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Status Atual</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">
+                      {currentScene?.isGameOver ? 'Status Final' : 'Status Atual'}
+                    </p>
                     <div className="flex items-end gap-2">
                        <h3 className="text-4xl font-black text-white">
                          {type === 'hp' ? status.hp : status.sp}

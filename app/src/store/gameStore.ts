@@ -188,27 +188,69 @@ export const useGameStore = create<GameState>()(
       loadJourney: (id, data) => {
         console.log("STORE: Loading Journey", id);
         const loadedHistory = data.history || [];
-        const playerData = data.player || {};
-        const rawInventory = (playerData.inventory || []) as InventoryItem[];
-        const deduplicatedInventory = rawInventory.reduce((acc: InventoryItem[], item) => {
-          const existing = acc.find(i => i.id === item.id);
-          if (existing) {
-            existing.quantity += (item.quantity || 1);
-            if (item.durability !== undefined) existing.durability = item.durability;
-          } else {
-            acc.push({ ...item, quantity: item.quantity || 1 });
-          }
-          return acc;
-        }, []);
+        const finalHistory = [...loadedHistory];
+        
+        // --- Normalização de Fim de Jogo (Garantia de Museu) ---
+        const isCompleted = data.status === 'completed';
+        if (isCompleted && finalHistory.length > 0) {
+          const lastIndex = finalHistory.length - 1;
+          finalHistory[lastIndex] = { ...finalHistory[lastIndex], isGameOver: true };
+        }
 
-        const loadedStatus = playerData.status || initialStatus;
+        // --- Prioridade de Legado vs Ativo ---
+        const isMuseum = isCompleted && data.finalStatus;
+        
+        // 1. Habilidades: Prioriza Snapshot > Status da Jornada
+        const finalSkillsData = (isMuseum && data.finalSkills && data.finalSkills.length > 0) 
+          ? data.finalSkills 
+          : (data.playerStatus?.skills && data.playerStatus.skills.length > 0)
+            ? data.playerStatus.skills
+            : [];
+
+        // 2. Status: Prioriza Snapshot > Status da Jornada
+        const museumStatus = isMuseum ? {
+          ...initialStatus,
+          ...data.finalStatus,
+          skills: finalSkillsData
+        } : {
+          ...initialStatus,
+          ...(data.playerStatus || {}),
+          skills: finalSkillsData,
+          reputations: data.playerStatus?.reputations || {},
+          insightPoints: data.playerStatus?.insightPoints ?? INITIAL_INSIGHT_POINTS,
+          deathCount: data.playerStatus?.deathCount ?? 0
+        };
+
+        // 3. Inventário: Prioriza Snapshot > Inventário da Jornada
+        const museumInventory = (isMuseum && data.finalInventory && Array.isArray(data.finalInventory) && data.finalInventory.length > 0) 
+          ? data.finalInventory 
+          : (isCompleted && data.finalInventory && Array.isArray(data.finalInventory))
+            ? data.finalInventory
+            : (isCompleted ? [] : (data.playerInventory || []));
+
+        // 4. Históricos
+        const museumStatusHistory = (isMuseum && data.finalStatusHistory && Array.isArray(data.finalStatusHistory) && data.finalStatusHistory.length > 0) 
+          ? data.finalStatusHistory 
+          : (data.settings?.statusHistory || []);
+
+        const museumNotifications = (isMuseum && data.finalNotifications && Array.isArray(data.finalNotifications) && data.finalNotifications.length > 0) 
+          ? data.finalNotifications 
+          : (data.settings?.notificationHistory || []);
+
+        console.log(`STORE: FINAL HYDRATION CHECK for ${id}:`, {
+          isCompleted,
+          isMuseum,
+          inv: museumInventory.length,
+          skills: finalSkillsData.length,
+          notifs: museumNotifications.length
+        });
 
         set({
           currentJourneyId: id,
           isGameStarted: true,
           isSetupMode: false,
           settings: {
-            playerName: data.flags?.playerName || playerData.name,
+            playerName: data.flags?.playerName || data.player?.name,
             genre: data.genre,
             ...data.settings,
             narrativeDetail: data.settings?.narrativeDetail || 'medium',
@@ -216,19 +258,14 @@ export const useGameStore = create<GameState>()(
             enableAudio: data.settings?.enableAudio ?? data.flags?.enableAudio ?? true,
             autoPlayAudio: data.settings?.autoPlayAudio ?? data.flags?.autoPlayAudio ?? false,
           } as JourneySettings,
-          history: loadedHistory,
-          currentScene: loadedHistory.length > 0 ? loadedHistory[loadedHistory.length - 1] : null,
-          status: {
-            ...loadedStatus,
-            reputations: loadedStatus.reputations || {},
-            insightPoints: loadedStatus.insightPoints ?? INITIAL_INSIGHT_POINTS,
-            deathCount: loadedStatus.deathCount ?? 0
-          },
-          inventory: deduplicatedInventory,
+          history: finalHistory,
+          currentScene: finalHistory.length > 0 ? finalHistory[finalHistory.length - 1] : null,
+          status: museumStatus,
+          inventory: museumInventory,
           flags: data.flags || {},
           memories: data.memories || [],
-          notificationHistory: data.settings?.notificationHistory || [],
-          statusHistory: data.settings?.statusHistory || [],
+          notificationHistory: museumNotifications,
+          statusHistory: museumStatusHistory,
           forcedNextAction: null,
           forcedEndingType: null,
           hasMoreHistory: true,

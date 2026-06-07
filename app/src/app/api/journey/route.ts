@@ -23,6 +23,7 @@ export async function GET(req: Request) {
       },
       orderBy: { updatedAt: 'desc' },
     });
+
     return NextResponse.json(journeys);
   } catch (error) {
     console.error('Failed to fetch journeys:', error);
@@ -67,12 +68,31 @@ export async function POST(req: Request) {
       }, { status: 403 });
     }
 
+    const initialStatus = {
+      hp: 20,
+      maxHp: 20,
+      sp: 15,
+      maxSp: 15,
+      combatPower: 10,
+      luck: 1,
+      agility: 5,
+      moral: 0,
+      skills: [],
+      reputations: {},
+      insightPoints: 5,
+      deathCount: 0
+    };
+
+    const initialInventory: any[] = [];
+
     const journey = await prisma.journey.create({
       data: {
         playerId: targetUserId,
         genre: genre || 'fantasy',
         status: 'active',
         history: [],
+        playerStatus: initialStatus,
+        playerInventory: initialInventory,
         flags: { 
           playerName: playerName || session.user?.name || 'Aventureiro',
           journeyLength,

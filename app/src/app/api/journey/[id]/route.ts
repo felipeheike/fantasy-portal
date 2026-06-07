@@ -34,19 +34,11 @@ export async function PATCH(
         history: history || undefined,
         flags: flags || undefined,
         memories: memories || undefined,
-        settings: settings || undefined
+        settings: settings || undefined,
+        playerStatus: playerStatus || undefined,
+        playerInventory: inventory || undefined
       },
     });
-
-    if (playerStatus || inventory) {
-      await prisma.player.update({
-        where: { id: targetUserId },
-        data: {
-          status: playerStatus || undefined,
-          inventory: inventory || undefined
-        }
-      });
-    }
 
     return NextResponse.json(journey);
   } catch (error: any) {

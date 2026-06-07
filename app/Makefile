@@ -6,10 +6,14 @@ COMPOSE_BASE=docker compose -p $(PROJECT_NAME)
 COMPOSE_DEV=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.dev.yml
 COMPOSE_PRD=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.prd.yml
 
-.PHONY: dev prd down status clean db-reset-dev db-reset-prd prisma-seed pgadmin-down
+.PHONY: dev dev-restart prd down status clean db-reset-dev db-reset-prd prisma-seed pgadmin-down
 
 # --- Development ---
 dev:
+	$(COMPOSE_DEV) up -d
+
+dev-restart:
+	$(COMPOSE_DEV) down
 	$(COMPOSE_DEV) up -d
 
 dev-logs:
