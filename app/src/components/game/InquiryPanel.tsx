@@ -156,16 +156,16 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-full max-w-md bg-zinc-950 border-r border-zinc-800 shadow-2xl z-[150] flex flex-col"
+            className="fixed left-0 top-0 h-full w-full max-w-md bg-portal-bg border-r border-portal-border shadow-2xl z-[150] flex flex-col"
           >
             {/* Header */}
-            <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30">
+            <div className="p-8 border-b border-portal-border flex items-center justify-between bg-portal-surface/30">
               <div className="flex items-center gap-4">
                  <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20 text-primary animate-pulse">
                     <Eye className="w-6 h-6" />
                  </div>
                  <div>
-                    <h2 className="text-xl font-black uppercase tracking-tighter text-white">
+                    <h2 className="text-xl font-black uppercase tracking-tighter text-portal-text">
                       {currentScene?.isGameOver ? 'Arquivo de Sussurros' : 'Sussurros do Mestre'}
                     </h2>
                     <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">
@@ -175,7 +175,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-200"
+                className="p-2 hover:bg-portal-surface-hover rounded-full transition-colors text-zinc-500 hover:text-portal-text"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -190,10 +190,10 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                  </div>
                  <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Pontos de Visão</p>
-                    <h3 className="text-3xl font-black text-white">{status.insightPoints}</h3>
+                    <h3 className="text-3xl font-black text-portal-text">{status.insightPoints}</h3>
                  </div>
                  <div className="text-right max-w-[120px]">
-                    <p className="text-[9px] text-zinc-600 font-serif italic leading-tight">Gaste pontos para obter intuições sobre a cena.</p>
+                    <p className="text-[9px] text-zinc-600 font-body italic leading-tight">Gaste pontos para obter intuições sobre a cena.</p>
                  </div>
               </div>
 
@@ -228,18 +228,18 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                       <motion.div 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="p-5 bg-zinc-900 border border-zinc-800 rounded-[24px] rounded-tr-none ml-8 text-xs text-zinc-400 relative"
+                        className="p-5 bg-portal-surface border border-portal-border rounded-[24px] rounded-tr-none ml-8 text-xs text-zinc-400 relative"
                       >
-                         <div className="absolute -top-3 right-6 px-3 py-1 bg-zinc-800 text-zinc-500 text-[8px] font-black uppercase tracking-widest rounded-full border border-zinc-700">Sua Dúvida</div>
+                         <div className="absolute -top-3 right-6 px-3 py-1 bg-portal-surface-hover text-zinc-500 text-[8px] font-black uppercase tracking-widest rounded-full border border-portal-border">Sua Dúvida</div>
                          "{inq.question}"
                       </motion.div>
 
                       <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="p-6 bg-primary/5 border border-primary/20 rounded-[32px] rounded-tl-none mr-8 font-serif italic text-zinc-300 relative"
+                        className="p-6 bg-primary/5 border border-primary/20 rounded-[32px] rounded-tl-none mr-8 font-body italic text-portal-text relative"
                       >
-                         <div className="absolute -top-3 left-6 px-3 py-1 bg-primary text-zinc-950 text-[9px] font-black uppercase tracking-widest rounded-full">Intuição</div>
+                         <div className="absolute -top-3 left-6 px-3 py-1 bg-portal-primary text-portal-primary-foreground text-[9px] font-black uppercase tracking-widest rounded-full">Intuição</div>
                          {inq.answer}
                       </motion.div>
                    </div>
@@ -247,9 +247,9 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
 
                  {status.insightPoints <= 0 && sceneInquiries.length === 0 && !inquiryError && (
                    <div className="space-y-8">
-                     <div className="p-10 border-2 border-dashed border-zinc-900 rounded-[40px] text-center space-y-4 opacity-50">
+                     <div className="p-10 border-2 border-dashed border-portal-surface rounded-[40px] text-center space-y-4 opacity-50">
                         <HelpCircle className="w-12 h-12 text-zinc-700 mx-auto" />
-                        <p className="text-zinc-500 font-serif italic">Suas cargas de visão se esgotaram. O mestre agora se cala...</p>
+                        <p className="text-zinc-500 font-body italic">Suas cargas de visão se esgotaram. O mestre agora se cala...</p>
                      </div>
 
                      {/* Restoration Rituals */}
@@ -267,7 +267,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                                  <Droplets className="w-5 h-5" />
                               </div>
                               <div>
-                                 <h4 className="text-sm font-black text-zinc-100 uppercase tracking-tight">Sacrifício de Sangue</h4>
+                                 <h4 className="text-sm font-black text-portal-text uppercase tracking-tight">Sacrifício de Sangue</h4>
                                  <p className="text-[10px] text-zinc-500 font-bold uppercase">Custo: -4 Vitalidade</p>
                               </div>
                            </div>
@@ -287,11 +287,11 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                                    <FlaskConical className="w-5 h-5" />
                                 </div>
                                 <div>
-                                   <h4 className="text-sm font-black text-zinc-100 uppercase tracking-tight">{item.name}</h4>
+                                   <h4 className="text-sm font-black text-portal-text uppercase tracking-tight">{item.name}</h4>
                                    <p className="text-[10px] text-zinc-500 font-bold uppercase">Custo: 1 Unidade</p>
                                 </div>
                             </div>
-                            <div className="text-[10px] font-black bg-primary text-zinc-950 px-3 py-1 rounded-full">+2 Cargas</div>
+                            <div className="text-[10px] font-black bg-portal-primary text-portal-primary-foreground px-3 py-1 rounded-full">+2 Cargas</div>
                           </button>
                         ))}
                      </div>
@@ -301,11 +301,11 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
             </div>
 
             {/* Input Area */}
-            <div className="p-8 bg-zinc-900/50 border-t border-zinc-800">
+            <div className="p-8 bg-portal-surface/50 border-t border-portal-border">
                <form onSubmit={handleSubmit} className="relative">
                   <textarea 
                     placeholder={currentScene?.isGameOver ? "Lenda finalizada. Consulte o histórico acima." : status.insightPoints > 0 ? "O que deseja questionar ao mestre?" : "Sem cargas disponíveis..."}
-                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-3xl p-6 pr-16 text-sm text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-primary transition-all resize-none h-32 disabled:opacity-50"
+                    className="w-full bg-portal-bg border-2 border-portal-border rounded-3xl p-6 pr-16 text-sm text-portal-text placeholder:text-zinc-700 outline-none focus:border-primary transition-all resize-none h-32 disabled:opacity-50"
                     value={question}
                     onChange={(e) => {
                       setQuestion(e.target.value);
@@ -316,7 +316,7 @@ export default function InquiryPanel({ isOpen, onClose }: InquiryPanelProps) {
                   <button 
                     type="submit"
                     disabled={isLoading || !question || status.insightPoints <= 0 || currentScene?.isGameOver}
-                    className="absolute bottom-4 right-4 p-4 bg-primary text-zinc-950 rounded-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+                    className="absolute bottom-4 right-4 p-4 bg-portal-primary text-portal-primary-foreground rounded-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
                   >
                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : currentScene?.isGameOver ? <Lock className="w-5 h-5" /> : <Send className="w-5 h-5" />}
                   </button>

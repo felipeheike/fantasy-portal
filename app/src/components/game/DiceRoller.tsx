@@ -70,7 +70,7 @@ export default function DiceRoller({
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 p-8 bg-zinc-900/60 border border-zinc-800 rounded-[40px] backdrop-blur-xl shadow-2xl relative overflow-hidden max-w-md w-full">
+    <div className="flex flex-col items-center gap-6 p-8 bg-portal-surface/60 border border-portal-border rounded-[40px] backdrop-blur-xl shadow-2xl relative overflow-hidden max-w-md w-full">
       <div className="relative">
         {/* Decorative background glow */}
         <div className={`absolute inset-0 bg-primary/20 blur-[60px] rounded-full transition-opacity duration-500 ${isRolling ? 'opacity-100' : 'opacity-0'}`} />
@@ -85,19 +85,19 @@ export default function DiceRoller({
           onClick={handleRoll}
           className={`w-32 h-32 rounded-3xl border-2 flex items-center justify-center relative z-10 transition-all ${
             isRolling 
-              ? 'bg-primary border-primary shadow-[0_0_50px_rgba(245,158,11,0.5)]' 
+              ? 'bg-primary border-primary shadow-[0_0_50px_var(--portal-primary-glow)]' 
               : hasTriggered || isLoading
-                ? 'bg-zinc-900 border-zinc-800 opacity-50 cursor-not-allowed'
-                : 'bg-zinc-950 border-zinc-800 hover:border-primary/50 group cursor-pointer'
-          }`}
-        >
-          {isRolling ? (
-            <Dices className="w-16 h-16 text-zinc-950 animate-bounce" />
-          ) : result !== null ? (
-            <span className="text-5xl font-black text-primary italic drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">
+                ? 'bg-portal-surface border-portal-border opacity-50 cursor-not-allowed'
+                : 'bg-portal-bg border-portal-border hover:border-primary/50 group cursor-pointer'
+              }`}
+              >
+              {isRolling ? (
+              <Dices className="w-16 h-16 text-zinc-950 animate-bounce" />
+              ) : result !== null ? (
+              <span className="text-5xl font-black text-primary italic drop-shadow-[0_0_10px_var(--portal-primary-glow)]">
               {result}
-            </span>
-          ) : (
+              </span>
+              ) : (
             <Sparkles className={`w-16 h-16 transition-colors ${hasTriggered || isLoading ? 'text-zinc-700' : 'text-zinc-800 group-hover:text-primary'}`} />
           )}
         </motion.div>
@@ -127,8 +127,8 @@ export default function DiceRoller({
                       selectedSkillId === skill.id
                       ? 'bg-primary border-primary text-zinc-950'
                       : skill.canAfford
-                        ? 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                        : 'bg-zinc-950 border-zinc-900 text-zinc-700 cursor-not-allowed opacity-50'
+                        ? 'bg-portal-surface border-portal-border text-zinc-400 hover:border-zinc-700'
+                        : 'bg-portal-bg border-portal-surface text-zinc-700 cursor-not-allowed opacity-50'
                     }`}
                   >
                     <div className="flex flex-col items-start">
@@ -136,7 +136,7 @@ export default function DiceRoller({
                       <span className="text-[8px] font-bold opacity-70">Bônus: +{skill.level}</span>
                     </div>
                     <div className={`px-1.5 py-0.5 rounded-md text-[8px] font-black ${
-                      selectedSkillId === skill.id ? 'bg-zinc-950 text-primary' : 'bg-zinc-800 text-zinc-500'
+                      selectedSkillId === skill.id ? 'bg-portal-bg text-primary' : 'bg-portal-surface-hover text-zinc-500'
                     }`}>
                       {skill.spCost} SP
                     </div>

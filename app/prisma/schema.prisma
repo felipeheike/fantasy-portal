@@ -23,6 +23,7 @@ model Player {
   usageStats          Json?
   apiEnabled          Json?
   customThemes        Json?
+  activeThemeId       String?   @default("default")
   journeys            Journey[]
 }
 

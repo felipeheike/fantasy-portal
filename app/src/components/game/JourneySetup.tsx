@@ -93,7 +93,7 @@ export default function JourneySetup() {
             autoFocus
             type="text" 
             placeholder="Digite o nome do herói..."
-            className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all text-lg font-bold italic"
+            className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 text-portal-text placeholder:text-zinc-600 focus:border-primary outline-none transition-all text-lg font-bold italic"
             value={form.playerName || ''}
             onChange={(e) => setForm({ ...form, playerName: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && form.playerName && nextStep()}
@@ -123,7 +123,7 @@ export default function JourneySetup() {
                 className={`p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${
                   form.journeyLength === opt.id 
                   ? 'border-primary bg-primary/10' 
-                  : isLocked ? 'border-zinc-900 bg-zinc-950 opacity-40 cursor-not-allowed' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                  : isLocked ? 'border-zinc-900 bg-portal-bg opacity-40 cursor-not-allowed' : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -163,7 +163,7 @@ export default function JourneySetup() {
               className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
                 form.punishSystem === opt.id 
                 ? 'border-red-500/50 bg-red-500/5' 
-                : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
               }`}
             >
               <div>
@@ -201,7 +201,7 @@ export default function JourneySetup() {
                   key={g.id}
                   onClick={() => setForm({ ...form, genre: g.id as any })}
                   className={`py-2 px-3 rounded-xl border text-[10px] font-black uppercase transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
-                    form.genre === g.id ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-zinc-800 text-zinc-500'
+                    form.genre === g.id ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-portal-border text-zinc-500'
                   }`}
                   title={g.label}
                 >
@@ -211,7 +211,7 @@ export default function JourneySetup() {
             </div>
           </div>
           
-          <div className="border-t border-zinc-800 pt-4 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+          <div className="border-t border-portal-border pt-4 max-h-40 overflow-y-auto custom-scrollbar pr-2">
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'anime', label: 'Anime' },
@@ -227,7 +227,7 @@ export default function JourneySetup() {
                   key={s.id}
                   onClick={() => setForm({ ...form, visualStyle: s.id as any })}
                   className={`py-2 px-3 rounded-xl border text-[10px] font-black uppercase transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
-                    form.visualStyle === s.id ? 'bg-primary text-zinc-950 border-primary' : 'border-zinc-800 text-zinc-500'
+                    form.visualStyle === s.id ? 'bg-portal-primary text-portal-primary-foreground border-portal-primary' : 'border-portal-border text-zinc-500'
                   }`}
                   title={s.label}
                 >
@@ -258,7 +258,7 @@ export default function JourneySetup() {
               className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
                 form.readStyle === opt.id 
                 ? 'border-primary bg-primary/10' 
-                : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
               }`}
             >
               <div className="font-black uppercase tracking-tighter text-xs">{opt.label}</div>
@@ -290,7 +290,7 @@ export default function JourneySetup() {
                 className={`w-full p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${
                   form.narrativeDetail === opt.id 
                   ? 'border-primary bg-primary/10' 
-                  : isLocked ? 'border-zinc-950 bg-zinc-950 opacity-40 cursor-not-allowed' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                  : isLocked ? 'border-zinc-950 bg-portal-bg opacity-40 cursor-not-allowed' : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
                 }`}
               >
                 <div className="flex justify-between items-center">
@@ -314,7 +314,7 @@ export default function JourneySetup() {
       content: (
         <div className="space-y-6">
           <div className="pt-4 space-y-4">
-             <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-800/50">
+             <div className="flex items-center justify-between p-4 bg-portal-surface/30 rounded-2xl border border-portal-border/50">
                 <div className="flex items-center gap-3">
                   <Palette className="w-4 h-4 text-zinc-500" />
                   <div>
@@ -324,7 +324,7 @@ export default function JourneySetup() {
                 </div>
                 <button 
                   onClick={() => setForm({ ...form, enableImages: !form.enableImages })}
-                  className={`w-10 h-5 rounded-full transition-all relative p-1 ${form.enableImages ? 'bg-primary' : 'bg-zinc-800'}`}
+                  className={`w-10 h-5 rounded-full transition-all relative p-1 ${form.enableImages ? 'bg-primary' : 'bg-portal-surface-hover'}`}
                 >
                   <motion.div 
                     animate={{ x: form.enableImages ? 20 : 0 }}
@@ -333,7 +333,7 @@ export default function JourneySetup() {
                 </button>
              </div>
 
-             <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-800/50">
+             <div className="flex items-center justify-between p-4 bg-portal-surface/30 rounded-2xl border border-portal-border/50">
                 <div className="flex items-center gap-3">
                   <Volume2 className="w-4 h-4 text-zinc-500" />
                   <div>
@@ -343,7 +343,7 @@ export default function JourneySetup() {
                 </div>
                 <button 
                   onClick={() => setForm({ ...form, enableAudio: !form.enableAudio })}
-                  className={`w-10 h-5 rounded-full transition-all relative p-1 ${form.enableAudio ? 'bg-primary' : 'bg-zinc-800'}`}
+                  className={`w-10 h-5 rounded-full transition-all relative p-1 ${form.enableAudio ? 'bg-primary' : 'bg-portal-surface-hover'}`}
                 >
                   <motion.div 
                     animate={{ x: form.enableAudio ? 20 : 0 }}
@@ -358,7 +358,7 @@ export default function JourneySetup() {
                    initial={{ opacity: 0, height: 0 }}
                    animate={{ opacity: 1, height: 'auto' }}
                    exit={{ opacity: 0, height: 0 }}
-                   className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-800/50"
+                   className="flex items-center justify-between p-4 bg-portal-surface/30 rounded-2xl border border-portal-border/50"
                  >
                     <div className="flex items-center gap-3">
                       <Volume2 className="w-4 h-4 text-primary animate-pulse" />
@@ -369,7 +369,7 @@ export default function JourneySetup() {
                     </div>
                     <button 
                       onClick={() => setForm({ ...form, autoPlayAudio: !form.autoPlayAudio })}
-                      className={`w-10 h-5 rounded-full transition-all relative p-1 ${form.autoPlayAudio ? 'bg-primary' : 'bg-zinc-800'}`}
+                      className={`w-10 h-5 rounded-full transition-all relative p-1 ${form.autoPlayAudio ? 'bg-primary' : 'bg-portal-surface-hover'}`}
                     >
                       <motion.div 
                         animate={{ x: form.autoPlayAudio ? 20 : 0 }}
@@ -390,7 +390,7 @@ export default function JourneySetup() {
   return (
     <AnimatePresence>
       {isSetupMode && (
-        <div className="fixed inset-0 bg-zinc-950 z-[100] flex items-center justify-center p-6 overflow-hidden">
+        <div className="fixed inset-0 bg-portal-bg z-[100] flex items-center justify-center p-6 overflow-hidden">
           {/* Background Ambience */}
           <div className="absolute inset-0 opacity-30 bg-[url('/noise.svg')] pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
@@ -399,12 +399,12 @@ export default function JourneySetup() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="w-full max-w-xl bg-zinc-900/50 border border-zinc-800 p-6 md:p-10 rounded-[32px] md:rounded-[40px] backdrop-blur-xl shadow-2xl relative"
+            className="w-full max-w-xl bg-portal-surface/50 border border-portal-border p-6 md:p-10 rounded-[32px] md:rounded-[40px] backdrop-blur-xl shadow-2xl relative"
             >
             {/* Cancel Button */}
             <button 
               onClick={handleCancel}
-              className="absolute top-6 right-6 md:top-8 md:right-8 z-50 p-2 bg-zinc-800/50 hover:bg-zinc-700 rounded-full text-zinc-500 hover:text-white transition-all group"
+              className="absolute top-6 right-6 md:top-8 md:right-8 z-50 p-2 bg-portal-surface-hover/50 hover:bg-zinc-700 rounded-full text-zinc-500 hover:text-white transition-all group"
               title="Cancelar Criação"
             >
               <X className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-90 transition-transform" />
@@ -420,7 +420,7 @@ export default function JourneySetup() {
                     <span className="text-[7px] font-black uppercase tracking-widest text-emerald-500">Poder Ancestral</span>
                  </div>
                ) : (
-                 <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-full">
+                 <div className="flex items-center gap-1.5 px-3 py-1 bg-portal-surface-hover border border-zinc-700 rounded-full">
                     <ScrollText className="w-2.5 h-2.5 text-zinc-500" />
                     <span className="text-[7px] font-black uppercase tracking-widest text-zinc-500">Canalização do Reino</span>
                  </div>
@@ -433,7 +433,7 @@ export default function JourneySetup() {
                 <div 
                   key={i} 
                   className={`h-full flex-1 rounded-full transition-all duration-500 ${
-                    i + 1 <= step ? 'bg-primary shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-zinc-800'
+                    i + 1 <= step ? 'bg-primary shadow-[0_0_10px_var(--portal-primary-glow)]' : 'bg-portal-surface-hover'
                   }`} 
                 />
               ))}
@@ -452,10 +452,10 @@ export default function JourneySetup() {
                     <currentStepData.icon className="w-4 h-4 md:w-5 md:h-5" />
                     <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em]">Passo {step} de {steps.length}</span>
                   </div>
-                  <h2 className="text-2xl md:text-4xl font-black text-zinc-100 tracking-tighter italic">
+                  <h2 className="text-2xl md:text-4xl font-black text-portal-text tracking-tighter italic">
                     {currentStepData.title}
                   </h2>
-                  <p className="text-zinc-500 font-serif italic text-sm md:text-lg leading-relaxed">
+                  <p className="text-zinc-500 font-body italic text-sm md:text-lg leading-relaxed">
                     {currentStepData.desc}
                   </p>
                 </div>
@@ -466,11 +466,11 @@ export default function JourneySetup() {
               </motion.div>
             </AnimatePresence>
 
-            <div className="mt-6 md:mt-10 flex items-center justify-between pt-4 md:pt-6 border-t border-zinc-800/50 gap-4">
+            <div className="mt-6 md:mt-10 flex items-center justify-between pt-4 md:pt-6 border-t border-portal-border/50 gap-4">
               <button
                 disabled={step === 1}
                 onClick={prevStep}
-                className="flex items-center gap-2 text-zinc-500 hover:text-zinc-100 transition-colors disabled:opacity-0 shrink-0"
+                className="flex items-center gap-2 text-zinc-500 hover:text-portal-text transition-colors disabled:opacity-0 shrink-0"
               >
                 <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
                 <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Voltar</span>
@@ -480,7 +480,7 @@ export default function JourneySetup() {
                 <button
                   disabled={step === 1 && !form.playerName}
                   onClick={nextStep}
-                  className="group flex items-center gap-2 md:gap-3 bg-zinc-100 text-zinc-950 px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-primary transition-all disabled:opacity-50"
+                  className="group flex items-center gap-2 md:gap-3 bg-portal-primary text-portal-primary-foreground px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:brightness-110 transition-all disabled:opacity-50"
                 >
                   Próximo
                   <ChevronRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
@@ -488,9 +488,9 @@ export default function JourneySetup() {
               ) : (
                 <button
                   onClick={handleStart}
-                  className="flex items-center gap-2 md:gap-3 bg-primary text-zinc-950 px-6 md:px-10 py-4 md:py-5 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-sm shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-105 active:scale-95 transition-all"
+                  className="flex items-center gap-2 md:gap-3 bg-portal-primary text-portal-primary-foreground px-6 md:px-10 py-4 md:py-5 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-sm shadow-[0_0_30px_var(--portal-primary-glow-weak)] hover:scale-105 active:scale-95 transition-all"
                 >
-                  <Sparkles className="w-4 h-4 md:w-5 md:h-5 fill-zinc-950" />
+                  <Sparkles className="w-4 h-4 md:w-5 md:h-5 fill-portal-primary-foreground" />
                   <span className="truncate">Invocar Jornada</span>
                 </button>
               )}

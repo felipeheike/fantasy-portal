@@ -123,37 +123,37 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full max-w-md bg-zinc-900 border-l border-zinc-800 shadow-2xl z-[70] flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-portal-surface border-l border-portal-border shadow-2xl z-[70] flex flex-col"
           >
             {/* Header */}
-            <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50 backdrop-blur-md">
+            <div className="p-6 border-b border-portal-border flex items-center justify-between bg-portal-surface/50 backdrop-blur-md">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg text-primary">
                   <Package className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black uppercase tracking-tighter text-zinc-100">Inventário</h2>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Gerencie seus pertences</p>
+                  <h2 className="text-lg font-black uppercase tracking-tighter text-portal-text">Inventário</h2>
+                  <p className="text-[10px] text-portal-text-muted uppercase tracking-widest font-bold">Gerencie seus pertences</p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-200"
+                className="p-2 hover:bg-portal-surface-hover rounded-full transition-colors text-portal-text-muted hover:text-portal-text"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             {/* Category Filters */}
-            <div className="px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar border-b border-zinc-800/50 bg-zinc-900/30">
+            <div className="px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar border-b border-portal-border/50 bg-portal-surface/30">
               {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setFilter(cat.id as any)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
                     filter === cat.id 
-                      ? 'bg-primary border-primary text-zinc-950 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
-                      : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                      ? 'bg-primary border-primary text-zinc-950 shadow-[0_0_15px_var(--portal-primary-glow-medium)]' 
+                      : 'bg-portal-surface-hover border-portal-border text-portal-text-muted hover:border-portal-text-muted'
                   }`}
                 >
                   <cat.icon className="w-3.5 h-3.5" />
@@ -166,8 +166,8 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
               {filteredItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
-                  <Package className="w-16 h-16 mb-4 text-zinc-600" />
-                  <p className="text-zinc-400 font-serif italic">Sua bolsa está vazia...</p>
+                  <Package className="w-16 h-16 mb-4 text-portal-text-muted" />
+                  <p className="text-portal-text-muted font-body italic">Sua bolsa está vazia...</p>
                   <p className="text-[10px] uppercase tracking-widest mt-2">Explore o portal para encontrar itens</p>
                 </div>
               ) : (
@@ -178,30 +178,30 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       key={item.id + index}
-                      className={`group p-4 bg-zinc-800/40 border rounded-2xl transition-all shadow-lg ${
+                      className={`group p-4 bg-portal-surface-hover/40 border rounded-2xl transition-all shadow-lg ${
                         item.name === lockedItemName 
                         ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20' 
-                        : 'border-zinc-700/50 hover:bg-zinc-800/80 hover:border-primary/30'
+                        : 'border-portal-border/50 hover:bg-portal-surface-hover/80 hover:border-primary/30'
                       }`}
                     >
                       <div className="flex gap-4">
-                        <div className={`w-12 h-12 rounded-xl bg-zinc-900 border flex items-center justify-center transition-all shrink-0 ${
+                        <div className={`w-12 h-12 rounded-xl bg-portal-surface border flex items-center justify-center transition-all shrink-0 ${
                           item.name === lockedItemName 
                           ? 'text-primary border-primary/50' 
-                          : 'text-zinc-500 border-zinc-700 group-hover:text-primary group-hover:border-primary/50'
+                          : 'text-portal-text-muted border-portal-border group-hover:text-primary group-hover:border-primary/50'
                         }`}>
                           {getItemIcon(item.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between mb-1 gap-2">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`font-bold truncate ${item.name === lockedItemName ? 'text-primary' : 'text-zinc-200'}`}>
+                              <h3 className={`font-bold truncate ${item.name === lockedItemName ? 'text-primary' : 'text-portal-text'}`}>
                                 {item.name}
                               </h3>
                             </div>
                             
                             <div className="flex items-center gap-1.5 shrink-0">
-                               <span className="text-[10px] font-black bg-zinc-900 px-2 py-1 rounded-md border border-zinc-700 text-zinc-400">
+                               <span className="text-[10px] font-black bg-portal-surface px-2 py-1 rounded-md border border-portal-border text-portal-text-muted">
                                  x{item.quantity}
                                </span>
 
@@ -210,7 +210,7 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                                  className={`p-1.5 rounded-lg transition-colors ${
                                    expandedItems.has(item.id) 
                                    ? 'bg-primary text-zinc-950' 
-                                   : 'bg-zinc-900 text-zinc-500 hover:text-zinc-200'
+                                   : 'bg-portal-surface text-portal-text-muted hover:text-portal-text'
                                  }`}
                                  title={expandedItems.has(item.id) ? 'Recolher' : 'Detalhes'}
                                >
@@ -220,7 +220,7 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                                {item.type !== 'quest' && (
                                  item.name === lockedItemName ? (
                                    <div 
-                                     className="p-1.5 rounded-lg bg-zinc-900 text-primary/40 cursor-help"
+                                     className="p-1.5 rounded-lg bg-portal-surface text-primary/40 cursor-help"
                                      title="Item em uso: não pode ser descartado"
                                    >
                                      <Lock className="w-3.5 h-3.5" />
@@ -240,7 +240,7 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                           </div>
                           <motion.p 
                             layout="position"
-                            className={`text-xs text-zinc-500 leading-relaxed font-serif italic ${expandedItems.has(item.id) ? '' : 'line-clamp-2'}`}
+                            className={`text-xs text-portal-text-muted leading-relaxed font-body italic ${expandedItems.has(item.id) ? '' : 'line-clamp-2'}`}
                           >
                             {item.description}
                           </motion.p>
@@ -248,14 +248,14 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                           {/* Durability Bar */}
                           {item.durability !== undefined && item.maxDurability !== undefined && (
                             <motion.div layout="position" className="mt-2">
-                              <div className="flex items-center justify-between text-[8px] uppercase tracking-widest font-bold text-zinc-500 mb-1">
+                              <div className="flex items-center justify-between text-[8px] uppercase tracking-widest font-bold text-portal-text-muted mb-1">
                                 <span className="flex items-center gap-1"><Hammer className="w-2 h-2" /> Durabilidade</span>
                                 <span>{item.durability}/{item.maxDurability}</span>
                               </div>
-                              <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                              <div className="w-full h-1 bg-portal-surface rounded-full overflow-hidden border border-portal-border">
                                 <div 
                                   className={`h-full transition-all ${
-                                    (item.durability / item.maxDurability) < 0.3 ? 'bg-red-500' : 'bg-zinc-400'
+                                    (item.durability / item.maxDurability) < 0.3 ? 'bg-red-500' : 'bg-portal-text-muted'
                                   }`}
                                   style={{ width: `${(item.durability / item.maxDurability) * 100}%` }}
                                 />
@@ -271,14 +271,14 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
             </div>
 
             {/* Footer / Stats Summary */}
-            <div className="p-6 border-t border-zinc-800 bg-zinc-950/50 space-y-6">
+            <div className="p-6 border-t border-portal-border bg-portal-bg/50 space-y-6">
                {/* Vision Feature */}
                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 relative overflow-hidden group">
                  <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
                     <Sparkles className="w-4 h-4 text-primary" />
                  </div>
                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">Olho do Mestre</h4>
-                 <p className="text-[10px] text-zinc-500 mb-3 font-serif italic">Traga um objeto do mundo real para sua lenda.</p>
+                 <p className="text-[10px] text-portal-text-muted mb-3 font-body italic">Traga um objeto do mundo real para sua lenda.</p>
                  
                  <input 
                    type="file" 
@@ -304,11 +304,11 @@ export default function InventoryPanel({ isOpen, onClose }: InventoryPanelProps)
                </div>
 
                <div>
-                 <div className="flex items-center justify-between text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                 <div className="flex items-center justify-between text-xs font-bold text-portal-text-muted uppercase tracking-widest">
                     <span>Capacidade</span>
                     <span>{inventory.length} / {INVENTORY_CAPACITY} Itens</span>
                  </div>
-                 <div className="w-full h-1 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                 <div className="w-full h-1 bg-portal-surface-hover rounded-full mt-2 overflow-hidden">
                     <div 
                       className="h-full bg-primary" 
                       style={{ width: `${(inventory.length / INVENTORY_CAPACITY) * 100}%` }}

@@ -32,7 +32,7 @@ export default function ChoiceSelector({ options, onSelect, isLoading }: ChoiceS
               transition={{ delay: index * 0.1, type: "spring", stiffness: 100 }}
               onClick={() => onSelect(option)}
               disabled={isLoading}
-              className="flex items-center gap-5 p-5 rounded-2xl border border-zinc-800/50 bg-zinc-900/60 backdrop-blur-md text-left transition-all group disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
+              className="flex items-center gap-5 p-5 rounded-2xl border border-portal-border/50 bg-portal-surface/60 backdrop-blur-md text-left transition-all group disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
             >
               <div className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 group-hover:border-primary/50 group-hover:bg-primary/5 flex items-center justify-center text-zinc-500 group-hover:text-primary transition-all duration-300 shadow-inner shrink-0">
                 {getOptionIcon(option.type)}

@@ -13,13 +13,20 @@ export interface ThemePalette {
   textMuted: string;
 }
 
+export interface ThemeFonts {
+  title: string;
+  body: string;
+  ui: string;
+}
+
 export interface CustomTheme {
   id: string;
   name: string;
   colors: {
     dark: ThemePalette;
     light: ThemePalette;
-  }
+  };
+  fonts?: ThemeFonts;
 }
 
 interface GameState {

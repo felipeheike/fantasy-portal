@@ -62,7 +62,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-zinc-950 flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-portal-bg flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Ambience */}
       <div className="absolute inset-0 opacity-20 bg-[url('/noise.svg')] pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
@@ -91,16 +91,17 @@ export default function LoginPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-zinc-900/50 border border-zinc-800 p-10 rounded-[40px] backdrop-blur-xl shadow-2xl relative z-10"
+        className="w-full max-w-md bg-portal-surface/50 border border-portal-border p-10 rounded-[40px] backdrop-blur-xl shadow-2xl relative z-10"
       >
         <div className="text-center space-y-4 mb-10">
-          <div className="inline-block p-4 bg-primary/10 rounded-[32px] border border-primary/20 mb-4 shadow-[0_0_50px_rgba(245,158,11,0.1)]">
+          <div className="inline-block p-4 bg-primary/10 rounded-[32px] border border-primary/20 mb-4 shadow-[0_0_50px_var(--portal-primary-glow-subtle)]">
              <Sparkles className="w-10 h-10 text-primary fill-primary/20" />
           </div>
-          <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
-            Fantasy <span className="text-primary">Portal</span>
+          <h1 className="text-4xl font-black tracking-tighter italic text-portal-text uppercase">
+           Fantasy <span className="text-primary">Portal</span>
           </h1>
-          <p className="text-zinc-500 font-serif italic text-sm tracking-widest uppercase">
+
+          <p className="text-zinc-500 font-body italic text-sm tracking-widest uppercase">
             {requiresMfa ? 'Escudo de Almas' : 'Identifique-se para cruzar o portal'}
           </p>
         </div>
@@ -120,7 +121,7 @@ export default function LoginPage() {
                   <input 
                     type="email" 
                     placeholder="Seu email de aventureiro"
-                    className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
+                    className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 pl-12 text-portal-text placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -132,7 +133,7 @@ export default function LoginPage() {
                   <input 
                     type={showPassword ? "text" : "password"} 
                     placeholder="Sua senha secreta"
-                    className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
+                    className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 pl-12 pr-12 text-portal-text placeholder:text-zinc-600 focus:border-primary outline-none transition-all font-bold"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -165,7 +166,7 @@ export default function LoginPage() {
                     type="text" 
                     maxLength={6}
                     placeholder="000 000"
-                    className="w-full bg-zinc-950 border-2 border-primary rounded-2xl p-5 pl-12 text-center text-2xl font-mono tracking-[0.5em] text-white outline-none shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                    className="w-full bg-portal-bg border-2 border-primary rounded-2xl p-5 pl-12 text-center text-2xl font-mono tracking-[0.5em] text-portal-text outline-none shadow-[0_0_20px_var(--portal-primary-glow-subtle)]"
                     value={mfaToken}
                     onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, ''))}
                     autoFocus
@@ -186,7 +187,7 @@ export default function LoginPage() {
           <button 
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 bg-primary text-zinc-950 px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+            className="w-full flex items-center justify-center gap-3 bg-portal-primary text-portal-primary-foreground px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-[0_0_30px_var(--portal-primary-glow-medium)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -197,11 +198,11 @@ export default function LoginPage() {
         </form>
 
         {!requiresMfa && (
-          <div className="mt-8 pt-8 border-t border-zinc-800 text-center">
+          <div className="mt-8 pt-8 border-t border-portal-border text-center">
             <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Novo por aqui?</p>
             <button 
               onClick={() => router.push('/register')}
-              className="text-primary hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 mx-auto"
+              className="text-primary hover:text-portal-text transition-colors text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 mx-auto"
             >
               Solicitar Acesso <ArrowRight className="w-3 h-3" />
             </button>

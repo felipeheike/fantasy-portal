@@ -59,7 +59,7 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               key={name} 
-              className="p-4 bg-zinc-800/40 border border-zinc-700/50 rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-all shadow-lg"
+              className="p-4 bg-portal-surface-hover/40 border border-zinc-700/50 rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-all shadow-lg"
             >
               <div className="flex items-center gap-3">
                  <div className={`p-2 rounded-lg transition-colors ${value > 0 ? 'bg-green-500/10 text-green-500' : value < 0 ? 'bg-red-500/10 text-red-500' : 'bg-zinc-700/50 text-zinc-400'}`}>
@@ -104,22 +104,22 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-full max-w-md bg-zinc-950 border-r border-zinc-800 shadow-2xl z-[130] flex flex-col"
+            className="fixed left-0 top-0 h-full w-full max-w-md bg-portal-bg border-r border-portal-border shadow-2xl z-[130] flex flex-col"
           >
             {/* Header */}
-            <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30 backdrop-blur-md">
+            <div className="p-8 border-b border-portal-border flex items-center justify-between bg-portal-surface/30 backdrop-blur-md">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-2xl text-primary shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                <div className="p-3 bg-primary/10 rounded-2xl text-primary shadow-[0_0_15px_var(--portal-primary-glow-weak)]">
                   <Scale className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black uppercase tracking-tighter text-zinc-100">Influência & Fama</h2>
+                  <h2 className="text-xl font-black uppercase tracking-tighter text-portal-text">Influência & Fama</h2>
                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">O reflexo da sua alma no mundo</p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-200"
+                className="p-2 hover:bg-portal-surface-hover rounded-full transition-colors text-zinc-500 hover:text-zinc-200"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -143,7 +143,7 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
                         </p>
                         <div className="flex gap-0.5 mt-1">
                           {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} className={`w-3 h-1 rounded-full ${i < Math.abs(status.moral) / 4 ? (status.moral > 0 ? 'bg-green-500' : 'bg-red-500') : 'bg-zinc-800'}`} />
+                            <div key={i} className={`w-3 h-1 rounded-full ${i < Math.abs(status.moral) / 4 ? (status.moral > 0 ? 'bg-green-500' : 'bg-red-500') : 'bg-portal-surface-hover'}`} />
                           ))}
                         </div>
                     </div>
@@ -156,7 +156,7 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 ml-2 flex items-center gap-2">
                     <Globe className="w-3 h-3 text-blue-500" /> Reputação Mundial
                   </h3>
-                  <div className="p-4 bg-zinc-800/40 border border-zinc-700/50 rounded-2xl flex items-center justify-between">
+                  <div className="p-4 bg-portal-surface-hover/40 border border-zinc-700/50 rounded-2xl flex items-center justify-between">
                     <div className="flex items-center gap-3">
                        <div className={`p-2 rounded-lg ${globalMoral > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                           {globalMoral > 0 ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
@@ -184,7 +184,7 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
                       <Sparkles className="w-4 h-4 text-zinc-950" />
                     </motion.div>
                   </div>
-                  <p className="text-zinc-400 font-serif italic text-lg">Você ainda é um desconhecido...</p>
+                  <p className="text-zinc-400 font-body italic text-lg">Você ainda é um desconhecido...</p>
                   <p className="text-[10px] uppercase tracking-[0.2em] mt-3 font-black text-zinc-600">Suas decisões moldarão como o mundo o vê</p>
                 </div>
               ) : (
@@ -197,12 +197,12 @@ export default function InfluencePanel({ isOpen, onClose }: InfluencePanelProps)
             </div>
 
             {/* Footer Lore */}
-            <div className="p-8 bg-zinc-900/50 border-t border-zinc-800">
+            <div className="p-8 bg-portal-surface/50 border-t border-portal-border">
                <div className="flex gap-4 items-start">
-                  <div className="p-2 bg-zinc-800 rounded-lg shrink-0">
+                  <div className="p-2 bg-portal-surface-hover rounded-lg shrink-0">
                     <Info className="w-4 h-4 text-zinc-500" />
                   </div>
-                  <p className="text-[11px] text-zinc-500 font-serif italic leading-relaxed">
+                  <p className="text-[11px] text-zinc-500 font-body italic leading-relaxed">
                     "O mundo não é uma página em branco; cada ato seu é uma mancha de tinta indelével na tapeçaria do tempo. NPCs e cidades reagirão à sua fama local."
                   </p>
                </div>

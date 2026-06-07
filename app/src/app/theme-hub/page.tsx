@@ -4,14 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, ThemePalette } from '@/store/gameStore';
-import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, Moon, Sun, Settings2, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, Moon, Sun, Settings2, RefreshCcw, BookOpen, Info, Sparkles, User, LogOut, Trophy, Ghost, Skull, Bell, Clock, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 
 export default function ThemeHubPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { activeThemeId, customThemes, setActiveTheme, createTheme, updateTheme, deleteTheme, setCustomThemes } = useGameStore();
+  const { 
+    activeThemeId, customThemes, setActiveTheme, 
+    createTheme, updateTheme, deleteTheme, setCustomThemes,
+    lightMode, toggleLightMode
+  } = useGameStore();
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
@@ -32,21 +36,185 @@ export default function ThemeHubPage() {
     border: '#d4d4d8'
   });
 
-  const [activeTab, setActiveTab] = useState<'dark' | 'light'>('dark');
+  const [fonts, setFonts] = useState({
+    title: 'Inter',
+    body: 'Inter',
+    ui: 'Inter'
+  });
 
-  const syncThemesToCloud = async (updatedThemes: any[]) => {
+  const [activeTab, setActiveTab] = useState<'dark' | 'light' | 'fonts' | 'essences'>('dark');
+  const [previewMode, setPreviewMode] = useState<'dark' | 'light'>('dark');
+  const [originalThemeState, setOriginalThemeState] = useState<any>(null);
+
+  const visualEssences = [
+    {
+      id: 'toxic',
+      name: '🧪 Alquimia Tóxica',
+      colors: {
+        dark: { primary: '#10b981', bg: '#022c22', surface: '#064e3b', border: '#065f46' },
+        light: { primary: '#059669', bg: '#f0fdf4', surface: '#dcfce7', border: '#bbf7d0' }
+      },
+      fonts: { title: 'MedievalSharp', body: 'Geist', ui: 'Geist' }
+    },
+    {
+      id: 'blood',
+      name: '🩸 Ritual de Sangue',
+      colors: {
+        dark: { primary: '#e11d48', bg: '#450a0a', surface: '#7f1d1d', border: '#991b1b' },
+        light: { primary: '#be123c', bg: '#fff1f2', surface: '#ffe4e6', border: '#fecdd3' }
+      },
+      fonts: { title: 'Creepster', body: 'Inter', ui: 'Inter' }
+    },
+    {
+      id: 'stellar',
+      name: '🌌 Magia Estelar',
+      colors: {
+        dark: { primary: '#6366f1', bg: '#0f172a', surface: '#1e293b', border: '#334155' },
+        light: { primary: '#4f46e5', bg: '#f5f3ff', surface: '#ede9fe', border: '#ddd6fe' }
+      },
+      fonts: { title: 'Cinzel', body: 'Geist', ui: 'Geist' }
+    },
+    {
+      id: 'pirate',
+      name: '🏴‍☠️ Mar de Sombras',
+      colors: {
+        dark: { primary: '#06b6d4', bg: '#082f49', surface: '#0c4a6e', border: '#075985' },
+        light: { primary: '#0891b2', bg: '#ecfeff', surface: '#cffafe', border: '#a5f3fc' }
+      },
+      fonts: { title: 'Pirata One', body: 'Roboto Mono', ui: 'Roboto Mono' }
+    },
+    {
+      id: 'bronze',
+      name: '🦾 Era de Bronze',
+      colors: {
+        dark: { primary: '#d97706', bg: '#1c1917', surface: '#292524', border: '#44403c' },
+        light: { primary: '#b45309', bg: '#fffbeb', surface: '#fef3c7', border: '#fde68a' }
+      },
+      fonts: { title: 'Roboto Mono', body: 'Libre Baskerville', ui: 'Geist' }
+    }
+  ];
+
+  const updateLivePreview = (colors: { dark: any, light: any }, currentFonts: any) => {
+    const tempTheme = {
+      id: 'preview-temp',
+      name: 'Preview',
+      colors,
+      fonts: currentFonts
+    };
+    
+    const originalActiveId = useGameStore.getState().activeThemeId;
+    const originalCustomThemes = useGameStore.getState().customThemes;
+    
+    if (!originalThemeState) {
+      setOriginalThemeState({ activeThemeId: originalActiveId, customThemes: originalCustomThemes });
+    }
+
+    useGameStore.setState({ 
+      customThemes: [...originalCustomThemes.filter(t => t.id !== 'preview-temp'), tempTheme],
+      activeThemeId: 'preview-temp'
+    });
+  };
+
+  const applyEssence = (essence: any) => {
+    const newFonts = essence.fonts;
+    const newDark = essence.colors.dark;
+    const newLight = essence.colors.light;
+    
+    setDarkPalette(newDark);
+    setLightPalette(newLight);
+    setFonts(newFonts);
+    updateLivePreview({ dark: newDark, light: newLight }, newFonts);
+    toast.success(`${essence.name} aplicado!`);
+  };
+
+  const handleCancel = () => {
+    if (originalThemeState) {
+      useGameStore.setState({
+        activeThemeId: originalThemeState.activeThemeId,
+        customThemes: originalThemeState.customThemes
+      });
+      setOriginalThemeState(null);
+    }
+    setIsCreating(false);
+    setEditingThemeId(null);
+    setNewThemeName('');
+  };
+
+  const handleSurpriseMe = () => {
+    const randomColors = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#06b6d4'];
+    const randomBgs = ['#09090b', '#020617', '#0c0a09', '#050505'];
+    const randomTitleFonts = suggestedFonts.map(f => f.name);
+    const randomBodyFonts = ['Inter', 'Geist', 'Libre Baskerville', 'Playfair Display'];
+
+    const surpriseColor = randomColors[Math.floor(Math.random() * randomColors.length)];
+    const surpriseBg = randomBgs[Math.floor(Math.random() * randomBgs.length)];
+
+    const surprise = {
+      primary: surpriseColor,
+      bg: surpriseBg,
+      fonts: {
+        title: randomTitleFonts[Math.floor(Math.random() * randomTitleFonts.length)],
+        body: randomBodyFonts[Math.floor(Math.random() * randomBodyFonts.length)],
+        ui: 'Inter'
+      }
+    };
+
+    const newDark = { 
+      primary: surprise.primary, 
+      bg: surprise.bg, 
+      surface: surprise.bg, 
+      border: surprise.primary 
+    };
+
+    const newLight = {
+      primary: surprise.primary,
+      bg: '#f8fafc',
+      surface: '#f1f5f9',
+      border: surprise.primary
+    };
+    
+    setDarkPalette(newDark);
+    setLightPalette(newLight);
+    setFonts(surprise.fonts);
+    updateLivePreview({ dark: newDark, light: newLight }, surprise.fonts);
+    toast.info('✨ O destino forjou um novo visual!');
+  };
+
+  const suggestedFonts = [
+    { name: 'Inter', type: 'Sans-Serif' },
+    { name: 'Geist', type: 'Moderna (Padrão)' },
+    { name: 'Libre Baskerville', type: 'Serif (Narrativa)' },
+    { name: 'Cinzel', type: 'Serif (Especial)' },
+    { name: 'MedievalSharp', type: 'Gótica' },
+    { name: 'Roboto Mono', type: 'Monospaced' },
+    { name: 'Playfair Display', type: 'Serif Elegante' },
+    { name: 'Uncial Antiqua', type: 'Céltica' },
+    { name: 'Pirata One', type: 'Pirata' },
+    { name: 'Creepster', type: 'Terror' }
+  ];
+
+  const syncThemesToCloud = async (updatedThemes: any[], activeId?: string) => {
     setIsSyncing(true);
     try {
       await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customThemes: updatedThemes })
+        body: JSON.stringify({ 
+          customThemes: updatedThemes,
+          ...(activeId ? { activeThemeId: activeId } : {})
+        })
       });
     } catch (e) {
       console.error("THEME_SYNC_ERR:", e);
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  const handleActivateTheme = async (id: string, name: string) => {
+    setActiveTheme(id);
+    await syncThemesToCloud(customThemes, id);
+    toast.success(`Tema ${name} ativado!`);
   };
 
   const hasBYOK = (session?.user as any)?.role === 'ADMIN' || true;
@@ -75,6 +243,11 @@ export default function ThemeHubPage() {
         text: '#09090b',
         textMuted: '#52525b'
       }
+    },
+    fonts: {
+      title: 'inherit',
+      body: 'inherit',
+      ui: 'inherit'
     }
   };
 
@@ -110,11 +283,12 @@ export default function ThemeHubPage() {
           text: '#09090b',
           textMuted: '#52525b'
         }
-      }
+      },
+      fonts: fonts
     };
 
     if (editingThemeId) {
-      const updated = (customThemes || []).map(t => t.id === editingThemeId ? { ...t, name: newThemeName, colors: themePayload.colors } : t);
+      const updated = (customThemes || []).map(t => t.id === editingThemeId ? { ...t, name: newThemeName, colors: themePayload.colors, fonts: themePayload.fonts } : t);
       updateTheme(editingThemeId, themePayload);
       await syncThemesToCloud(updated);
       toast.success('Alterações gravadas no pergaminho!');
@@ -129,6 +303,7 @@ export default function ThemeHubPage() {
     setIsCreating(false);
     setEditingThemeId(null);
     setNewThemeName('');
+    setOriginalThemeState(null);
   };
 
   const startEditing = (theme: any) => {
@@ -136,6 +311,7 @@ export default function ThemeHubPage() {
     setNewThemeName(theme.name);
     setDarkPalette(theme.colors.dark || theme.colors);
     setLightPalette(theme.colors.light || theme.colors);
+    if (theme.fonts) setFonts(theme.fonts);
     setIsCreating(true);
   };
 
@@ -146,6 +322,58 @@ export default function ThemeHubPage() {
       await syncThemesToCloud(updated);
       toast.success('Tema excluído.');
     }
+  };
+
+  const PreviewCard = () => {
+    const isDark = activeTab === 'dark' ? true : activeTab === 'light' ? false : previewMode === 'dark';
+    const currentP = isDark ? darkPalette : lightPalette;
+
+    // Load fonts for preview
+    const previewFontsUrl = `https://fonts.googleapis.com/css2?family=${fonts.title.replace(/ /g, '+')}:wght@400;700;900&family=${fonts.body.replace(/ /g, '+')}:wght@400;700;900&family=${fonts.ui.replace(/ /g, '+')}:wght@400;700;900&display=swap`;
+    
+    return (
+      <div 
+        className="p-6 rounded-[32px] border-2 transition-all duration-500 overflow-hidden relative group"
+        style={{ 
+          backgroundColor: currentP.bg, 
+          borderColor: currentP.border,
+          color: isDark ? '#f4f4f5' : '#09090b'
+        }}
+      >
+        <link rel="stylesheet" href={previewFontsUrl} />
+        <div className="flex items-center gap-3 mb-4">
+           <div className="p-2 rounded-xl shadow-lg" style={{ backgroundColor: currentP.primary, color: isDark ? '#000' : '#fff' }}>
+              <Sparkles className="w-4 h-4" />
+           </div>
+           <h4 className="font-black uppercase tracking-tight text-sm" style={{ fontFamily: fonts.title }}>Título da Cena</h4>
+        </div>
+        
+        <p className="text-xs leading-relaxed mb-6 italic" style={{ fontFamily: fonts.body }}>
+          "O vento sopra gélido pelas ruínas, carregando sussurros de uma era esquecida..."
+        </p>
+
+        <div className="flex gap-2">
+           <div 
+            className="flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-center shadow-lg transition-transform hover:scale-105"
+            style={{ backgroundColor: currentP.primary, color: isDark ? '#000' : '#fff', fontFamily: fonts.ui }}
+           >
+              Escolha Destino
+           </div>
+           <div 
+            className="flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-center border transition-all"
+            style={{ backgroundColor: currentP.surface, borderColor: currentP.border, fontFamily: fonts.ui }}
+           >
+              Menu Lenda
+           </div>
+        </div>
+
+        {/* Dynamic Glow Simulation */}
+        <div 
+          className="absolute -bottom-10 -right-10 w-32 h-32 blur-3xl rounded-full opacity-20 pointer-events-none"
+          style={{ backgroundColor: currentP.primary }}
+        />
+      </div>
+    );
   };
 
   return (
@@ -168,7 +396,7 @@ export default function ThemeHubPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-black uppercase tracking-tighter italic">Hub de <span className="text-portal-primary">Temas</span></h1>
-                <p className="text-portal-text-muted font-serif italic">Molde a realidade da sua jornada</p>
+                <p className="text-portal-text-muted font-body italic">Molde a realidade da sua jornada</p>
               </div>
             </div>
           </div>
@@ -196,7 +424,7 @@ export default function ThemeHubPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="p-8 bg-portal-surface border-2 border-portal-primary/30 rounded-[40px] shadow-[0_0_50px_rgba(245,158,11,0.1)] space-y-8"
+              className="p-8 bg-portal-surface border-2 border-portal-primary/30 rounded-[40px] shadow-2xl space-y-8"
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-black uppercase tracking-tight text-white">{editingThemeId ? 'Reforjar Essência' : 'Criar Paleta Dual'}</h2>
@@ -227,7 +455,7 @@ export default function ThemeHubPage() {
                       activeTab === 'dark' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
                     }`}
                   >
-                    <Moon className="w-4 h-4" /> Modo Sombras (Escuro)
+                    <Moon className="w-4 h-4" /> Modo Sombras
                   </button>
                   <button
                     type="button"
@@ -236,92 +464,224 @@ export default function ThemeHubPage() {
                       activeTab === 'light' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
                     }`}
                   >
-                    <Sun className="w-4 h-4" /> Modo Luz (Claro)
+                    <Sun className="w-4 h-4" /> Modo Luz
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('fonts')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      activeTab === 'fonts' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4" /> Tipografia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('essences')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      activeTab === 'essences' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4" /> Essências
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Primary Color */}
-                  <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
-                      Cor de Destaque <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.primary : lightPalette.primary}</span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input 
-                        type="color"
-                        value={activeTab === 'dark' ? darkPalette.primary : lightPalette.primary}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          activeTab === 'dark' ? setDarkPalette({ ...darkPalette, primary: val }) : setLightPalette({ ...lightPalette, primary: val });
-                        }}
-                        className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
-                      />
-                      <p className="text-[9px] font-serif italic text-portal-text-muted flex-1">Usada em botões principais, ícones ativos e brilhos.</p>
-                    </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-6">
+                    {activeTab === 'essences' ? (
+                       <div className="space-y-6">
+                          <h3 className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted mb-2">Presests de Essência</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                             {visualEssences.map((e) => (
+                               <button
+                                 key={e.id}
+                                 type="button"
+                                 onClick={() => applyEssence(e)}
+                                 className="p-4 bg-portal-bg border border-portal-border rounded-2xl hover:border-portal-primary/50 transition-all text-left space-y-3 group"
+                               >
+                                  <div className="flex justify-between items-start">
+                                     <span className="text-[10px] font-black uppercase tracking-tight text-portal-text">{e.name.split(' ')[1]}</span>
+                                     <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: e.colors.dark.primary }} />
+                                  </div>
+                                  <div className="flex gap-1">
+                                     <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: e.colors.dark.bg }} />
+                                     <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: e.colors.dark.surface }} />
+                                  </div>
+                               </button>
+                             ))}
+                             <button
+                               type="button"
+                               onClick={handleSurpriseMe}
+                               className="p-4 bg-portal-primary/10 border-2 border-dashed border-portal-primary/30 rounded-2xl hover:border-portal-primary hover:bg-portal-primary/20 transition-all text-center flex flex-col items-center justify-center gap-2 group"
+                             >
+                                <RefreshCcw className="w-5 h-5 text-portal-primary group-hover:rotate-180 transition-transform duration-500" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-portal-primary">Me Surpreenda</span>
+                             </button>
+                          </div>
+                          <div className="p-4 bg-portal-primary/5 border border-portal-primary/20 rounded-2xl flex items-center gap-4">
+                              <Info className="w-6 h-6 text-portal-primary" />
+                              <p className="text-[9px] font-body italic text-portal-text-muted">
+                                Escolha uma essência para preencher automaticamente cores e fontes. O preview é aplicado em todo o sistema em tempo real.
+                              </p>
+                           </div>
+                       </div>
+                    ) : activeTab !== 'fonts' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Primary Color */}
+                        <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
+                            Cor de Destaque <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.primary : lightPalette.primary}</span>
+                          </label>
+                          <div className="flex items-center gap-4">
+                            <input 
+                              type="color"
+                              value={activeTab === 'dark' ? darkPalette.primary : lightPalette.primary}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const newDark = activeTab === 'dark' ? { ...darkPalette, primary: val } : darkPalette;
+                                const newLight = activeTab === 'light' ? { ...lightPalette, primary: val } : lightPalette;
+                                activeTab === 'dark' ? setDarkPalette(newDark) : setLightPalette(newLight);
+                                updateLivePreview({ dark: newDark, light: newLight }, fonts);
+                              }}
+                              className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
+                            />
+                            <p className="text-[9px] font-body italic text-portal-text-muted flex-1">Usada em botões principais e brilhos dinâmicos.</p>
+                          </div>
+                        </div>
+
+                        {/* Background Color */}
+                        <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
+                            Fundo Principal <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.bg : lightPalette.bg}</span>
+                          </label>
+                          <div className="flex items-center gap-4">
+                            <input 
+                              type="color"
+                              value={activeTab === 'dark' ? darkPalette.bg : lightPalette.bg}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const newDark = activeTab === 'dark' ? { ...darkPalette, bg: val } : darkPalette;
+                                const newLight = activeTab === 'light' ? { ...lightPalette, bg: val } : lightPalette;
+                                activeTab === 'dark' ? setDarkPalette(newDark) : setLightPalette(newLight);
+                                updateLivePreview({ dark: newDark, light: newLight }, fonts);
+                              }}
+                              className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
+                            />
+                            <p className="text-[9px] font-body italic text-portal-text-muted flex-1">A base estrutural da página e menus.</p>
+                          </div>
+                        </div>
+
+                        {/* Surface Color */}
+                        <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
+                            Superfície <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.surface : lightPalette.surface}</span>
+                          </label>
+                          <div className="flex items-center gap-4">
+                            <input 
+                              type="color"
+                              value={activeTab === 'dark' ? darkPalette.surface : lightPalette.surface}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const newDark = activeTab === 'dark' ? { ...darkPalette, surface: val } : darkPalette;
+                                const newLight = activeTab === 'light' ? { ...lightPalette, surface: val } : lightPalette;
+                                activeTab === 'dark' ? setDarkPalette(newDark) : setLightPalette(newLight);
+                                updateLivePreview({ dark: newDark, light: newLight }, fonts);
+                              }}
+                              className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
+                            />
+                            <p className="text-[9px] font-body italic text-portal-text-muted flex-1">Cor dos painéis e modais.</p>
+                          </div>
+                        </div>
+
+                        {/* Border Color */}
+                        <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
+                            Bordas <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.border : lightPalette.border}</span>
+                          </label>
+                          <div className="flex items-center gap-4">
+                            <input 
+                              type="color"
+                              value={activeTab === 'dark' ? darkPalette.border : lightPalette.border}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const newDark = activeTab === 'dark' ? { ...darkPalette, border: val } : darkPalette;
+                                const newLight = activeTab === 'light' ? { ...lightPalette, border: val } : lightPalette;
+                                activeTab === 'dark' ? setDarkPalette(newDark) : setLightPalette(newLight);
+                                updateLivePreview({ dark: newDark, light: newLight }, fonts);
+                              }}
+                              className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
+                            />
+                            <p className="text-[9px] font-body italic text-portal-text-muted flex-1">Delimitação de elementos.</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Font Selectors */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           {['title', 'body', 'ui'].map((type) => (
+                             <div key={type} className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted">
+                                  {type === 'title' ? 'Fonte de Títulos' : type === 'body' ? 'Fonte da Narrativa' : 'Fonte de Interface'}
+                                </label>
+                                <select 
+                                  value={(fonts as any)[type]}
+                                  onChange={(e) => {
+                                    const newFonts = { ...fonts, [type]: e.target.value };
+                                    setFonts(newFonts);
+                                    updateLivePreview({ dark: darkPalette, light: lightPalette }, newFonts);
+                                  }}
+                                  className="w-full bg-portal-surface border border-portal-border rounded-xl p-3 text-xs font-bold outline-none focus:border-portal-primary"
+                                >
+                                  {suggestedFonts.map(f => (
+                                    <option key={f.name} value={f.name}>{f.name} ({f.type})</option>
+                                  ))}
+                                </select>
+                             </div>
+                           ))}
+                           <div className="p-4 bg-portal-primary/5 border border-portal-primary/20 rounded-2xl flex items-center gap-4">
+                              <Info className="w-6 h-6 text-portal-primary" />
+                              <p className="text-[9px] font-body italic text-portal-text-muted">
+                                As fontes são carregadas dinamicamente via Google Fonts ao salvar o tema.
+                              </p>
+                           </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Background Color */}
-                  <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
-                      Fundo Principal <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.bg : lightPalette.bg}</span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input 
-                        type="color"
-                        value={activeTab === 'dark' ? darkPalette.bg : lightPalette.bg}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          activeTab === 'dark' ? setDarkPalette({ ...darkPalette, bg: val }) : setLightPalette({ ...lightPalette, bg: val });
-                        }}
-                        className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
-                      />
-                      <p className="text-[9px] font-serif italic text-portal-text-muted flex-1">A base estrutural da página e menus principais.</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between ml-4">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted">Card de Amostra</label>
+                      {(activeTab === 'fonts' || activeTab === 'essences') && (
+                        <div className="flex p-0.5 bg-portal-bg border border-portal-border rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewMode('dark')}
+                            className={`p-1 rounded-md transition-all ${previewMode === 'dark' ? 'bg-portal-surface text-white shadow-sm' : 'text-portal-text-muted hover:text-white'}`}
+                            title="Preview no Modo Escuro"
+                          >
+                            <Moon className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewMode('light')}
+                            className={`p-1 rounded-md transition-all ${previewMode === 'light' ? 'bg-portal-surface text-white shadow-sm' : 'text-portal-text-muted hover:text-white'}`}
+                            title="Preview no Modo Claro"
+                          >
+                            <Sun className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Surface Color */}
-                  <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
-                      Superfície <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.surface : lightPalette.surface}</span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input 
-                        type="color"
-                        value={activeTab === 'dark' ? darkPalette.surface : lightPalette.surface}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          activeTab === 'dark' ? setDarkPalette({ ...darkPalette, surface: val }) : setLightPalette({ ...lightPalette, surface: val });
-                        }}
-                        className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
-                      />
-                      <p className="text-[9px] font-serif italic text-portal-text-muted flex-1">Cor dos painéis, modais e cards flutuantes.</p>
-                    </div>
-                  </div>
-
-                  {/* Border Color */}
-                  <div className="p-4 bg-portal-bg border border-portal-border rounded-2xl space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted flex items-center justify-between">
-                      Bordas <span className="font-mono text-[9px]">{activeTab === 'dark' ? darkPalette.border : lightPalette.border}</span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input 
-                        type="color"
-                        value={activeTab === 'dark' ? darkPalette.border : lightPalette.border}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          activeTab === 'dark' ? setDarkPalette({ ...darkPalette, border: val }) : setLightPalette({ ...lightPalette, border: val });
-                        }}
-                        className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none"
-                      />
-                      <p className="text-[9px] font-serif italic text-portal-text-muted flex-1">Usada para delimitar elementos e separar seções.</p>
-                    </div>
+                    <PreviewCard />
                   </div>
                 </div>
 
                 <div className="pt-4 flex justify-end gap-4">
                   <button 
                     type="button" 
-                    onClick={() => { setIsCreating(false); setEditingThemeId(null); }}
+                    onClick={handleCancel}
                     className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-portal-text-muted hover:text-white transition-colors"
                   >
                     Cancelar
@@ -347,7 +707,7 @@ export default function ThemeHubPage() {
                 <div 
                   key={t.id} 
                   className={`p-6 bg-portal-surface border-2 rounded-[32px] flex items-center justify-between transition-all ${
-                    activeThemeId === t.id ? 'border-portal-primary shadow-[0_0_30px_rgba(245,158,11,0.1)]' : 'border-portal-border hover:border-portal-primary/30'
+                    activeThemeId === t.id ? 'border-portal-primary shadow-[0_0_30px_var(--portal-primary-glow-weak)]' : 'border-portal-border hover:border-portal-primary/30'
                   }`}
                 >
                   <div className="flex items-center gap-4">
@@ -376,10 +736,7 @@ export default function ThemeHubPage() {
                       </span>
                     ) : (
                       <button 
-                        onClick={() => {
-                          setActiveTheme(t.id);
-                          toast.success(`Tema ${t.name} ativado!`);
-                        }}
+                        onClick={() => handleActivateTheme(t.id, t.name)}
                         className="px-4 py-2 bg-portal-border/50 hover:bg-portal-primary text-portal-text hover:text-portal-primary-foreground rounded-xl text-[10px] font-black uppercase transition-colors"
                       >
                         Ativar
@@ -420,7 +777,7 @@ export default function ThemeHubPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-10 left-10 flex items-center gap-3 bg-zinc-900/90 border border-portal-primary/20 px-4 py-2 rounded-full backdrop-blur-md shadow-2xl z-50"
+              className="fixed bottom-10 left-10 flex items-center gap-3 bg-portal-surface/90 border border-portal-primary/20 px-4 py-2 rounded-full backdrop-blur-md shadow-2xl z-50"
             >
                 <RefreshCcw className="w-3 h-3 text-portal-primary animate-spin" />
                 <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Sincronizando com a Nuvem...</span>

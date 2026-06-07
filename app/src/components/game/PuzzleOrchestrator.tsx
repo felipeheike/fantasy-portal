@@ -82,7 +82,7 @@ export default function PuzzleOrchestrator({ onSolve }: PuzzleOrchestratorProps)
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 md:p-6 bg-zinc-900 border border-zinc-800 md:rounded-[32px] rounded-t-[32px] rounded-b-none border-b-0 shadow-2xl relative overflow-hidden md:backdrop-blur-xl">
+    <div className="w-full max-w-4xl mx-auto p-4 md:p-6 bg-portal-surface border border-portal-border md:rounded-[32px] rounded-t-[32px] rounded-b-none border-b-0 shadow-2xl relative overflow-hidden md:backdrop-blur-xl">
       {/* Background Decor (Desktop Only) */}
       <div className="absolute top-0 right-0 p-6 opacity-5 hidden md:block">
          <HelpCircle className="w-24 h-24" />
@@ -97,7 +97,7 @@ export default function PuzzleOrchestrator({ onSolve }: PuzzleOrchestratorProps)
               <Sparkles className="w-4 h-4 animate-pulse" />
               <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em]">Enigma Ativo</span>
             </div>
-            <h3 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase italic">
+            <h3 className="text-xl md:text-2xl font-black text-portal-text tracking-tighter uppercase italic">
               {puzzle.type === 'hangman' ? 'O Ritual das Runas' : 
                puzzle.type === 'anagram' ? 'O Selo Fragmentado' : 
                puzzle.type === 'cipher' ? 'Cifra de Decifração' : 'O Enigma Ancestral'}
@@ -105,7 +105,7 @@ export default function PuzzleOrchestrator({ onSolve }: PuzzleOrchestratorProps)
           </div>
 
           {/* Puzzle Visual Area - Solid Background */}
-          <div className="py-4 md:py-4 bg-zinc-950 rounded-2xl md:rounded-3xl border border-zinc-800/50 shadow-inner max-w-3xl mx-auto w-full">
+          <div className="py-4 md:py-4 bg-portal-bg rounded-2xl md:rounded-3xl border border-portal-border/50 shadow-inner max-w-3xl mx-auto w-full">
              <div className="text-xl md:text-2xl font-mono font-black text-primary tracking-[0.2em] md:tracking-[0.3em] mb-2 break-words px-4 text-center">
                 {puzzle.displayData}
              </div>
@@ -134,7 +134,7 @@ export default function PuzzleOrchestrator({ onSolve }: PuzzleOrchestratorProps)
                   type="text"
                   autoFocus
                   placeholder="Sua resposta..."
-                  className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-xl p-2.5 text-center text-base md:text-lg font-bold text-white placeholder:text-zinc-700 focus:border-primary outline-none transition-all"
+                  className="w-full bg-portal-bg border-2 border-zinc-800 rounded-xl p-2.5 text-center text-base md:text-lg font-bold text-portal-text placeholder:text-zinc-700 focus:border-primary outline-none transition-all"
                   value={input}
                   onChange={(e) => setInput(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && input.length > 0 && handleGuess()}
@@ -153,7 +153,7 @@ export default function PuzzleOrchestrator({ onSolve }: PuzzleOrchestratorProps)
                     <button 
                       onClick={buyHint}
                       disabled={status.insightPoints <= 0}
-                      className="px-4 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl font-black uppercase tracking-widest text-[9px] md:text-[10px] hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-20 flex items-center justify-center gap-2 min-w-[80px]"
+                      className="px-4 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl font-black uppercase tracking-widest text-[9px] md:text-[10px] hover:bg-zinc-700 hover:text-portal-text transition-all disabled:opacity-20 flex items-center justify-center gap-2 min-w-[80px]"
                       title="Gasta 1 Insight Point"
                     >
                       <Sparkles className="w-4 h-4" /> <span className="hidden sm:inline">Dica</span>

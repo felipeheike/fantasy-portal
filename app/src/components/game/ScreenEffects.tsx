@@ -117,7 +117,7 @@ export default function ScreenEffects() {
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.4, 0] }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-gradient-to-b from-amber-400/20 via-white/5 to-transparent mix-blend-screen"
+            className="absolute inset-0 bg-gradient-to-b from-primary/20 via-white/5 to-transparent mix-blend-screen"
           />
         )}
 

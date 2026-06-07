@@ -64,7 +64,7 @@ export default function PlayerStatusBar({
     <motion.div 
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed ${impersonatedPlayerId ? 'top-12' : 'top-0'} left-0 w-full h-20 md:h-24 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/50 z-50 flex items-center justify-between px-4 md:px-10 shadow-[0_10px_50px_rgba(0,0,0,0.5)] transition-all duration-300`}
+      className={`fixed ${impersonatedPlayerId ? 'top-12' : 'top-0'} left-0 w-full h-20 md:h-24 bg-portal-bg/80 backdrop-blur-xl border-b border-portal-border/50 z-50 flex items-center justify-between px-4 md:px-10 shadow-[0_10px_50px_rgba(0,0,0,0.5)] transition-all duration-300 player-status-bar`}
     >
       {/* Left Section: Stats & Reputation */}
       <div className="flex items-center gap-4 md:gap-8">
@@ -76,11 +76,11 @@ export default function PlayerStatusBar({
           <div className="flex items-center gap-2 md:justify-between px-1">
             <div className="flex items-center gap-1.5">
               <Heart className={`w-4 h-4 md:w-3.5 md:h-3.5 ${isCritical ? 'text-red-500 animate-pulse' : 'text-red-400'}`} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-red-400 transition-colors hidden md:inline-block">Vitalidade</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted group-hover:text-red-400 transition-colors hidden md:inline-block">Vitalidade</span>
             </div>
-            <span className="text-[10px] md:text-[10px] font-mono font-bold text-zinc-100">{status.hp}/{status.maxHp}</span>
+            <span className="text-[10px] md:text-[10px] font-mono font-bold text-portal-text">{status.hp}/{status.maxHp}</span>
           </div>
-          <div className="hidden md:block w-48 h-3 bg-zinc-950 rounded-full border border-zinc-800 p-0.5 overflow-hidden shadow-inner relative">
+          <div className="hidden md:block w-48 h-3 bg-portal-bg rounded-full border border-portal-border p-0.5 overflow-hidden shadow-inner relative">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${hpPercentage}%` }}
@@ -100,11 +100,11 @@ export default function PlayerStatusBar({
           <div className="flex items-center gap-2 md:justify-between px-1">
             <div className="flex items-center gap-1.5">
               <Flame className="w-4 h-4 md:w-3.5 md:h-3.5 text-blue-500 group-hover:text-blue-400 transition-colors" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-blue-400 transition-colors hidden md:inline-block">Estamina</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted group-hover:text-blue-400 transition-colors hidden md:inline-block">Estamina</span>
             </div>
-            <span className="text-[10px] md:text-[10px] font-mono font-bold text-zinc-100">{status.sp}/{status.maxSp}</span>
+            <span className="text-[10px] md:text-[10px] font-mono font-bold text-portal-text">{status.sp}/{status.maxSp}</span>
           </div>
-          <div className="hidden md:block w-48 h-3 bg-zinc-950 rounded-full border border-zinc-800 p-0.5 overflow-hidden shadow-inner relative">
+          <div className="hidden md:block w-48 h-3 bg-portal-bg rounded-full border border-portal-border p-0.5 overflow-hidden shadow-inner relative">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${spPercentage}%` }}
@@ -116,7 +116,7 @@ export default function PlayerStatusBar({
           </div>
         </button>
 
-        <div className="w-px h-10 bg-zinc-800 mx-1 md:mx-2" />
+        <div className="w-px h-10 bg-portal-border mx-1 md:mx-2" />
 
         {/* Reputation Trigger */}
         <button 
@@ -129,13 +129,13 @@ export default function PlayerStatusBar({
             ) : status.moral < 0 ? (
               <ShieldAlert className="w-4 h-4 md:w-3.5 md:h-3.5 text-red-500" />
             ) : (
-              <Scale className="w-4 h-4 md:w-3.5 md:h-3.5 text-zinc-500" />
+              <Scale className="w-4 h-4 md:w-3.5 md:h-3.5 text-portal-text-muted" />
             )}
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-primary transition-colors hidden md:inline-block">Reputação</span>
-            <span className="text-[10px] font-mono font-bold text-zinc-100 md:hidden">{status.moral > 0 ? `+${status.moral}` : status.moral}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted group-hover:text-primary transition-colors hidden md:inline-block">Reputação</span>
+            <span className="text-[10px] font-mono font-bold text-portal-text md:hidden">{status.moral > 0 ? `+${status.moral}` : status.moral}</span>
           </div>
-          <div className="hidden md:block w-24 h-2 bg-zinc-950 rounded-full border border-zinc-800 p-0.5 overflow-hidden relative flex items-center">
-             <div className="absolute left-1/2 w-px h-full bg-zinc-800 z-0" />
+          <div className="hidden md:block w-24 h-2 bg-portal-bg rounded-full border border-portal-border p-0.5 overflow-hidden relative flex items-center">
+             <div className="absolute left-1/2 w-px h-full bg-portal-border z-0" />
              <motion.div 
                animate={{ 
                  width: `${Math.min(100, Math.abs(status.moral) * 10)}%`,
@@ -152,10 +152,10 @@ export default function PlayerStatusBar({
 
       {/* Center Section: Logo */}
       <div className="absolute left-1/2 -translate-x-1/2 flex-col items-center hidden lg:flex">
-        <h1 className="text-2xl font-black tracking-tighter italic text-white uppercase flex items-center gap-2">
+        <h1 className="text-2xl font-black tracking-tighter italic text-portal-text uppercase flex items-center gap-2">
           Fantasy <span className="text-primary">Portal</span>
         </h1>
-        <span className="text-[7px] font-black uppercase tracking-[0.5em] text-zinc-600">Crônicas do Destino</span>
+        <span className="text-[7px] font-black uppercase tracking-[0.5em] text-portal-text-muted">Crônicas do Destino</span>
       </div>
 
       {/* Right Section: Control Buttons */}
@@ -165,7 +165,7 @@ export default function PlayerStatusBar({
           {/* Notifications (Bell) */}
           <button 
             onClick={onToggleNotifications}
-            className="relative p-2 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-500 hover:text-primary hover:border-primary/50 transition-all shadow-xl group"
+            className="relative p-2 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-portal-text-muted hover:text-primary hover:border-primary/50 transition-all shadow-xl group"
             title="Histórico de Notificações"
           >
             <Bell className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:rotate-12" />
@@ -175,7 +175,7 @@ export default function PlayerStatusBar({
                    initial={{ scale: 0 }}
                    animate={{ scale: 1 }}
                    exit={{ scale: 0 }}
-                   className="absolute top-1 right-1 md:top-1.5 md:right-1.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-red-500 rounded-full border-2 border-zinc-950 shadow-lg"
+                   className="absolute top-1 right-1 md:top-1.5 md:right-1.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-red-500 rounded-full border-2 border-portal-bg shadow-lg"
                  />
                )}
              </AnimatePresence>
@@ -184,18 +184,18 @@ export default function PlayerStatusBar({
           {/* Settings */}
           <button 
             onClick={onToggleSettings}
-            className="p-2 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-500 hover:text-primary hover:border-primary/50 transition-all shadow-xl group"
+            className="p-2 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-portal-text-muted hover:text-primary hover:border-primary/50 transition-all shadow-xl group"
             title="Configurações"
           >
             <Settings2 className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:rotate-90" />
           </button>
 
-          <div className="w-px h-8 bg-zinc-800 mx-0.5 md:mx-1" />
+          <div className="w-px h-8 bg-portal-border mx-0.5 md:mx-1" />
 
           {/* Skills */}
           <button 
             onClick={onToggleSkills}
-            className="p-2 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-500 hover:text-amber-500 hover:border-amber-500/50 transition-all shadow-xl group flex items-center gap-2"
+            className="p-2 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-portal-text-muted hover:text-amber-500 hover:border-amber-500/50 transition-all shadow-xl group flex items-center gap-2"
             title="Habilidades"
           >
             <Sparkles className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:scale-110" />
@@ -205,7 +205,7 @@ export default function PlayerStatusBar({
           {/* Inventory */}
           <button 
             onClick={onToggleInventory}
-            className="relative p-2 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-500 hover:text-emerald-500 hover:border-emerald-500/50 transition-all shadow-xl group flex items-center gap-2"
+            className="relative p-2 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-portal-text-muted hover:text-emerald-500 hover:border-emerald-500/50 transition-all shadow-xl group flex items-center gap-2"
             title="Inventário"
           >
             <Package className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:-rotate-12" />
@@ -216,7 +216,7 @@ export default function PlayerStatusBar({
                    initial={{ scale: 0 }}
                    animate={{ scale: 1 }}
                    exit={{ scale: 0 }}
-                   className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-primary text-zinc-950 text-[8px] md:text-[9px] font-black rounded-full border-2 border-zinc-950 flex items-center justify-center shadow-lg"
+                   className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-primary text-zinc-950 text-[8px] md:text-[9px] font-black rounded-full border-2 border-portal-bg flex items-center justify-center shadow-lg"
                  >
                    {inventory.length}
                  </motion.span>
@@ -224,12 +224,12 @@ export default function PlayerStatusBar({
              </AnimatePresence>
           </button>
 
-          <div className="w-px h-8 bg-zinc-800 mx-0.5 md:mx-1" />
+          <div className="w-px h-8 bg-portal-border mx-0.5 md:mx-1" />
 
           {/* Logout */}
           <button 
             onClick={onLogout}
-            className="p-2 md:p-3 bg-zinc-900 border border-zinc-800 rounded-xl md:rounded-2xl text-zinc-600 hover:text-red-500 hover:border-red-500/50 transition-all shadow-xl group"
+            className="p-2 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-portal-text-muted hover:text-red-500 hover:border-red-500/50 transition-all shadow-xl group"
             title="Sair da Jornada"
           >
             <LogOut className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:translate-x-1" />
@@ -244,7 +244,7 @@ export default function PlayerStatusBar({
           <MenuIcon className="w-5 h-5" />
           <span className="text-[10px] font-black uppercase tracking-widest">Menu</span>
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-zinc-950 shadow-md" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-portal-bg shadow-md" />
           )}
         </button>
       </div>

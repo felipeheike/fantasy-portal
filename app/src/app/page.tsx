@@ -99,8 +99,9 @@ export default function GamePage() {
     inventory, resetGame, loadJourney, hasHydrated,
     setPendingChoice, addItem, removeItem, updateSceneImage, updateSceneAudio, setImageError, setImageLoading, setAudioError, setAudioLoading,
     flags, memories, addNotification, statusHistory, impersonatedPlayerId, impersonatedPlayerName, stopImpersonation, showDebugInfo, readingMode,
-    setCustomThemes
+    setCustomThemes, setActiveTheme
   } = useGameStore();
+
 
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
@@ -146,10 +147,13 @@ export default function GamePage() {
           if (data.customThemes) {
             setCustomThemes(data.customThemes);
           }
+          if (data.activeThemeId) {
+            setActiveTheme(data.activeThemeId);
+          }
         })
         .catch(err => console.error("PROFILE_HYDRATION_ERR:", err));
     }
-  }, [hasHydrated, authStatus, setCustomThemes]);
+  }, [hasHydrated, authStatus, setCustomThemes, setActiveTheme]);
 
   const initialTriggerDone = useRef(false);
   const creationInProgress = useRef(false);
@@ -490,7 +494,7 @@ export default function GamePage() {
 
   if (!isGameStarted) {
     return (
-      <div className="h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-10 font-sans selection:bg-primary/30">
+      <div className="h-screen w-full bg-portal-bg flex flex-col items-center justify-center p-10 font-ui selection:bg-primary/30">
         <ForcePasswordChangeModal />
         <MainMenu />
         <JourneySetup />
@@ -501,7 +505,7 @@ export default function GamePage() {
   const isGameOver = object?.isGameOver || currentScene?.isGameOver || status.hp <= 0;
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 text-zinc-50 overflow-hidden font-sans relative">
+    <div className="flex flex-col h-screen bg-portal-bg text-portal-text overflow-hidden font-ui relative">
       <ScreenEffects />
       <ForcePasswordChangeModal />
       
@@ -555,7 +559,7 @@ export default function GamePage() {
           {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
-              className="hidden lg:block p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-primary hover:bg-zinc-800 transition-all shadow-xl"
+              className="hidden lg:block p-3 bg-portal-surface border border-portal-border rounded-2xl text-primary hover:bg-portal-surface-hover transition-all shadow-xl"
               title="Câmara do Mestre (Admin)"
             >
               <ShieldCheck className="w-5 h-5" />
@@ -572,11 +576,11 @@ export default function GamePage() {
                  animate={{ scale: 1, rotate: 0 }}
                  exit={{ scale: 0, rotate: 45 }}
                  onClick={() => setIsInquiryOpen(true)}
-                 className="p-4 lg:p-5 bg-primary text-zinc-950 rounded-2xl lg:rounded-[28px] hover:scale-110 active:scale-95 transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] group relative border-4 border-zinc-950"
+                 className="p-4 lg:p-5 bg-portal-primary text-portal-primary-foreground rounded-2xl lg:rounded-[28px] hover:scale-110 active:scale-95 transition-all shadow-[0_0_50px_var(--portal-primary-glow-medium)] group relative border-4 border-portal-bg"
                  title="Questionar o Mestre (Pontos de Visão)"
                >
                   <HelpCircle className="w-6 h-6 lg:w-8 lg:h-8" />
-                  <span className="absolute -top-2 -right-2 w-6 h-6 lg:w-7 lg:h-7 bg-zinc-950 text-primary text-[10px] lg:text-[12px] font-black rounded-full flex items-center justify-center border-2 border-primary/50 shadow-lg">
+                  <span className="absolute -top-2 -right-2 w-6 h-6 lg:w-7 lg:h-7 bg-portal-bg text-primary text-[10px] lg:text-[12px] font-black rounded-full flex items-center justify-center border-2 border-primary/50 shadow-lg">
                     {status.insightPoints}
                   </span>
                </motion.button>
@@ -624,16 +628,16 @@ export default function GamePage() {
         {/* Performance & Model Info */}
         {showDebugInfo && !readingMode && !isLoading && (
           <div className="fixed bottom-6 lg:bottom-4 left-4 lg:left-6 z-[45] flex items-center gap-2 md:gap-4 opacity-30 hover:opacity-100 transition-opacity">
-            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900 border border-zinc-800 rounded-full">
-                <Type className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
-                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.text || '...'}</span>
+            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-portal-surface border border-portal-border rounded-full">
+                <Type className="w-2.5 h-2.5 md:w-3 md:h-3 text-portal-text-muted" />
+                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-portal-text-muted">{aiModels.text || '...'}</span>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900 border border-zinc-800 rounded-full">
-                <Palette className="w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-500" />
-                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-zinc-400">{aiModels.image || '...'}</span>
+            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-portal-surface border border-portal-border rounded-full">
+                <Palette className="w-2.5 h-2.5 md:w-3 md:h-3 text-portal-text-muted" />
+                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-portal-text-muted">{aiModels.image || '...'}</span>
             </div>
             {lastResponseTime && (
-              <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-zinc-900 border border-zinc-800 rounded-full">
+              <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-portal-surface border border-portal-border rounded-full">
                   <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
                   <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-primary">{lastResponseTime}ms</span>
               </div>
@@ -641,24 +645,24 @@ export default function GamePage() {
           </div>
         )}
 
-        <div className={`absolute bottom-0 left-0 w-full h-40 ${readingMode ? 'hidden' : 'bg-gradient-to-t'} from-zinc-950 via-zinc-950 to-transparent z-30 pointer-events-none`} />
+        <div className={`absolute bottom-0 left-0 w-full h-40 ${readingMode ? 'hidden' : 'bg-gradient-to-t'} from-portal-bg via-portal-bg to-transparent z-30 pointer-events-none`} />
         
         <AnimatePresence>
           {history.length === 0 && !isLoading && !object && (
             <motion.div 
               exit={{ opacity: 0, scale: 1.1 }}
-              className="fixed inset-0 z-40 bg-zinc-950 flex flex-col items-center justify-center gap-6"
+              className="fixed inset-0 z-40 bg-portal-bg flex flex-col items-center justify-center gap-6"
             >
                <motion.div 
                  animate={{ rotate: 360 }}
                  transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                 className="w-20 h-20 border-t-4 border-primary rounded-full shadow-[0_0_50px_rgba(245,158,11,0.2)]"
+                 className="w-20 h-20 border-t-4 border-primary rounded-full shadow-[0_0_50px_var(--portal-primary-glow-weak)]"
                />
                <div className="text-center space-y-4">
-                 <p className="text-zinc-500 font-serif italic text-xl animate-pulse">Invocando o Destino...</p>
+                 <p className="text-portal-text-muted font-body italic text-xl animate-pulse">Invocando o Destino...</p>
                  <button 
                    onClick={() => triggerAI(`Inicie a jornada para ${settings?.playerName}`)}
-                   className="flex items-center gap-2 mx-auto px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-primary hover:border-primary/50 transition-all font-black uppercase tracking-widest text-[10px]"
+                   className="flex items-center gap-2 mx-auto px-6 py-3 bg-portal-surface border border-portal-border rounded-2xl text-portal-text-muted hover:text-primary hover:border-primary/50 transition-all font-black uppercase tracking-widest text-[10px]"
                  >
                    <RefreshCcw className="w-4 h-4" /> Tentar Novamente
                  </button>

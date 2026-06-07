@@ -87,22 +87,22 @@ export default function MobileMenu({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-zinc-950 border-l border-zinc-800 shadow-2xl z-[210] flex flex-col lg:hidden"
+            className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-portal-bg border-l border-portal-border shadow-2xl z-[210] flex flex-col lg:hidden"
           >
             {/* Header */}
-            <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30">
+            <div className="p-6 border-b border-portal-border flex items-center justify-between bg-portal-surface/30">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
                   <User className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Menu da Jornada</p>
-                  <p className="text-sm font-bold text-white truncate max-w-[150px]">{session?.user?.name || 'Viajante'}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted">Menu da Jornada</p>
+                  <p className="text-sm font-bold text-portal-text truncate max-w-[150px]">{session?.user?.name || 'Viajante'}</p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-500"
+                className="p-2 bg-portal-surface border border-portal-border rounded-lg text-portal-text-muted"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -114,10 +114,10 @@ export default function MobileMenu({
               {/* ORACLE: Sussurros do Mestre */}
               <button 
                 onClick={() => { onToggleInquiry(); onClose(); }}
-                className="w-full p-5 bg-primary text-zinc-950 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] border-2 border-zinc-950"
+                className="w-full p-5 bg-portal-primary text-portal-primary-foreground rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-[0_0_30px_var(--portal-primary-glow-weak)] border-2 border-portal-bg"
               >
                 <div className="flex items-center gap-4">
-                  <div className="p-2 bg-zinc-950/20 rounded-xl">
+                  <div className="p-2 bg-portal-bg/20 rounded-xl">
                     <HelpCircle className="w-6 h-6" />
                   </div>
                   <div className="text-left">
@@ -125,7 +125,7 @@ export default function MobileMenu({
                     <span className="block text-[8px] font-bold uppercase opacity-60">Consultar o Oráculo do Destino</span>
                   </div>
                 </div>
-                <div className="bg-zinc-950 text-primary px-3 py-1.5 rounded-full text-xs font-black shadow-lg border border-primary/30">
+                <div className="bg-portal-bg text-primary px-3 py-1.5 rounded-full text-xs font-black shadow-lg border border-primary/30">
                   {status.insightPoints}
                 </div>
               </button>
@@ -133,17 +133,17 @@ export default function MobileMenu({
               {/* Theme Toggle Button */}
               <button 
                 onClick={toggleTheme}
-                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-between group active:scale-95 transition-all"
+                className="w-full p-4 bg-portal-surface border border-portal-border rounded-2xl flex items-center justify-between group active:scale-95 transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <div className="p-2 bg-zinc-950 rounded-xl border border-zinc-800 text-primary">
+                  <div className="p-2 bg-portal-bg rounded-xl border border-portal-border text-primary">
                     {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                   </div>
-                  <span className="text-sm font-black uppercase tracking-widest text-zinc-200">
+                  <span className="text-sm font-black uppercase tracking-widest text-portal-text">
                     Modo {theme === 'dark' ? 'Luz' : 'Sombras'}
                   </span>
                 </div>
-                <div className="text-[8px] font-black uppercase text-zinc-600 bg-zinc-950 px-2 py-1 rounded-md border border-zinc-800">Switch</div>
+                <div className="text-[8px] font-black uppercase text-portal-text-muted bg-portal-bg px-2 py-1 rounded-md border border-portal-border">Switch</div>
               </button>
 
               {/* Main Actions Grid */}
@@ -152,12 +152,12 @@ export default function MobileMenu({
                   <button
                     key={idx}
                     onClick={() => { item.action(); onClose(); }}
-                    className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-all relative overflow-hidden"
+                    className="p-4 bg-portal-surface/50 border border-portal-border rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-all relative overflow-hidden"
                   >
                     <item.icon className={`w-6 h-6 ${item.color}`} />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{item.label}</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-portal-text-muted">{item.label}</span>
                     {item.count !== undefined && item.count > 0 && (
-                      <span className="absolute top-2 right-2 w-5 h-5 bg-primary text-zinc-950 text-[9px] font-black rounded-full flex items-center justify-center border-2 border-zinc-950">
+                      <span className="absolute top-2 right-2 w-5 h-5 bg-portal-primary text-portal-primary-foreground text-[9px] font-black rounded-full flex items-center justify-center border-2 border-portal-bg">
                         {item.count}
                       </span>
                     )}
@@ -166,21 +166,21 @@ export default function MobileMenu({
               </div>
 
               {/* CRÔNICAS: Export Section */}
-              <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+              <div className="space-y-4 pt-4 border-t border-portal-border/50">
                  <div className="flex items-center gap-2 px-2">
-                    <History className="w-3.5 h-3.5 text-zinc-500" />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Crônicas da Jornada</h3>
+                    <History className="w-3.5 h-3.5 text-portal-text-muted" />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-portal-text-muted">Crônicas da Jornada</h3>
                  </div>
                  <div className="grid grid-cols-2 gap-3">
                     <button 
                       onClick={() => { onDownloadPDF(); onClose(); }}
-                      className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all"
+                      className="p-3 bg-portal-surface border border-portal-border rounded-xl flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-portal-text-muted hover:text-portal-text transition-all"
                     >
                       <FileText className="w-4 h-4 text-amber-500" /> PDF Arte
                     </button>
                     <button 
                       onClick={() => { onDownloadMD(); onClose(); }}
-                      className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all"
+                      className="p-3 bg-portal-surface border border-portal-border rounded-xl flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-portal-text-muted hover:text-portal-text transition-all"
                     >
                       <FileDown className="w-4 h-4 text-cyan-500" /> Dados .MD
                     </button>
@@ -190,18 +190,18 @@ export default function MobileMenu({
               {/* Settings Toggle (Moved here to make space in grid) */}
               <button 
                 onClick={() => { onToggleSettings(); onClose(); }}
-                className="w-full p-4 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex items-center gap-4 active:scale-95 transition-all"
+                className="w-full p-4 bg-portal-surface/30 border border-portal-border rounded-2xl flex items-center gap-4 active:scale-95 transition-all"
               >
-                <Settings2 className="w-5 h-5 text-zinc-600" />
-                <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Configurações Detalhadas</span>
+                <Settings2 className="w-5 h-5 text-portal-text-muted" />
+                <span className="text-xs font-black uppercase tracking-widest text-portal-text-muted">Configurações Detalhadas</span>
               </button>
 
               {/* Admin Tools Section */}
               {isAdmin && (
-                <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+                <div className="space-y-4 pt-4 border-t border-portal-border/50">
                   <div className="flex items-center gap-2 px-2">
                     <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Console do Mestre</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-portal-text-muted">Console do Mestre</h3>
                   </div>
                   
                   <div className="space-y-3">
@@ -221,13 +221,13 @@ export default function MobileMenu({
 
                     {/* Force Action */}
                     <div className="space-y-1.5 px-2">
-                      <label className="text-[8px] font-bold uppercase text-zinc-500 ml-1">Forçar Interação</label>
-                      <div className="flex items-center gap-3 bg-zinc-900 border border-orange-500/20 p-3 rounded-xl">
+                      <label className="text-[8px] font-bold uppercase text-portal-text-muted ml-1">Forçar Interação</label>
+                      <div className="flex items-center gap-3 bg-portal-surface border border-orange-500/20 p-3 rounded-xl">
                         <Terminal className="w-4 h-4 text-orange-500 shrink-0" />
                         <select 
                           value={forcedNextAction || ''}
                           onChange={(e) => setForcedNextAction(e.target.value || null)}
-                          className="w-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-300 focus:text-orange-500"
+                          className="w-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-portal-text focus:text-orange-500"
                         >
                           <option value="">❓ Aleatório</option>
                           <option value="puzzle">🧩 Desafio</option>
@@ -241,13 +241,13 @@ export default function MobileMenu({
 
                     {/* Force Ending */}
                     <div className="space-y-1.5 px-2">
-                      <label className="text-[8px] font-bold uppercase text-zinc-500 ml-1">Forçar Desfecho</label>
-                      <div className="flex items-center gap-3 bg-zinc-900 border border-cyan-500/20 p-3 rounded-xl">
+                      <label className="text-[8px] font-bold uppercase text-portal-text-muted ml-1">Forçar Desfecho</label>
+                      <div className="flex items-center gap-3 bg-portal-surface border border-cyan-500/20 p-3 rounded-xl">
                         <Zap className="w-4 h-4 text-cyan-500 shrink-0" />
                         <select 
                           value={forcedEndingType || ''}
                           onChange={(e) => setForcedEndingType(e.target.value || null)}
-                          className="w-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-300 focus:text-cyan-500"
+                          className="w-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-portal-text focus:text-cyan-500"
                         >
                           <option value="">🌿 Continuar</option>
                           <option value="glory">🏆 Glória</option>
@@ -263,7 +263,7 @@ export default function MobileMenu({
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-zinc-800 bg-zinc-900/30">
+            <div className="p-6 border-t border-portal-border bg-portal-surface/30">
               <button 
                 onClick={() => { onLogout(); onClose(); }}
                 className="w-full p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center gap-3 text-red-500 font-black uppercase tracking-[0.2em] text-xs hover:bg-red-500/20 transition-all active:scale-95"

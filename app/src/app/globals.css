@@ -27,6 +27,20 @@
   --portal-text: #f4f4f5; /* zinc-100 */
   --portal-text-muted: #71717a; /* zinc-500 */
 
+  /* Dynamic Glow Variables (using modern CSS color-mix for theme adaptability) */
+  --portal-primary-glow: color-mix(in srgb, var(--portal-primary), transparent 50%);
+  --portal-primary-glow-weak: color-mix(in srgb, var(--portal-primary), transparent 80%);
+  --portal-primary-glow-medium: color-mix(in srgb, var(--portal-primary), transparent 70%);
+  --portal-primary-glow-subtle: color-mix(in srgb, var(--portal-primary), transparent 90%);
+  --portal-primary-glow-semi: color-mix(in srgb, var(--portal-primary), transparent 60%);
+  --portal-primary-glow-strong: color-mix(in srgb, var(--portal-primary), transparent 20%);
+
+  /* Typography Variables (Hydrated by ThemeProvider) */
+  --font-title: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-body: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-ui: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Roboto Mono, monospace;
+
   /* Legacy background variables */
   --background: var(--portal-bg);
   --foreground: var(--portal-text);
@@ -35,7 +49,7 @@
 }
 
 .light-mode {
-  /* Default Theme - Light Mode Explicit Palette */
+  /* Default Theme - Light Mode Explicit Palette (Zinc-based for continuity) */
   --portal-bg: #f4f4f5; /* zinc-100 */
   --portal-surface: #ffffff; /* white */
   --portal-surface-hover: #e4e4e7; /* zinc-200 */
@@ -52,9 +66,35 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--portal-bg);
+  color: var(--portal-text);
   transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: var(--font-ui);
+}
+
+/* Force UI elements to inherit theme fonts */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title) !important;
+}
+
+.font-body {
+  font-family: var(--font-body) !important;
+}
+
+.font-title {
+  font-family: var(--font-title) !important;
+}
+
+.font-ui {
+  font-family: var(--font-ui) !important;
+}
+
+.font-mono {
+  font-family: var(--font-mono) !important;
 }
 
 /* Custom Scrollbar */
@@ -80,4 +120,3 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--portal-border) rgba(0, 0, 0, 0.2);
 }
-

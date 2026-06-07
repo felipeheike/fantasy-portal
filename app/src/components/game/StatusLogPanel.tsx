@@ -55,16 +55,16 @@ export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanel
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 border-r top-0 h-full w-full max-w-md bg-zinc-950 border-zinc-800 shadow-2xl z-[130] flex flex-col"
+            className="fixed left-0 border-r top-0 h-full w-full max-w-md bg-portal-bg border-portal-border shadow-2xl z-[130] flex flex-col"
           >
             {/* Header */}
-            <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30 backdrop-blur-md">
+            <div className="p-8 border-b border-portal-border flex items-center justify-between bg-portal-surface/30 backdrop-blur-md">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-2xl ${type === 'hp' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
                   {type === 'hp' ? <Heart className="w-6 h-6" /> : <Flame className="w-6 h-6" />}
                 </div>
                 <div>
-                  <h2 className="text-xl font-black uppercase tracking-tighter text-zinc-100">
+                  <h2 className="text-xl font-black uppercase tracking-tighter text-portal-text">
                     {type === 'hp' ? 'Diário de Batalha' : 'Histórico de Vigor'}
                   </h2>
                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
@@ -74,7 +74,7 @@ export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanel
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-200"
+                className="p-2 hover:bg-portal-surface-hover rounded-full transition-colors text-zinc-500 hover:text-portal-text"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -92,7 +92,7 @@ export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanel
                       {currentScene?.isGameOver ? 'Status Final' : 'Status Atual'}
                     </p>
                     <div className="flex items-end gap-2">
-                       <h3 className="text-4xl font-black text-white">
+                       <h3 className="text-4xl font-black text-portal-text">
                          {type === 'hp' ? status.hp : status.sp}
                        </h3>
                        <p className="text-sm font-bold text-zinc-600 uppercase mb-1.5">/ {type === 'hp' ? status.maxHp : status.maxSp}</p>
@@ -116,7 +116,7 @@ export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanel
                  
                  {filteredLogs.length === 0 ? (
                    <div className="p-12 border-2 border-dashed border-zinc-900 rounded-[40px] text-center opacity-30">
-                      <p className="text-zinc-500 font-serif italic">Nenhum evento registrado nesta lenda ainda...</p>
+                      <p className="text-zinc-500 font-body italic">Nenhum evento registrado nesta lenda ainda...</p>
                    </div>
                  ) : (
                    <div className="space-y-3">
@@ -125,14 +125,14 @@ export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanel
                          initial={{ opacity: 0, y: 10 }}
                          animate={{ opacity: 1, y: 0 }}
                          key={log.id}
-                         className="p-4 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all"
+                         className="p-4 bg-portal-surface/40 border border-portal-border/50 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all"
                        >
                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg bg-zinc-950 border border-zinc-800`}>
+                            <div className={`p-2 rounded-lg bg-portal-bg border border-portal-border`}>
                                {getIcon(log)}
                             </div>
                             <div>
-                               <p className="text-sm font-bold text-zinc-200">{log.source}</p>
+                               <p className="text-sm font-bold text-portal-text">{log.source}</p>
                                <p className="text-[9px] uppercase font-black text-zinc-600 flex items-center gap-1">
                                   <Clock className="w-2 h-2" /> {formatTime(log.timestamp)}
                                </p>
@@ -149,12 +149,12 @@ export default function StatusLogPanel({ isOpen, onClose, type }: StatusLogPanel
             </div>
 
             {/* Footer Tip */}
-            <div className="p-8 bg-zinc-900/50 border-t border-zinc-800">
+            <div className="p-8 bg-portal-surface/50 border-t border-portal-border">
                <div className="flex gap-4 items-start">
-                  <div className="p-2 bg-zinc-800 rounded-lg shrink-0">
+                  <div className="p-2 bg-portal-surface-hover rounded-lg shrink-0">
                     <ShieldCheck className="w-4 h-4 text-zinc-500" />
                   </div>
-                  <p className="text-[11px] text-zinc-500 font-serif italic leading-relaxed">
+                  <p className="text-[11px] text-zinc-500 font-body italic leading-relaxed">
                     {type === 'hp' 
                       ? "Ferimentos graves podem deixar cicatrizes permanentes. Use poções com sabedoria."
                       : "Ações táticas consomem estamina. Gerencie seu fôlego para não ficar vulnerável."}

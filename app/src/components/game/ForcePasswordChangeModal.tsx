@@ -81,15 +81,15 @@ export default function ForcePasswordChangeModal() {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-lg bg-zinc-900 border-2 border-primary/30 rounded-[40px] shadow-[0_0_100px_rgba(245,158,11,0.1)] overflow-hidden relative z-10"
+        className="w-full max-w-lg bg-portal-surface border-2 border-primary/30 rounded-[40px] shadow-[0_0_100px_var(--portal-primary-glow-weak)] overflow-hidden relative z-10"
       >
         {/* Header */}
-        <div className="p-10 border-b border-zinc-800 text-center space-y-4 bg-zinc-900/50">
+        <div className="p-10 border-b border-portal-border text-center space-y-4 bg-portal-surface/50">
           <div className="inline-block p-4 bg-primary/10 rounded-3xl border border-primary/20 text-primary mb-2">
              <ShieldAlert className="w-10 h-10" />
           </div>
-          <h2 className="text-3xl font-black uppercase tracking-tighter text-white italic">Troca de Senha <span className="text-primary">Obrigatória</span></h2>
-          <p className="text-zinc-500 font-serif italic text-sm">Sua conta foi resetada pelo mestre. Por segurança, você deve definir uma nova senha secreta antes de prosseguir.</p>
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-portal-text italic">Troca de Senha <span className="text-primary">Obrigatória</span></h2>
+          <p className="text-zinc-500 font-body italic text-sm">Sua conta foi resetada pelo mestre. Por segurança, você deve definir uma nova senha secreta antes de prosseguir.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-10 space-y-6">
@@ -99,7 +99,7 @@ export default function ForcePasswordChangeModal() {
                 <div className="relative group">
                   <input 
                     type={showCurrentPassword ? "text" : "password"} 
-                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 pr-12 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                    className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-4 pr-12 text-sm text-portal-text outline-none focus:border-primary transition-all"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
@@ -120,7 +120,7 @@ export default function ForcePasswordChangeModal() {
                    <div className="relative group">
                       <input 
                         type={showNewPassword ? "text" : "password"} 
-                        className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 pr-10 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                        className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-4 pr-10 text-sm text-portal-text outline-none focus:border-primary transition-all"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
@@ -138,7 +138,7 @@ export default function ForcePasswordChangeModal() {
                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Confirmar</label>
                    <input 
                      type={showNewPassword ? "text" : "password"} 
-                     className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                     className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-4 text-sm text-portal-text outline-none focus:border-primary transition-all"
                      value={confirmPassword}
                      onChange={(e) => setConfirmPassword(e.target.value)}
                      required
@@ -165,11 +165,11 @@ export default function ForcePasswordChangeModal() {
         </form>
 
         {/* Footer */}
-        <div className="px-10 py-6 bg-zinc-950 border-t border-zinc-800 flex items-center gap-4">
-           <div className="p-2 bg-zinc-900 rounded-lg">
+        <div className="px-10 py-6 bg-portal-bg border-t border-portal-border flex items-center gap-4">
+           <div className="p-2 bg-portal-surface rounded-lg">
               <Sparkles className="w-4 h-4 text-zinc-500" />
            </div>
-           <p className="text-[9px] text-zinc-500 font-serif italic uppercase tracking-wider">
+           <p className="text-[9px] text-zinc-500 font-body italic uppercase tracking-wider">
               "O segredo é a armadura da alma. Não a compartilhe com ninguém."
            </p>
         </div>

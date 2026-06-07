@@ -104,14 +104,14 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
   if ((!scene && !isLoading) || scene?.isGameOver || status.hp <= 0) return null;
 
   const renderInterpretative = () => (
-    <div className="flex gap-2 md:gap-4 items-center bg-zinc-900/90 p-3 md:p-2 rounded-2xl border border-zinc-800 focus-within:border-primary/50 transition-all backdrop-blur-md shadow-2xl">
-      <div className="p-2 md:p-3 text-zinc-500">
+    <div className="flex gap-2 md:gap-4 items-center bg-portal-surface/90 p-3 md:p-2 rounded-2xl border border-portal-border focus-within:border-primary/50 transition-all backdrop-blur-md shadow-2xl">
+      <div className="p-2 md:p-3 text-portal-text-muted">
         <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
       </div>
       <input 
         type="text"
         placeholder="Escreva seu destino..."
-        className="flex-1 bg-transparent border-none outline-none text-sm md:text-base text-zinc-200 placeholder:text-zinc-600 font-serif italic"
+        className="flex-1 bg-transparent border-none outline-none text-sm md:text-base text-portal-text placeholder:text-portal-text-muted font-body italic"
         value={inputText}
         onChange={(e) => setInputText(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSendText()}
@@ -137,20 +137,20 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
           transition={{ delay: index * 0.1 }}
           onClick={() => onAction(option.label)}
           disabled={isLoading}
-          className="flex items-center justify-between p-4 md:p-5 bg-zinc-900/90 border border-zinc-800 rounded-2xl hover:border-primary/40 hover:bg-zinc-800/80 transition-all group"
+          className="flex items-center justify-between p-4 md:p-5 bg-portal-surface/90 border border-portal-border rounded-2xl hover:border-primary/40 hover:bg-portal-surface-hover/80 transition-all group"
         >
-          <span className="text-zinc-300 text-sm md:text-base font-bold tracking-tight text-left">{option.label}</span>
-          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-primary transition-colors shrink-0" />
+          <span className="text-portal-text text-sm md:text-base font-bold tracking-tight text-left">{option.label}</span>
+          <ChevronRight className="w-4 h-4 text-portal-text-muted group-hover:text-primary transition-colors shrink-0" />
         </motion.button>
       ))}
     </div>
   );
 
   const renderTactical = () => (
-    <div className="space-y-4 md:space-y-6 bg-zinc-900/90 p-4 md:p-6 rounded-3xl border border-zinc-800/50 backdrop-blur-md relative overflow-hidden">
+    <div className="space-y-4 md:space-y-6 bg-portal-surface/90 p-4 md:p-6 rounded-3xl border border-portal-border/50 backdrop-blur-md relative overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-portal-text-muted ml-2 flex items-center gap-1.5">
             <Sword className="w-3 h-3" /> Ação
           </label>
           <div className="flex flex-wrap gap-2">
@@ -161,7 +161,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all relative ${
                   selectedTactical.actionId === a.id 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400'
+                  : 'bg-portal-surface/90 border-portal-border text-portal-text-muted'
                 }`}
               >
                 {a.label}
@@ -172,7 +172,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
         </div>
 
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-portal-text-muted ml-2 flex items-center gap-1.5">
             <Target className="w-3 h-3" /> Alvo
           </label>
           <div className="flex flex-wrap gap-2">
@@ -183,7 +183,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
                   selectedTactical.target === t.label 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400'
+                  : 'bg-portal-surface/90 border-portal-border text-portal-text-muted'
                 }`}
               >
                 {t.label}
@@ -193,7 +193,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
         </div>
 
         <div className={`space-y-2 transition-all ${selectedActionData?.requiresItem && !selectedTactical.item ? 'ring-2 ring-orange-500/20 rounded-xl p-2 -m-2 bg-orange-500/20' : ''}`}>
-          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-portal-text-muted ml-2 flex items-center gap-1.5">
             <Package className="w-3 h-3" /> Item
             {selectedActionData?.requiresItem && <span className="text-[7px] text-orange-500 animate-pulse">(Obrigatório)</span>}
           </label>
@@ -204,7 +204,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                     setSelectedTactical(prev => ({ ...prev, item: undefined }));
                     setLockedItem(null);
                   }}
-                  className={`px-3 py-2 rounded-lg text-[10px] font-bold border ${!selectedTactical.item ? 'border-zinc-500 text-zinc-200' : 'border-zinc-800 text-zinc-600'}`}
+                  className={`px-3 py-2 rounded-lg text-[10px] font-bold border ${!selectedTactical.item ? 'border-portal-border text-portal-text' : 'border-portal-border text-portal-text-muted'}`}
                 >
                   Nenhum
                 </button>
@@ -219,7 +219,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
                   selectedTactical.item === i 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  : 'bg-portal-surface/90 border-portal-border text-portal-text-muted hover:border-portal-border'
                 }`}
               >
                 {i}
@@ -229,7 +229,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
         </div>
 
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 ml-2 flex items-center gap-1.5">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-portal-text-muted ml-2 flex items-center gap-1.5">
             <Sparkles className="w-3 h-3" /> Habilidade
           </label>
           <div className="flex flex-wrap gap-2">
@@ -237,7 +237,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 onClick={() => {
                   setSelectedTactical(prev => ({ ...prev, skill: undefined }));
                 }}
-                className={`px-3 py-2 rounded-lg text-[10px] font-bold border ${!selectedTactical.skill ? 'border-zinc-500 text-zinc-200' : 'border-zinc-800 text-zinc-600'}`}
+                className={`px-3 py-2 rounded-lg text-[10px] font-bold border ${!selectedTactical.skill ? 'border-portal-border text-portal-text' : 'border-portal-border text-portal-text-muted'}`}
               >
                 Nenhuma
               </button>
@@ -251,7 +251,7 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
                   selectedTactical.skill === s 
                   ? 'bg-primary border-primary text-zinc-950' 
-                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400'
+                  : 'bg-portal-surface/90 border-portal-border text-portal-text-muted'
                 }`}
               >
                 {s}
@@ -261,14 +261,14 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
         </div>
       </div>
 
-      <div className="pt-4 border-t border-zinc-800 flex justify-center">
+      <div className="pt-4 border-t border-portal-border flex justify-center">
          <button 
             disabled={!isActionValid || isLoading}
             onClick={handleSendTactical}
             className={`flex items-center gap-3 px-10 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all relative overflow-hidden ${
               isActionValid 
-              ? 'bg-zinc-100 text-zinc-950 hover:bg-primary shadow-[0_0_30px_rgba(255,255,255,0.1)] scale-100' 
-              : 'bg-zinc-950 border-2 border-dashed border-zinc-800 text-zinc-600 cursor-not-allowed opacity-100 scale-[0.98]'
+              ? 'bg-portal-text text-zinc-950 hover:bg-primary shadow-[0_0_30px_rgba(255,255,255,0.1)] scale-100' 
+              : 'bg-portal-bg border-2 border-dashed border-portal-border text-portal-text-muted cursor-not-allowed opacity-100 scale-[0.98]'
             }`}
          >
            {!isActionValid && !isLoading && <Lock className="w-3.5 h-3.5 opacity-50" />}
@@ -290,13 +290,13 @@ export default function ActionOrchestrator({ scene, onAction, isLoading }: Actio
         y: isMinimized ? 'calc(100% - 24px)' : '0px',
       }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed bottom-0 left-0 w-full z-40 bg-zinc-900/90 border-t border-zinc-800/50"
+      className="fixed bottom-0 left-0 w-full z-40 bg-portal-surface/90 border-t border-portal-border/50 action-orchestrator"
     >
       {/* Toggle Button */}
       <div className="absolute -top-8 left-0 w-full flex justify-center z-50">
          <button 
            onClick={() => setIsMinimized(!isMinimized)}
-           className="bg-zinc-900/90 border border-zinc-800 border-b-0 px-6 py-1.5 rounded-t-xl text-zinc-400 flex items-center gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] transition-colors hover:text-primary backdrop-blur-md"
+           className="bg-portal-surface/90 border border-portal-border border-b-0 px-6 py-1.5 rounded-t-xl text-portal-text-muted flex items-center gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] transition-colors hover:text-primary backdrop-blur-md"
          >
             {isMinimized ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             <span className="text-[9px] font-black uppercase tracking-widest">

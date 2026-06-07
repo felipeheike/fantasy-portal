@@ -283,17 +283,17 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-[40px] shadow-2xl z-[160] flex flex-col overflow-hidden max-h-[90vh]"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-portal-bg border border-portal-border rounded-[40px] shadow-2xl z-[160] flex flex-col overflow-hidden max-h-[90vh]"
           >
             {/* Header */}
-            <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30">
+            <div className="p-8 border-b border-portal-border flex items-center justify-between bg-portal-surface/30">
               <div className="flex items-center gap-4">
                  <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20 text-primary">
                     <Fingerprint className="w-6 h-6" />
                  </div>
                  <div>
                     <div className="flex items-center gap-2">
-                       <h2 className="text-2xl font-black uppercase tracking-tighter text-white italic">Câmara do <span className="text-primary">Viajante</span></h2>
+                       <h2 className="text-2xl font-black uppercase tracking-tighter text-portal-text italic">Câmara do <span className="text-primary">Viajante</span></h2>
                        {impersonatedPlayerId && (
                          <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[8px] font-black uppercase tracking-widest rounded-full flex items-center gap-1">
                             <Eye className="w-2.5 h-2.5" /> Supervisão
@@ -307,14 +307,14 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-200"
+                className="p-2 hover:bg-portal-surface-hover rounded-full transition-colors text-zinc-500 hover:text-portal-text"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex px-4 border-b border-zinc-800 bg-zinc-950 overflow-x-auto custom-scrollbar">
+            <div className="flex px-4 border-b border-portal-border bg-portal-bg overflow-x-auto custom-scrollbar">
                {[
                  { id: 'identity', label: 'Essência', icon: User },
                  { id: 'security', label: 'Escudo', icon: Shield },
@@ -344,7 +344,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                 <div className="h-64 flex flex-col items-center justify-center gap-4 text-red-500">
                    <ShieldAlert className="w-12 h-12" />
                    <p className="text-[10px] font-black uppercase tracking-widest italic">O Mestre não conseguiu ler seu registro.</p>
-                   <button onClick={fetchProfile} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all">
+                   <button onClick={fetchProfile} className="flex items-center gap-2 px-4 py-2 bg-portal-surface border border-portal-border rounded-xl text-zinc-400 hover:text-portal-text transition-all">
                       <RefreshCcw className="w-3 h-3" /> Tentar Novamente
                    </button>
                 </div>
@@ -359,7 +359,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary transition-colors" />
                             <input 
                               type="text" 
-                              className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-primary transition-all disabled:opacity-50"
+                              className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 pl-12 text-sm text-portal-text outline-none focus:border-primary transition-all disabled:opacity-50"
                               value={name}
                               onChange={(e) => setName(e.target.value)}
                             />
@@ -371,14 +371,14 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                   {/* TAB: SECURITY / MFA */}
                   {activeTab === 'security' && (
                     <div className="space-y-10">
-                      <div className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-3xl space-y-6">
+                      <div className="p-6 bg-portal-surface/50 border border-portal-border rounded-3xl space-y-6">
                          <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                               <div className={`p-2 rounded-xl ${mfaEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
+                               <div className={`p-2 rounded-xl ${mfaEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-portal-surface-hover text-zinc-500'}`}>
                                   <Smartphone className="w-5 h-5" />
                                </div>
                                <div>
-                                  <p className="text-xs font-black uppercase tracking-widest text-white">Escudo de Almas (2FA)</p>
+                                  <p className="text-xs font-black uppercase tracking-widest text-portal-text">Escudo de Almas (2FA)</p>
                                   <p className="text-[9px] text-zinc-500 uppercase font-bold">{mfaEnabled ? 'Proteção Ativa' : 'Proteção Desativada'}</p>
                                </div>
                             </div>
@@ -391,7 +391,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                          </div>
 
                          {mfaStep === 'verify' && (
-                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-4 border-t border-zinc-800">
+                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-4 border-t border-portal-border">
                               {mfaQrCode && (
                                 <div className="flex flex-col items-center gap-4 bg-white p-4 rounded-2xl w-fit mx-auto">
                                    <img src={mfaQrCode} alt="QR Code MFA" className="w-32 h-32" />
@@ -404,7 +404,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                    type="text"
                                    maxLength={6}
                                    placeholder="000 000"
-                                   className="w-full max-w-[200px] mx-auto block bg-zinc-950 border-2 border-primary rounded-xl p-3 text-center text-xl font-mono tracking-[0.5em] text-white outline-none"
+                                   className="w-full max-w-[200px] mx-auto block bg-portal-bg border-2 border-primary rounded-xl p-3 text-center text-xl font-mono tracking-[0.5em] text-portal-text outline-none"
                                    value={mfaToken}
                                    onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, ''))}
                                  />
@@ -417,7 +417,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                     </button>
                                     <button 
                                       onClick={() => setMfaStep('idle')}
-                                      className="px-6 py-2 bg-zinc-800 text-zinc-400 rounded-lg text-[10px] font-black uppercase"
+                                      className="px-6 py-2 bg-portal-surface-hover text-zinc-400 rounded-lg text-[10px] font-black uppercase"
                                     >
                                       Cancelar
                                     </button>
@@ -434,14 +434,14 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                               <input 
                                 type="password" 
                                 placeholder="Nova Senha"
-                                className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                                className="bg-portal-surface border-2 border-portal-border rounded-2xl p-4 text-sm text-portal-text outline-none focus:border-primary transition-all"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                               />
                               <input 
                                 type="password" 
                                 placeholder="Confirmar"
-                                className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 outline-none focus:border-primary transition-all"
+                                className="bg-portal-surface border-2 border-portal-border rounded-2xl p-4 text-sm text-portal-text outline-none focus:border-primary transition-all"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                               />
@@ -452,7 +452,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                              <label className="text-[10px] font-black uppercase tracking-widest text-red-400 ml-4">Senha Atual (Para Validar Alteração)</label>
                              <input 
                                type="password" 
-                               className="w-full bg-zinc-950 border-2 border-red-900/30 rounded-xl p-4 text-sm text-white outline-none focus:border-red-500"
+                               className="w-full bg-portal-bg border-2 border-red-900/30 rounded-xl p-4 text-sm text-portal-text outline-none focus:border-red-500"
                                value={currentPassword}
                                onChange={(e) => setCurrentPassword(e.target.value)}
                                required
@@ -497,7 +497,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                  {hasKey && (
                                    <button 
                                      onClick={() => toggleApiProvider(provider.id)}
-                                     className={`flex items-center gap-2 px-3 py-1 rounded-full text-[8px] font-black uppercase transition-all border ${isEnabled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
+                                     className={`flex items-center gap-2 px-3 py-1 rounded-full text-[8px] font-black uppercase transition-all border ${isEnabled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-portal-surface-hover border-zinc-700 text-zinc-500'}`}
                                    >
                                       {isEnabled ? <><Power className="w-2.5 h-2.5" /> Canalização Ativa</> : <><PowerOff className="w-2.5 h-2.5" /> Canalização Inativa</>}
                                    </button>
@@ -511,7 +511,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                       placeholder={isMasked ? "" : "Insira sua chave"}
                                       value={apiKeys[provider.id] || ''}
                                       disabled={!isEnabled}
-                                      className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-primary transition-all font-mono disabled:cursor-not-allowed"
+                                      className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 pl-12 text-sm text-portal-text outline-none focus:border-primary transition-all font-mono disabled:cursor-not-allowed"
                                       onChange={(e) => setApiKeys({ ...apiKeys, [provider.id]: e.target.value })}
                                     />
                                  </div>
@@ -521,7 +521,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                        setApiKeys({ ...apiKeys, [provider.id]: '' });
                                        toast.info(`${provider.label} preparada para remoção.`);
                                      }}
-                                     className="p-4 bg-red-500/10 border-2 border-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-xl"
+                                     className="p-4 bg-red-500/10 border-2 border-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-portal-text transition-all shadow-xl"
                                      title="Remover Chave"
                                    >
                                       <X className="w-5 h-5" />
@@ -538,8 +538,8 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                   {activeTab === 'preferences' && (
                     <div className="space-y-6">
                        {!hasPersonalKeys ? (
-                         <div className="p-8 bg-zinc-900/50 border border-zinc-800 rounded-[32px] flex flex-col items-center text-center gap-4">
-                            <div className="p-4 bg-zinc-800 rounded-full text-zinc-600">
+                         <div className="p-8 bg-portal-surface/50 border border-portal-border rounded-[32px] flex flex-col items-center text-center gap-4">
+                            <div className="p-4 bg-portal-surface-hover rounded-full text-zinc-600">
                                <ShieldAlert className="w-10 h-10" />
                             </div>
                             <div>
@@ -565,7 +565,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                <div className="relative group">
                                   <Cpu className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary pointer-events-none" />
                                   <select 
-                                    className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-primary appearance-none cursor-pointer"
+                                    className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 pl-12 text-sm text-portal-text outline-none focus:border-primary appearance-none cursor-pointer"
                                     value={aiPreferences?.textModel || ''}
                                     onChange={(e) => setAiPreferences({ ...aiPreferences, textModel: e.target.value })}
                                   >
@@ -588,7 +588,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                <div className="relative group">
                                   <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary pointer-events-none" />
                                   <select 
-                                    className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-primary appearance-none cursor-pointer"
+                                    className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 pl-12 text-sm text-portal-text outline-none focus:border-primary appearance-none cursor-pointer"
                                     value={aiPreferences?.imageModel || ''}
                                     onChange={(e) => setAiPreferences({ ...aiPreferences, imageModel: e.target.value })}
                                   >
@@ -611,7 +611,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                                <div className="relative group">
                                   <Volume2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-primary pointer-events-none" />
                                   <select 
-                                    className="w-full bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-4 pl-12 text-sm text-zinc-100 outline-none focus:border-primary appearance-none cursor-pointer"
+                                    className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 pl-12 text-sm text-portal-text outline-none focus:border-primary appearance-none cursor-pointer"
                                     value={aiPreferences?.ttsVoice || ''}
                                     onChange={(e) => setAiPreferences({ ...aiPreferences, ttsVoice: e.target.value })}
                                   >
@@ -639,7 +639,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
             {/* Actions */}
             {!isInitialLoading && !loadError && (
-              <div className="p-8 bg-zinc-900/30 border-t border-zinc-800">
+              <div className="p-8 bg-portal-surface/30 border-t border-portal-border">
                  <button 
                    onClick={() => handleSubmit()}
                    disabled={isLoading}

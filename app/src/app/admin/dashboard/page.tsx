@@ -135,14 +135,14 @@ export default function AdminDashboard() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen w-full bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen w-full bg-portal-bg flex items-center justify-center">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-zinc-950 text-zinc-100 p-4 md:p-12 selection:bg-primary/20 relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-portal-bg text-portal-text p-4 md:p-12 selection:bg-primary/20 relative overflow-x-hidden">
       <div className="absolute inset-0 opacity-10 bg-[url('/noise.svg')] pointer-events-none" />
       
       <div className="max-w-6xl mx-auto space-y-8 md:space-y-12 relative z-10">
@@ -159,7 +159,7 @@ export default function AdminDashboard() {
                 <ShieldCheck className="w-8 h-8 md:w-12 md:h-12 text-primary" />
                 Câmara do <span className="text-primary">Mestre</span>
              </h1>
-             <p className="text-zinc-500 font-serif italic text-sm md:text-lg">Moderação e Controle de Almas</p>
+             <p className="text-zinc-500 font-body italic text-sm md:text-lg">Moderação e Controle de Almas</p>
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
@@ -168,14 +168,14 @@ export default function AdminDashboard() {
                 <input 
                   type="text"
                   placeholder="Buscar..."
-                  className="bg-zinc-900 border border-zinc-800 rounded-2xl py-3 pl-12 pr-6 text-sm outline-none focus:border-primary transition-all w-full md:w-64"
+                  className="bg-portal-surface border border-portal-border rounded-2xl py-3 pl-12 pr-6 text-sm outline-none focus:border-primary transition-all w-full md:w-64"
                   value={searchTerm}
                   onChange={(e) => setSearchText(e.target.value)}
                 />
              </div>
              <button 
                onClick={fetchPlayers}
-               className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-primary transition-all"
+               className="p-3 bg-portal-surface border border-portal-border rounded-2xl text-zinc-500 hover:text-primary transition-all"
              >
                 <RefreshCcw className="w-5 h-5" />
              </button>
@@ -184,15 +184,15 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-           <div className="p-4 md:p-6 bg-zinc-900/50 border border-zinc-800 rounded-3xl backdrop-blur-md">
+           <div className="p-4 md:p-6 bg-portal-surface/50 border border-portal-border rounded-3xl backdrop-blur-md">
               <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Total de Almas</p>
               <h3 className="text-xl md:text-3xl font-black text-white">{players.length}</h3>
            </div>
-           <div className="p-4 md:p-6 bg-zinc-900/50 border border-zinc-800 rounded-3xl backdrop-blur-md">
+           <div className="p-4 md:p-6 bg-portal-surface/50 border border-portal-border rounded-3xl backdrop-blur-md">
               <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">Aguardando</p>
               <h3 className="text-xl md:text-3xl font-black text-white">{players.filter(p => p.accountStatus === 'PENDING').length}</h3>
            </div>
-           <div className="p-4 md:p-6 bg-zinc-900/50 border border-zinc-800 rounded-3xl backdrop-blur-md">
+           <div className="p-4 md:p-6 bg-portal-surface/50 border border-portal-border rounded-3xl backdrop-blur-md">
               <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-green-500 mb-1">Ativos</p>
               <h3 className="text-xl md:text-3xl font-black text-white">{players.filter(p => p.accountStatus === 'ACTIVE').length}</h3>
            </div>
@@ -214,7 +214,7 @@ export default function AdminDashboard() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="p-4 md:p-6 bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 rounded-[28px] md:rounded-[32px] transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group"
+                    className="p-4 md:p-6 bg-portal-surface/40 border border-portal-border hover:border-zinc-700 rounded-[28px] md:rounded-[32px] transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group"
                   >
                     <div className="flex items-center gap-4 md:gap-6">
                        <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-[24px] border flex items-center justify-center relative shrink-0 ${
@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                        
                        <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2 md:gap-3">
-                             <h4 className="text-lg md:text-xl font-black text-zinc-100 truncate">{player.name || 'Sem Nome'}</h4>
+                             <h4 className="text-lg md:text-xl font-black text-portal-text truncate">{player.name || 'Sem Nome'}</h4>
                              {player.role === 'ADMIN' && (
                                <span className="px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[7px] md:text-[8px] font-black uppercase rounded-full">Mestre</span>
                              )}
@@ -249,7 +249,7 @@ export default function AdminDashboard() {
                        {player.role !== 'ADMIN' && (
                          <button 
                             onClick={() => handleSupervise(player)}
-                            className="flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 md:py-3 bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-zinc-700 flex-1 md:flex-initial"
+                            className="flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 md:py-3 bg-portal-surface-hover text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-zinc-700 flex-1 md:flex-initial"
                          >
                             <Eye className="w-3.5 h-3.5" /> <span className="md:inline">Ver</span>
                          </button>
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
                        {player.accountStatus === 'ACTIVE' && player.role !== 'ADMIN' && (
                           <button 
                             onClick={() => updatePlayerStatus(player.id, 'INACTIVE')}
-                            className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-500 hover:border-red-500/50 transition-all rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest flex-1 md:flex-initial"
+                            className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-portal-surface border border-portal-border text-zinc-500 hover:text-red-500 hover:border-red-500/50 transition-all rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest flex-1 md:flex-initial"
                           >
                              <ShieldMinus className="w-3.5 h-3.5" /> <span className="md:inline">Revogar</span>
                           </button>
@@ -275,7 +275,7 @@ export default function AdminDashboard() {
 
                        <button 
                           onClick={() => handleResetPassword(player.id, player.name)}
-                          className="p-2.5 md:p-3 bg-zinc-900 border border-zinc-800 text-amber-500/50 hover:text-amber-400 hover:bg-amber-500/10 transition-all rounded-xl md:rounded-2xl"
+                          className="p-2.5 md:p-3 bg-portal-surface border border-portal-border text-amber-500/50 hover:text-amber-400 hover:bg-amber-500/10 transition-all rounded-xl md:rounded-2xl"
                           title="Resetar Senha"
                        >
                           <Key className="w-4 h-4" />
@@ -283,7 +283,7 @@ export default function AdminDashboard() {
 
                        <button 
                           onClick={() => deletePlayer(player.id)}
-                          className="p-2.5 md:p-3 bg-zinc-900 border border-zinc-800 text-zinc-700 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-xl md:rounded-2xl"
+                          className="p-2.5 md:p-3 bg-portal-surface border border-portal-border text-zinc-700 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-xl md:rounded-2xl"
                           title="Banir Alma"
                        >
                           <Trash2 className="w-4 h-4" />

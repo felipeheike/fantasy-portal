@@ -172,30 +172,31 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
               repeat: Infinity, 
               ease: "easeInOut" 
             }}
-            className="w-24 h-24 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(245,158,11,0.3)] relative z-10"
+            className="w-24 h-24 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_var(--portal-primary-glow-medium)] relative z-10"
           >
             <Trophy className="w-12 h-12 text-primary" />
           </motion.div>
           <div className="space-y-4 relative z-10">
-            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-portal-text">
               Sua Lenda foi Escrita
             </h2>
-            <p className="text-zinc-400 font-serif italic text-lg md:text-xl leading-relaxed max-w-lg mx-auto">
+            <p className="text-portal-text-muted font-body italic text-lg md:text-xl leading-relaxed max-w-lg mx-auto">
               "Seu nome ecoará pelos salões do Portal por toda a eternidade. A jornada termina aqui, mas sua glória é imortal."
             </p>
           </div>
           <div className="flex flex-col gap-3 max-w-sm mx-auto">
-            <button 
+            <button
               onClick={() => resetGame()}
-              className="w-full bg-white text-zinc-950 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-primary transition-all shadow-xl flex items-center justify-center gap-3"
+              className="w-full bg-portal-primary text-portal-primary-foreground py-4 rounded-2xl font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl flex items-center justify-center gap-3"
             >
               <Home className="w-4 h-4" /> Voltar ao Menu Principal
             </button>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={onDownloadPDF} className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">PDF Arte</button>
-              <button onClick={handleExportMarkdown} className="bg-zinc-900 text-zinc-400 border border-zinc-800 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">Crônicas .MD</button>
+              <button onClick={onDownloadPDF} className="bg-portal-surface text-portal-text-muted border border-portal-border py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-portal-text transition-all">PDF Arte</button>
+              <button onClick={handleExportMarkdown} className="bg-portal-surface text-portal-text-muted border border-portal-border py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:text-portal-text transition-all">Crônicas .MD</button>
             </div>
           </div>
+
         </motion.div>
       );
     }
@@ -209,22 +210,22 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
           animate={{ opacity: 1, y: 0 }}
           className="max-w-2xl mx-auto py-20 text-center space-y-8"
         >
-          <div className={`w-24 h-24 ${isPermadeath ? 'bg-zinc-900' : 'bg-red-500/10'} border ${isPermadeath ? 'border-zinc-800' : 'border-red-500/20'} rounded-full flex items-center justify-center mx-auto shadow-2xl`}>
-            {isPermadeath ? <Skull className="w-12 h-12 text-zinc-600" /> : <Ghost className="w-12 h-12 text-red-500 animate-pulse" />}
+          <div className={`w-24 h-24 ${isPermadeath ? 'bg-portal-surface' : 'bg-red-500/10'} border ${isPermadeath ? 'border-portal-border' : 'border-red-500/20'} rounded-full flex items-center justify-center mx-auto shadow-2xl`}>
+            {isPermadeath ? <Skull className="w-12 h-12 text-portal-text-muted" /> : <Ghost className="w-12 h-12 text-red-500 animate-pulse" />}
           </div>
           
           <div className="space-y-4">
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white">
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-portal-text">
               {isPermadeath ? 'O Fim Absoluto' : 'A Morte é Apenas um Revés'}
             </h2>
-            <p className="text-zinc-500 font-serif italic text-base md:text-lg leading-relaxed max-w-lg mx-auto">
+            <p className="text-portal-text-muted font-body italic text-base md:text-lg leading-relaxed max-w-lg mx-auto">
               {isPermadeath 
                 ? "O destino foi implacável e o Portal se fechou para esta alma. Suas cinzas agora sopram pelo vazio."
                 : "As sombras tentaram te levar, mas sua lenda ainda não terminou. A poeira foi removida e você retornou à jogada."
               }
             </p>
             {!isPermadeath && (
-               <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
+               <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-portal-text-muted">
                   <Sparkles className="w-3 h-3" /> Ressurreições Usadas: {status.deathCount} / {currentLimit === 0 ? '∞' : currentLimit}
                </div>
             )}
@@ -237,21 +238,21 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                   revivePlayer();
                   onRevive?.();
                 }}
-                className="w-full bg-primary text-zinc-950 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)]"
+                className="w-full bg-portal-primary text-portal-primary-foreground py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_30px_var(--portal-primary-glow-weak)]"
               >
                 ✨ Levantar-se e Continuar
               </button>
             ) : (
               <button 
                 onClick={handleStartNewJourney}
-                className="w-full bg-white text-zinc-950 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-primary transition-all shadow-xl"
+                className="w-full bg-white text-zinc-950 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-portal-primary transition-all shadow-xl"
               >
                 🌀 Iniciar Nova Jornada
               </button>
             )}
             <button 
               onClick={() => resetGame()}
-              className="w-full bg-zinc-900 text-zinc-500 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all border border-zinc-800"
+              className="w-full bg-portal-surface text-portal-text-muted py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:text-portal-text transition-all border border-portal-border"
             >
               🏛️ Menu Principal
             </button>
@@ -277,7 +278,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
     const isAudioActive = isPlaying === sceneId || (timeData.current > 0 && timeData.current < timeData.duration - 0.5);
 
     return (
-      <p className="text-xl md:text-2xl leading-relaxed text-zinc-200 font-serif selection:bg-primary/20">
+      <p className="text-xl md:text-2xl leading-relaxed text-portal-text font-body selection:bg-primary/20">
         {sentences.map((sentence, idx) => {
           const sentenceChars = sentence.length;
           const startRatio = accumulatedChars / totalChars;
@@ -290,7 +291,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
           return (
             <span 
               key={idx} 
-              className={`transition-colors duration-300 ${isHighlighted ? 'text-primary drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'text-zinc-200'}`}
+              className={`transition-colors duration-300 ${isHighlighted ? 'text-primary drop-shadow-[0_0_8px_var(--portal-primary-glow)]' : 'text-portal-text'}`}
             >
               {sentence}
             </span>
@@ -310,7 +311,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
         {/* Sentinel for Reverse Scroll */}
         <div ref={sentinelRef} className="h-4 w-full flex items-center justify-center">
            {isLoadingHistory && (
-             <div className="flex items-center gap-2 text-zinc-500 animate-pulse">
+             <div className="flex items-center gap-2 text-portal-text-muted animate-pulse">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Recuperando Crônicas...</span>
              </div>
@@ -327,8 +328,8 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
               >
                 {/* Scene Image */}
                 {(scene.imageUrl || (settings?.enableImages && scene.visualDescription)) && (
-                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl group">
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 z-10" />
+                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-portal-border shadow-2xl group">
+                    <div className="absolute inset-0 bg-gradient-to-t from-portal-bg via-transparent to-transparent opacity-60 z-10" />
                     
                     {scene.imageUrl ? (
                       <motion.img 
@@ -339,7 +340,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-[2s]"
                       />
                     ) : (
-                      <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center gap-4 z-20">
+                      <div className="absolute inset-0 bg-portal-surface flex flex-col items-center justify-center gap-4 z-20">
                         {scene.imageError ? (
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -349,16 +350,16 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                             <div className="p-3 bg-red-500/10 rounded-full w-fit mx-auto mb-3">
                               <AlertCircle className="w-6 h-6 text-red-500" />
                             </div>
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold mb-4">Falha na Ilustração</p>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-portal-text-muted font-bold mb-4">Falha na Ilustração</p>
                             <button 
                               onClick={() => onRetryImage?.(scene.sceneId, scene.visualDescription)}
-                              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-zinc-700 active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2 bg-portal-surface-hover hover:bg-portal-surface-hover text-portal-text rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-portal-border active:scale-95"
                             >
                               <RefreshCcw className="w-3 h-3" /> Tentar Novamente
                             </button>
                           </motion.div>
                         ) : scene.imageLoading ? (
-                          <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold animate-pulse">
+                          <span className="text-[10px] uppercase tracking-[0.3em] text-portal-text-muted font-bold animate-pulse">
                             Ilustrando Cena...
                           </span>
                         ) : (
@@ -370,10 +371,10 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                             <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto mb-3">
                               <Palette className="w-6 h-6 text-primary" />
                             </div>
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold mb-4">Ilustração Omitida</p>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-portal-text-muted font-bold mb-4">Ilustração Omitida</p>
                             <button 
                               onClick={() => onRetryImage?.(scene.sceneId, scene.visualDescription)}
-                              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-primary text-zinc-200 hover:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-zinc-700 active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2 bg-portal-surface-hover hover:bg-portal-primary text-portal-text hover:text-portal-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-portal-border active:scale-95"
                             >
                               <Sparkles className="w-3 h-3" /> Gerar Ilustração
                             </button>
@@ -383,7 +384,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                     )}
                     
                     <div className="absolute bottom-4 left-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-mono">
+                       <p className="text-[9px] uppercase tracking-wider text-portal-text-muted font-mono">
                          Prompt: {scene.visualDescription.substring(0, 60)}...
                        </p>
                     </div>
@@ -391,12 +392,12 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                 )}
 
                 {/* Narration Block */}
-                <div className="relative px-8 py-10 bg-zinc-900/40 border border-zinc-800/50 rounded-3xl backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                  <div className="absolute -top-3 left-10 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-md flex items-center gap-4">
+                <div className="relative px-8 py-10 bg-portal-surface/40 border border-portal-border/50 rounded-3xl backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                  <div className="absolute -top-3 left-10 px-3 py-1 bg-portal-surface-hover border border-portal-border rounded-md flex items-center gap-4">
                       <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Capítulo {(scene as any).order || index + 1}</span>
                       
                       {scene.audioUrl ? (
-                        <div className="flex items-center gap-3 border-l border-zinc-700 pl-4 py-1">
+                        <div className="flex items-center gap-3 border-l border-portal-border pl-4 py-1">
                           <audio 
                             id={`audio-${scene.sceneId}`} 
                             src={scene.audioUrl} 
@@ -430,8 +431,8 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                             }}
                             className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${
                               isPlaying === scene.sceneId 
-                              ? 'bg-primary/20 border-primary text-primary shadow-[0_0_20px_rgba(245,158,11,0.4)]' 
-                              : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-primary hover:border-primary/50'
+                              ? 'bg-primary/20 border-primary text-primary shadow-[0_0_20px_var(--portal-primary-glow-semi)]' 
+                              : 'bg-portal-surface-hover/50 border-portal-border text-portal-text-muted hover:text-primary hover:border-primary/50'
                             }`}
                           >
                             <AnimatePresence mode="wait">
@@ -485,7 +486,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                               audio.currentTime = 0;
                               audio.play();
                             }}
-                            className="p-2 bg-zinc-800/50 border border-zinc-700 rounded-full text-zinc-500 hover:text-primary hover:border-primary/50 transition-all active:rotate-[-45deg]"
+                            className="p-2 bg-portal-surface-hover/50 border border-portal-border rounded-full text-portal-text-muted hover:text-primary hover:border-primary/50 transition-all active:rotate-[-45deg]"
                             title="Reiniciar Áudio"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
@@ -493,14 +494,14 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                         </div>
                       ) : (
                         (settings?.enableAudio || scene.audioError || scene.audioLoading) && (
-                          <div className="flex items-center gap-3 border-l border-zinc-700 pl-4 py-1">
+                          <div className="flex items-center gap-3 border-l border-portal-border pl-4 py-1">
                              <button 
                                onClick={() => onRetryAudio?.(scene.sceneId, scene.narration, scene.audioVoice)}
                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all border ${
                                  scene.audioError
                                  ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20' 
                                  : scene.audioLoading
-                                 ? 'bg-zinc-800/30 border-zinc-700 text-zinc-500'
+                                 ? 'bg-portal-surface-hover/30 border-portal-border text-portal-text-muted'
                                  : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
                                }`}
                                disabled={!onRetryAudio}
@@ -529,9 +530,9 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                   {renderNarrationWithPointer(scene.sceneId, scene.narration)}
 
                   {scene.audioDescription && (
-                    <div className="mt-6 flex items-center gap-2 text-zinc-600">
+                    <div className="mt-6 flex items-center gap-2 text-portal-text-muted">
                       <Headphones className="w-3 h-3" />
-                      <span className="text-[10px] italic font-serif opacity-50">{scene.audioDescription}</span>
+                      <span className="text-[10px] italic font-body opacity-50">{scene.audioDescription}</span>
                     </div>
                   )}
                 </div>
@@ -544,13 +545,13 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
                   animate={{ opacity: 1, scale: 1 }}
                   className="max-w-2xl mx-auto flex flex-col items-center gap-4"
                 >
-                  <div className="h-12 w-px bg-gradient-to-b from-zinc-800 to-transparent" />
+                  <div className="h-12 w-px bg-gradient-to-b from-portal-border to-transparent" />
                   <div className="flex items-center gap-3 px-6 py-3 bg-primary/10 border border-primary/20 rounded-2xl">
                      <MessageCircle className="w-4 h-4 text-primary" />
                      <span className="text-xs font-black uppercase tracking-widest text-primary/80 italic">Sua Escolha:</span>
-                     <span className="text-xs font-bold text-zinc-100">{scene.selectedOption}</span>
+                     <span className="text-xs font-bold text-portal-text">{scene.selectedOption}</span>
                   </div>
-                  <ChevronDown className="w-5 h-5 text-zinc-800 animate-bounce" />
+                  <ChevronDown className="w-5 h-5 text-portal-border animate-bounce" />
                 </motion.div>
               )}
             </div>
@@ -566,7 +567,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
             <motion.div 
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ repeat: Infinity, duration: 2 }}
-              className="text-zinc-500 font-serif italic"
+              className="text-portal-text-muted font-body italic"
             >
               Aguardando o início da jornada...
             </motion.div>
@@ -581,7 +582,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
           onClick={toggleTheme}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl shadow-2xl text-zinc-400 hover:text-primary transition-all group"
+          className="p-4 bg-portal-bg/80 border border-portal-border rounded-full backdrop-blur-xl shadow-2xl text-portal-text-muted hover:text-primary transition-all group"
           title={theme === 'dark' ? 'Modo Luz' : 'Modo Sombras'}
         >
           {theme === 'dark' ? <Sun className="w-5 h-5 group-hover:rotate-90 transition-transform" /> : <Moon className="w-5 h-5 group-hover:-rotate-12 transition-transform" />}
@@ -594,8 +595,8 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
           whileTap={{ scale: 0.9 }}
           className={`p-4 rounded-full backdrop-blur-xl shadow-2xl transition-all border ${
             readingMode 
-            ? 'bg-primary border-primary text-zinc-950 shadow-[0_0_25px_rgba(245,158,11,0.4)]' 
-            : 'bg-zinc-950/80 border-zinc-800 text-zinc-400 hover:text-primary hover:border-primary/50'
+            ? 'bg-portal-primary border-portal-primary text-portal-primary-foreground shadow-[0_0_25px_var(--portal-primary-glow-semi)]' 
+            : 'bg-portal-bg/80 border-portal-border text-portal-text-muted hover:text-primary hover:border-primary/50'
           }`}
           title={readingMode ? 'Sair do Modo Leitura' : 'Modo Leitura'}
         >
@@ -607,14 +608,14 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
       {isAdmin && !readingMode && (
         <div className="absolute top-28 left-10 z-50 hidden lg:flex flex-col items-start gap-2">
           {/* Force Action Selector */}
-          <div className="flex items-center gap-3 bg-zinc-950/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center gap-3 bg-portal-bg/80 border border-orange-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
             <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
               <Terminal className="w-4 h-4" />
             </div>
             <select 
               value={forcedNextAction || ''}
               onChange={(e) => setForcedNextAction(e.target.value || null)}
-              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-orange-500 transition-colors cursor-pointer"
+              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-portal-text-muted focus:text-orange-500 transition-colors cursor-pointer"
             >
               <option value="">❓ Ação Aleatória</option>
               <option value="puzzle">🧩 Desafio Mental</option>
@@ -627,14 +628,14 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
           </div>
 
           {/* Force Ending Selector */}
-          <div className="flex items-center gap-3 bg-zinc-950/80 border border-cyan-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center gap-3 bg-portal-bg/80 border border-cyan-500/30 p-2 rounded-2xl backdrop-blur-xl shadow-2xl">
             <div className="p-2 bg-cyan-500/10 rounded-xl text-cyan-500">
               <Zap className="w-4 h-4" />
             </div>
             <select 
               value={forcedEndingType || ''}
               onChange={(e) => setForcedEndingType(e.target.value || null)}
-              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-cyan-500 transition-colors cursor-pointer"
+              className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-portal-text-muted focus:text-cyan-500 transition-colors cursor-pointer"
             >
               <option value="">🌿 Continuar História</option>
               <option value="glory">🏆 Glória do Herói</option>
@@ -650,10 +651,10 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
             className={`flex items-center gap-3 p-2 rounded-2xl backdrop-blur-xl shadow-2xl border transition-all ${
               showDebugInfo 
               ? 'bg-primary/10 border-primary/30 text-primary' 
-              : 'bg-zinc-950/80 border-zinc-800 text-zinc-500'
+              : 'bg-portal-bg/80 border-portal-border text-portal-text-muted'
             }`}
           >
-            <div className={`p-2 rounded-xl ${showDebugInfo ? 'bg-primary/20' : 'bg-zinc-900'}`}>
+            <div className={`p-2 rounded-xl ${showDebugInfo ? 'bg-primary/20' : 'bg-portal-surface'}`}>
               {showDebugInfo ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             </div>
             <span className="text-[10px] font-black uppercase tracking-widest">
@@ -666,7 +667,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
       {/* Scribe's Hub - Floating Export Menu (Desktop Only) */}
       {history.length > 0 && !readingMode && (
         <motion.div 
-          className="absolute bottom-36 lg:bottom-10 right-4 lg:right-10 z-50 hidden lg:flex flex-col lg:flex-row items-center gap-2 lg:gap-1 bg-zinc-950/50 lg:bg-zinc-950/90 border border-zinc-800 p-1.5 rounded-2xl lg:rounded-3xl backdrop-blur-xl shadow-2xl group/hub opacity-60 hover:opacity-100 lg:opacity-100 transition-opacity"
+          className="absolute bottom-36 lg:bottom-10 right-4 lg:right-10 z-50 hidden lg:flex flex-col lg:flex-row items-center gap-2 lg:gap-1 bg-portal-bg/50 lg:bg-portal-bg/90 border border-portal-border p-1.5 rounded-2xl lg:rounded-3xl backdrop-blur-xl shadow-2xl group/hub opacity-60 hover:opacity-100 lg:opacity-100 transition-opacity"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -674,19 +675,19 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
             {/* PDF Option */}
             <motion.button
               onClick={onDownloadPDF}
-              className="p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-zinc-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2 group/pdf"
+              className="p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-portal-text-muted hover:text-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2 group/pdf"
               title="Livro de Arte (PDF)"
             >
               <FileText className="w-4 h-4 lg:w-5 lg:h-5" />
               <span className="text-[9px] font-black uppercase tracking-widest hidden lg:group-hover/hub:inline-block transition-all">PDF Arte</span>
             </motion.button>
 
-            <div className="h-px w-6 lg:h-6 lg:w-px bg-zinc-800/50 my-1 lg:mx-1" />
+            <div className="h-px w-6 lg:h-6 lg:w-px bg-portal-border/50 my-1 lg:mx-1" />
 
             {/* Markdown Option */}
             <motion.button
               onClick={handleExportMarkdown}
-              className="p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all flex items-center gap-2 group/md"
+              className="p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-portal-text-muted hover:text-cyan-400 hover:bg-cyan-500/10 transition-all flex items-center gap-2 group/md"
               title="Crônicas (.md)"
             >
               <FileDown className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -694,7 +695,7 @@ export default function NarrativePanel({ onRetryImage, onRetryAudio, onRevive, o
             </motion.button>
           </div>
 
-          <div className="hidden lg:flex bg-zinc-900 p-3 rounded-2xl text-zinc-600 group-hover/hub:text-primary transition-colors ml-1 border border-zinc-800">
+          <div className="hidden lg:flex bg-portal-surface p-3 rounded-2xl text-portal-text-muted group-hover/hub:text-primary transition-colors ml-1 border border-portal-border">
              <Download className="w-4 h-4" />
           </div>
         </motion.div>
