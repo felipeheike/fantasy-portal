@@ -785,7 +785,10 @@ export const useGameStore = create<GameState>()(
         activeThemeId: state.activeThemeId,
         customThemes: state.customThemes,
         forcedNextAction: state.forcedNextAction,
-        forcedEndingType: state.forcedEndingType
+        forcedEndingType: state.forcedEndingType,
+        showAdminPanel: state.showAdminPanel,
+        showDebugInfo: state.showDebugInfo,
+        readingMode: state.readingMode
       }),
     }
   )

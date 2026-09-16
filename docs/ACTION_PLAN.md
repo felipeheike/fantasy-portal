@@ -1,8 +1,11 @@
 # 🗺️ Plano de Ação e Melhorias
 
-Levantamento feito em 2026-09-16 a partir do estado real do código (não de suposições). Cada item foi verificado no repositório antes de entrar na lista. Organizado por prioridade: comece pela Fase 1.
+Levantamento feito em 2026-09-16 a partir do estado real do código (não de suposições). Cada item foi verificado no repositório antes de entrar na lista. Organizado por prioridade — Fases 2 e 4 concluídas, Fase 3 parcial, Fase 1 congelada por decisão do usuário (ver nota na seção).
 
-## 🚨 Fase 1 — Segurança Crítica (agir hoje)
+## 🧊 Fase 1 — Segurança Crítica (congelada em 2026-09-16, decisão consciente do usuário)
+
+**Status:** o usuário optou por congelar os 3 itens abaixo por enquanto — o app roda em ambiente local com acesso restrito a ele mesmo, então a criticidade percebida é baixa. Fica no radar para retomar quando fizer sentido (ex.: antes de expor a aplicação a mais gente).
+**Ressalva registrada:** o repositório `felipeheike/fantasy-portal` é **público** no GitHub. Isso não muda o risco dos itens 2 e 3 (dependem de uso/exposição do app), mas o item 1 (chave exposta no histórico do git) não depende de quem acessa o app — qualquer pessoa que encontre o repositório pode pegar a chave. O usuário foi avisado dessa distinção e escolheu congelar mesmo assim.
 
 ### 1. Chave de API do Google exposta no histórico do Git
 `app/.env.example:45` tem um comentário com uma chave real (`AIzaSy...`), commitada em `73df0cc` (2026-05-31) e presente no repositório público `github.com/felipeheike/fantasy-portal`.
@@ -92,9 +95,9 @@ Ver nota do item 13. Precisa de uma sessão de teste manual no navegador (chat, 
 
 | # | Item | Esforço | Risco se ignorado | Status |
 |---|------|---------|---------------------|--------|
-| 1 | Chave Google exposta | Baixo | Uso indevido da chave, custo na conta | ⏸️ Adiado (Fase 1) |
-| 2 | Chave de criptografia hardcoded | Baixo–Médio | Todas as BYOK/MFA descriptografáveis | ⏸️ Adiado (Fase 1) |
-| 3 | Rate limiting em rotas de IA | Médio | Custo ilimitado por abuso | ⏸️ Adiado (Fase 1) |
+| 1 | Chave Google exposta | Baixo | Uso indevido da chave, custo na conta | 🧊 Congelado (decisão consciente — repo é público, ver nota acima) |
+| 2 | Chave de criptografia hardcoded | Baixo–Médio | Todas as BYOK/MFA descriptografáveis | 🧊 Congelado (app local, uso restrito) |
+| 3 | Rate limiting em rotas de IA | Médio | Custo ilimitado por abuso | 🧊 Congelado (app local, uso restrito) |
 | 4 | Ausência de testes | Alto (contínuo) | Regressão silenciosa | ✅ Base criada (12 testes) |
 | 5 | Auth não centralizado | Médio | Rota nova sem proteção | ✅ Corrigido + IDOR real achado e corrigido |
 | 6 | SDK morto do Gemini | Trivial | Nenhum (só limpeza) | ✅ Removido |
