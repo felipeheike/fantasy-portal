@@ -31,6 +31,8 @@ interface PlayerStatusBarProps {
   onToggleHPLog: () => void;
   onToggleSPLog: () => void;
   onLogout: () => void;
+  isSpotifyConnected?: boolean;
+  onToggleSpotifyPlayer?: () => void;
 }
 
 export default function PlayerStatusBar({ 
@@ -44,7 +46,9 @@ export default function PlayerStatusBar({
   onDownloadMD,
   onToggleHPLog,
   onToggleSPLog,
-  onLogout
+  onLogout,
+  isSpotifyConnected = false,
+  onToggleSpotifyPlayer
 }: PlayerStatusBarProps) {
   const { status, inventory, notificationHistory, impersonatedPlayerId } = useGameStore();
   const [isCritical, setIsCritical] = useState(false);
@@ -262,6 +266,8 @@ export default function PlayerStatusBar({
       onDownloadPDF={onDownloadPDF}
       onDownloadMD={onDownloadMD}
       onLogout={onLogout}
+      isSpotifyConnected={isSpotifyConnected}
+      onToggleSpotifyPlayer={onToggleSpotifyPlayer}
     />
     </>
   );

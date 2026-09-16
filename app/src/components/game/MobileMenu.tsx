@@ -19,7 +19,8 @@ import {
   LayoutDashboard,
   HelpCircle,
   FileDown,
-  FileText
+  FileText,
+  Music
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -36,6 +37,8 @@ interface MobileMenuProps {
   onDownloadPDF: () => void;
   onDownloadMD: () => void;
   onLogout: () => void;
+  isSpotifyConnected?: boolean;
+  onToggleSpotifyPlayer?: () => void;
 }
 
 export default function MobileMenu({
@@ -49,13 +52,16 @@ export default function MobileMenu({
   onToggleInquiry,
   onDownloadPDF,
   onDownloadMD,
-  onLogout
+  onLogout,
+  isSpotifyConnected = false,
+  onToggleSpotifyPlayer
 }: MobileMenuProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const { 
     theme, toggleTheme, forcedNextAction, setForcedNextAction,
-    forcedEndingType, setForcedEndingType, inventory, notificationHistory, status
+    forcedEndingType, setForcedEndingType, inventory, notificationHistory, status,
+    showAdminPanel
   } = useGameStore();
 
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
@@ -146,6 +152,25 @@ export default function MobileMenu({
                 <div className="text-[8px] font-black uppercase text-portal-text-muted bg-portal-bg px-2 py-1 rounded-md border border-portal-border">Switch</div>
               </button>
 
+              {/* Spotify Player Button */}
+              {isSpotifyConnected && onToggleSpotifyPlayer && (
+                <button 
+                  onClick={() => { onToggleSpotifyPlayer(); onClose(); }}
+                  className="w-full p-4 bg-[#1DB954]/10 border border-[#1DB954]/20 rounded-2xl flex items-center justify-between group active:scale-95 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-[#1DB954]/20 rounded-xl border border-[#1DB954]/30 text-[#1DB954]">
+                      <Music className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-sm font-black uppercase tracking-widest text-[#1DB954]/90">Sinfonia Adaptativa</span>
+                      <span className="block text-[8px] font-bold uppercase text-[#1DB954]/50">Abrir player de música</span>
+                    </div>
+                  </div>
+                  <div className="text-[8px] font-black uppercase text-[#1DB954]/60 bg-[#1DB954]/10 px-2 py-1 rounded-md border border-[#1DB954]/20">Open</div>
+                </button>
+              )}
+
               {/* Main Actions Grid */}
               <div className="grid grid-cols-2 gap-3">
                 {menuItems.map((item, idx) => (
@@ -197,7 +222,7 @@ export default function MobileMenu({
               </button>
 
               {/* Admin Tools Section */}
-              {isAdmin && (
+              {isAdmin && showAdminPanel && (
                 <div className="space-y-4 pt-4 border-t border-portal-border/50">
                   <div className="flex items-center gap-2 px-2">
                     <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />

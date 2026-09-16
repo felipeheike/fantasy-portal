@@ -632,8 +632,11 @@ export default function GamePage() {
         onDownloadMD={handleExportMarkdown}
         onToggleHPLog={() => setIsHPLogOpen(true)}
         onToggleSPLog={() => setIsSPLogOpen(true)}
-        onLogout={() => resetGame()} 
+        onLogout={() => resetGame()}
+        isSpotifyConnected={isSpotifyConnected}
+        onToggleSpotifyPlayer={() => setIsSpotifyPlayerOpen(prev => !prev)}
       />}
+
 
       <main 
         className={`flex-1 flex flex-col relative z-20 ${readingMode ? 'pt-0 pb-0' : (impersonatedPlayerId ? 'pt-32 lg:pt-36' : 'pt-24 lg:pt-24')} ${isInquiryOpen ? 'lg:pl-[448px]' : 'pl-0'} transition-all duration-500 ease-in-out`}

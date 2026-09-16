@@ -481,7 +481,7 @@ export default function SpotifyPlayerWidget({
   const progressPercent = durationMs > 0 ? (progressMs / durationMs) * 100 : 0;
 
   return (
-    <div className="fixed left-0 bottom-28 z-[45] flex items-end">
+    <div className="fixed left-0 bottom-20 lg:bottom-28 z-[45] flex items-end">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -489,8 +489,9 @@ export default function SpotifyPlayerWidget({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '-110%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="w-80 ml-4 p-5 rounded-3xl bg-portal-bg/75 border border-portal-border/40 backdrop-blur-xl shadow-2xl flex flex-col gap-4 text-portal-text select-none font-ui"
+            className="w-[calc(100vw-2rem)] max-w-xs lg:w-80 ml-4 p-5 rounded-3xl bg-portal-bg/75 border border-portal-border/40 backdrop-blur-xl shadow-2xl flex flex-col gap-4 text-portal-text select-none font-ui"
           >
+
             {/* Widget Header */}
             <div className="flex items-center justify-between border-b border-portal-border/30 pb-3">
               <div className="flex items-center gap-2">
