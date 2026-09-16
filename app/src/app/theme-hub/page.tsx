@@ -597,7 +597,7 @@ export default function ThemeHubPage() {
                 className="relative w-full max-w-5xl bg-portal-surface border-2 border-portal-primary/30 rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
               >
                 <div className="flex items-center justify-between p-8 pb-0 shrink-0">
-                  <h2 className="text-xl font-black uppercase tracking-tight text-white">{editingThemeId ? 'Reforjar Essência' : 'Criar Paleta Dual'}</h2>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-portal-text">{editingThemeId ? 'Reforjar Essência' : 'Criar Paleta Dual'}</h2>
                   <button onClick={handleCancel} className="p-2 hover:bg-portal-border rounded-full text-portal-text-muted">
                     <X className="w-5 h-5" />
                   </button>
@@ -652,7 +652,7 @@ export default function ThemeHubPage() {
                     type="button"
                     onClick={() => setActiveTab('dark')}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      activeTab === 'dark' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
+                      activeTab === 'dark' ? 'bg-portal-surface text-portal-text shadow-md' : 'text-portal-text-muted hover:text-portal-text'
                     }`}
                   >
                     <Moon className="w-4 h-4" /> Modo Sombras
@@ -661,7 +661,7 @@ export default function ThemeHubPage() {
                     type="button"
                     onClick={() => setActiveTab('light')}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      activeTab === 'light' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
+                      activeTab === 'light' ? 'bg-portal-surface text-portal-text shadow-md' : 'text-portal-text-muted hover:text-portal-text'
                     }`}
                   >
                     <Sun className="w-4 h-4" /> Modo Luz
@@ -670,7 +670,7 @@ export default function ThemeHubPage() {
                     type="button"
                     onClick={() => setActiveTab('fonts')}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      activeTab === 'fonts' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
+                      activeTab === 'fonts' ? 'bg-portal-surface text-portal-text shadow-md' : 'text-portal-text-muted hover:text-portal-text'
                     }`}
                   >
                     <BookOpen className="w-4 h-4" /> Tipografia
@@ -679,7 +679,7 @@ export default function ThemeHubPage() {
                     type="button"
                     onClick={() => setActiveTab('essences')}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      activeTab === 'essences' ? 'bg-portal-surface text-white shadow-md' : 'text-portal-text-muted hover:text-white'
+                      activeTab === 'essences' ? 'bg-portal-surface text-portal-text shadow-md' : 'text-portal-text-muted hover:text-portal-text'
                     }`}
                   >
                     <Sparkles className="w-4 h-4" /> Essências
@@ -878,7 +878,7 @@ export default function ThemeHubPage() {
                           <button
                             type="button"
                             onClick={() => setPreviewMode('dark')}
-                            className={`p-1 rounded-md transition-all ${previewMode === 'dark' ? 'bg-portal-surface text-white shadow-sm' : 'text-portal-text-muted hover:text-white'}`}
+                            className={`p-1 rounded-md transition-all ${previewMode === 'dark' ? 'bg-portal-surface text-portal-text shadow-sm' : 'text-portal-text-muted hover:text-portal-text'}`}
                             title="Preview no Modo Escuro"
                           >
                             <Moon className="w-3 h-3" />
@@ -886,7 +886,7 @@ export default function ThemeHubPage() {
                           <button
                             type="button"
                             onClick={() => setPreviewMode('light')}
-                            className={`p-1 rounded-md transition-all ${previewMode === 'light' ? 'bg-portal-surface text-white shadow-sm' : 'text-portal-text-muted hover:text-white'}`}
+                            className={`p-1 rounded-md transition-all ${previewMode === 'light' ? 'bg-portal-surface text-portal-text shadow-sm' : 'text-portal-text-muted hover:text-portal-text'}`}
                             title="Preview no Modo Claro"
                           >
                             <Sun className="w-3 h-3" />
@@ -903,7 +903,7 @@ export default function ThemeHubPage() {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-portal-text-muted hover:text-white transition-colors"
+                    className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-portal-text-muted hover:text-portal-text transition-colors"
                   >
                     Cancelar
                   </button>
