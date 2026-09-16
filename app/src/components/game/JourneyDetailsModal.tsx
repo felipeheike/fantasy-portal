@@ -68,8 +68,10 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
   const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [creatingLink, setCreatingLink] = useState(false);
-  const [newLink, setNewLink] = useState<{ id: string; url: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  // URLs só existem em memória, nunca no banco (só o hash é persistido) — por isso só
+  // dá pra oferecer "Copiar" para links gerados nesta mesma sessão do modal.
+  const [linkUrls, setLinkUrls] = useState<Record<string, string>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchShareLinks = () => {
     if (!journeyId) return;
@@ -87,8 +89,8 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
         .catch(() => setAiStatus(null));
       fetchShareLinks();
     } else {
-      setNewLink(null);
-      setCopied(false);
+      setLinkUrls({});
+      setCopiedId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, journeyId]);
@@ -100,9 +102,8 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
       const res = await fetch(`/api/journey/${journeyId}/share`, { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        setNewLink({ id: data.id, url: data.url });
-        setCopied(false);
-        navigator.clipboard?.writeText(data.url).then(() => setCopied(true)).catch(() => {});
+        setLinkUrls((prev) => ({ ...prev, [data.id]: data.url }));
+        navigator.clipboard?.writeText(data.url).then(() => setCopiedId(data.id)).catch(() => {});
         fetchShareLinks();
       }
     } finally {
@@ -110,14 +111,18 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
     }
   };
 
-  const handleCopyNewLink = () => {
-    if (!newLink) return;
-    navigator.clipboard?.writeText(newLink.url).then(() => setCopied(true)).catch(() => {});
+  const handleCopyLink = (id: string) => {
+    const url = linkUrls[id];
+    if (!url) return;
+    navigator.clipboard?.writeText(url).then(() => setCopiedId(id)).catch(() => {});
   };
 
   const handleRevokeShareLink = async (shareId: string) => {
     if (!journeyId) return;
-    if (newLink?.id === shareId) setNewLink(null);
+    setLinkUrls((prev) => {
+      const { [shareId]: _removed, ...rest } = prev;
+      return rest;
+    });
     await fetch(`/api/journey/${journeyId}/share/${shareId}/revoke`, { method: 'POST' });
     fetchShareLinks();
   };
@@ -368,13 +373,13 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
                             {shareStatusLabel[link.status]}
                           </span>
                           <div className="flex items-center gap-3">
-                            {newLink?.id === link.id && (
+                            {linkUrls[link.id] && (
                               <button
-                                onClick={handleCopyNewLink}
+                                onClick={() => handleCopyLink(link.id)}
                                 className="flex items-center gap-1 text-[10px] font-black uppercase text-primary hover:text-primary/80 transition-colors"
                               >
-                                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                {copied ? 'Copiado' : 'Copiar'}
+                                {copiedId === link.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                {copiedId === link.id ? 'Copiado' : 'Copiar'}
                               </button>
                             )}
                             <button
