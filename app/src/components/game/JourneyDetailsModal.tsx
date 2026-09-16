@@ -19,7 +19,11 @@ import {
   Zap,
   Type,
   Link,
-  Crown
+  Crown,
+  Share2,
+  Copy,
+  Ban,
+  Check
 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 
@@ -28,7 +32,21 @@ interface JourneyDetailsModalProps {
   onClose: () => void;
   settings: any;
   historyCount: number;
+  journeyId?: string;
 }
+
+interface ShareLink {
+  id: string;
+  createdAt: string;
+  redeemedAt: string | null;
+  sessionExpiresAt: string | null;
+  status: 'aguardando_resgate' | 'ativo';
+}
+
+const shareStatusLabel: Record<ShareLink['status'], string> = {
+  aguardando_resgate: 'Aguardando abertura',
+  ativo: 'Sendo assistido',
+};
 
 interface AIStatus {
   text: {
@@ -45,9 +63,21 @@ interface AIStatus {
   };
 }
 
-export default function JourneyDetailsModal({ isOpen, onClose, settings, historyCount }: JourneyDetailsModalProps) {
+export default function JourneyDetailsModal({ isOpen, onClose, settings, historyCount, journeyId }: JourneyDetailsModalProps) {
   const { updateSettings } = useGameStore();
   const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
+  const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
+  const [creatingLink, setCreatingLink] = useState(false);
+  const [newLink, setNewLink] = useState<{ id: string; url: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const fetchShareLinks = () => {
+    if (!journeyId) return;
+    fetch(`/api/journey/${journeyId}/share`)
+      .then(r => r.json())
+      .then((data) => setShareLinks(Array.isArray(data) ? data : []))
+      .catch(() => setShareLinks([]));
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -55,8 +85,42 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
         .then(r => r.json())
         .then(setAiStatus)
         .catch(() => setAiStatus(null));
+      fetchShareLinks();
+    } else {
+      setNewLink(null);
+      setCopied(false);
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, journeyId]);
+
+  const handleCreateShareLink = async () => {
+    if (!journeyId || creatingLink) return;
+    setCreatingLink(true);
+    try {
+      const res = await fetch(`/api/journey/${journeyId}/share`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setNewLink({ id: data.id, url: data.url });
+        setCopied(false);
+        navigator.clipboard?.writeText(data.url).then(() => setCopied(true)).catch(() => {});
+        fetchShareLinks();
+      }
+    } finally {
+      setCreatingLink(false);
+    }
+  };
+
+  const handleCopyNewLink = () => {
+    if (!newLink) return;
+    navigator.clipboard?.writeText(newLink.url).then(() => setCopied(true)).catch(() => {});
+  };
+
+  const handleRevokeShareLink = async (shareId: string) => {
+    if (!journeyId) return;
+    if (newLink?.id === shareId) setNewLink(null);
+    await fetch(`/api/journey/${journeyId}/share/${shareId}/revoke`, { method: 'POST' });
+    fetchShareLinks();
+  };
 
   if (!settings) return null;
 
@@ -275,6 +339,68 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
                       <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/5 blur-2xl rounded-full group-hover:bg-primary/10 transition-all" />
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Compartilhamento (Modo Espectador) */}
+              {journeyId && (
+                <div className="space-y-3 pt-4 border-t border-portal-border">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Compartilhamento</h3>
+                    <button
+                      onClick={handleCreateShareLink}
+                      disabled={creatingLink}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                    >
+                      <Share2 className="w-3 h-3" />
+                      Gerar link
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-zinc-600">
+                    Cada link só pode ser aberto uma vez, por uma pessoa. Depois de aberto, o acesso de leitura fica valendo até você revogar.
+                  </p>
+
+                  {newLink && (
+                    <div className="p-3 bg-primary/10 border border-primary/30 rounded-2xl space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                        {copied ? 'Link copiado para a área de transferência' : 'Copie o link abaixo'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          readOnly
+                          value={newLink.url}
+                          onFocus={(e) => e.target.select()}
+                          className="flex-1 min-w-0 bg-portal-bg border border-portal-border rounded-xl px-3 py-2 text-[11px] font-mono text-zinc-300 truncate"
+                        />
+                        <button
+                          onClick={handleCopyNewLink}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-xl text-[10px] font-black uppercase shrink-0 transition-colors"
+                        >
+                          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copied ? 'Copiado' : 'Copiar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {shareLinks.length > 0 && (
+                    <div className="space-y-2">
+                      {shareLinks.map((link) => (
+                        <div key={link.id} className="flex items-center justify-between p-3 bg-portal-surface rounded-2xl border border-portal-border">
+                          <span className="text-[11px] font-bold text-zinc-300">
+                            {shareStatusLabel[link.status]}
+                          </span>
+                          <button
+                            onClick={() => handleRevokeShareLink(link.id)}
+                            className="flex items-center gap-1 text-[10px] font-black uppercase text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            <Ban className="w-3 h-3" />
+                            Revogar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

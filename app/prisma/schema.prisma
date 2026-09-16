@@ -52,6 +52,7 @@ model Journey {
   assets          Asset[]
   player          Player   @relation(fields: [playerId], references: [id])
   scenes          Scene[]
+  shareLinks      JourneyShareLink[]
 }
 
 model Scene {
@@ -88,4 +89,18 @@ model Asset {
   metadata  Json?
   createdAt DateTime @default(now())
   journey   Journey  @relation(fields: [journeyId], references: [id])
+}
+
+model JourneyShareLink {
+  id               String    @id @default(cuid())
+  journeyId        String
+  shareTokenHash   String    @unique
+  sessionTokenHash String?   @unique
+  createdAt        DateTime  @default(now())
+  redeemExpiresAt  DateTime
+  redeemedAt       DateTime?
+  sessionExpiresAt DateTime?
+  journey          Journey   @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  @@index([journeyId])
 }

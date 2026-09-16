@@ -31,6 +31,10 @@ A funcionalidade mais inovadora do sistema:
 *   **Personalização:** Um editor completo para criar paletas de cores customizadas.
 *   **Modo Sol e Lua:** Suporte nativo a temas Light/Dark com cores vibrantes independentes, persistidos na nuvem vinculados ao perfil do usuário.
 
+## 👁️‍🗨️ Modo Espectador
+*   **Link de Compartilhamento:** O dono da jornada gera um link com token de uso único — a primeira pessoa que abrir "resgata" o acesso, qualquer reabertura por outra pessoa é bloqueada.
+*   **Acesso Somente-Leitura:** Quem assiste vê a narração e o status do herói em tempo real (sem poder agir), até o dono revogar o link a qualquer momento.
+
 ## 📜 Exportação de Lendas
 *   **The Legend's Book:** Gere um PDF diagramado da sua aventura ao final da jornada.
 *   **Modo Dual PDF:** Escolha entre uma versão "Art" (com ilustrações) ou "Text" (focada em leitura limpa) para preservar sua história.

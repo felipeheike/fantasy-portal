@@ -293,6 +293,7 @@ export default function MainMenu() {
         }}
         settings={selectedJourneyForSettings?.settings || selectedJourneyForSettings?.flags}
         historyCount={selectedJourneyForSettings?.history?.length || 0}
+        journeyId={selectedJourneyForSettings?.id}
       />
     </div>
   );
