@@ -37,6 +37,30 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     return () => mediaQuery.removeEventListener('change', applySystemTheme);
   }, [mounted, useSystemTheme]);
 
+  const activeTheme = [...ACCESSIBILITY_PRESETS, ...(customThemes || [])].find((t) => t.id === activeThemeId);
+  const isDefault = !activeTheme || activeThemeId === 'default';
+  const palette = activeTheme ? (lightMode ? (activeTheme.colors.light || activeTheme.colors) : (activeTheme.colors.dark || activeTheme.colors)) : null;
+  const fonts = activeTheme?.fonts;
+
+  // Geist is local (next/font), no need to fetch it from Google.
+  const fontFamilies = fonts
+    ? Array.from(new Set([fonts.title, fonts.body, fonts.ui].filter((f): f is string => !!f && f !== 'inherit' && f !== 'Geist')))
+    : [];
+  const fontFamiliesKey = fontFamilies.join('|');
+
+  // O <link> do Google Fonts sozinho não garante que o navegador baixe a fonte a tempo —
+  // sem uso explícito, ela pode ficar só declarada no CSS e nunca ser buscada, deixando o
+  // texto no fallback (Geist) indefinidamente mesmo com a folha de estilo já carregada.
+  useEffect(() => {
+    if (!mounted || fontFamilies.length === 0) return;
+    fontFamilies.forEach((family) => {
+      ['400', '700', '900'].forEach((weight) => {
+        document.fonts.load(`${weight} 16px "${family}"`).catch(() => {});
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, fontFamiliesKey]);
+
   if (!mounted) {
     return <>{children}</>;
   }
@@ -45,24 +69,9 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   // jogador liga o toggle no Theme Hub, independente do SO.
   const motionPreference = reduceMotion ? 'always' : 'user';
 
-  const activeTheme = [...ACCESSIBILITY_PRESETS, ...(customThemes || [])].find((t) => t.id === activeThemeId);
-  const isDefault = !activeTheme || activeThemeId === 'default';
-  const palette = activeTheme ? (lightMode ? (activeTheme.colors.light || activeTheme.colors) : (activeTheme.colors.dark || activeTheme.colors)) : null;
-  const fonts = activeTheme?.fonts;
-
-  // Google Fonts loading logic
-  const getGoogleFontsUrl = () => {
-    if (!fonts) return null;
-    // Geist is local, no need to load from Google
-    const fontFamilies = [fonts.title, fonts.body, fonts.ui].filter(f => f && f !== 'inherit' && f !== 'Geist');
-    if (fontFamilies.length === 0) return null;
-    
-    // De-duplicate and format for Google Fonts API
-    const uniqueFonts = Array.from(new Set(fontFamilies)).map(f => f.replace(/ /g, '+'));
-    return `https://fonts.googleapis.com/css2?${uniqueFonts.map(f => `family=${f}:wght@400;700;900`).join('&')}&display=swap`;
-  };
-
-  const googleFontsUrl = getGoogleFontsUrl();
+  const googleFontsUrl = fontFamilies.length > 0
+    ? `https://fonts.googleapis.com/css2?${fontFamilies.map(f => `family=${f.replace(/ /g, '+')}:wght@400;700;900`).join('&')}&display=swap`
+    : null;
 
   return (
     <MotionConfig reducedMotion={motionPreference}>
