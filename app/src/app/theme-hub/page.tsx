@@ -7,6 +7,7 @@ import { useGameStore, ThemePalette } from '@/store/gameStore';
 import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, Moon, Sun, Settings2, RefreshCcw, BookOpen, Info, Sparkles, User, LogOut, Trophy, Ghost, Skull, Bell, Clock, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 export default function ThemeHubPage() {
   const router = useRouter();
@@ -205,7 +206,7 @@ export default function ThemeHubPage() {
         })
       });
     } catch (e) {
-      console.error("THEME_SYNC_ERR:", e);
+      logger.error("THEME_SYNC_ERR:", e);
     } finally {
       setIsSyncing(false);
     }

@@ -22,6 +22,7 @@ import {
   Shuffle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 declare global {
   interface Window {
@@ -143,7 +144,7 @@ export default function SpotifyPlayerWidget({
         }
       }
     } catch (err) {
-      console.warn("Failed to fetch Spotify playback state:", err);
+      logger.warn("Failed to fetch Spotify playback state:", err);
     }
   };
 
@@ -166,7 +167,7 @@ export default function SpotifyPlayerWidget({
     if (!isSpotifyConnected || !playInBrowser) {
       // Clean up SDK Player if playInBrowser is turned off
       if (playerInstanceRef.current) {
-        console.log("LOG: Disconnecting Spotify Web SDK Player");
+        logger.log("LOG: Disconnecting Spotify Web SDK Player");
         playerInstanceRef.current.disconnect();
         playerInstanceRef.current = null;
         setBrowserDeviceId(null);
@@ -181,7 +182,7 @@ export default function SpotifyPlayerWidget({
     const initSDK = () => {
       if (!window.Spotify) return;
 
-      console.log("LOG: Initializing Spotify Web SDK Player...");
+      logger.log("LOG: Initializing Spotify Web SDK Player...");
       const player = new window.Spotify.Player({
         name: 'Portal da Fantasia (Navegador)',
         getOAuthToken: async (cb: (token: string) => void) => {
@@ -206,7 +207,7 @@ export default function SpotifyPlayerWidget({
 
       // Event listeners
       player.addListener('ready', ({ device_id }: { device_id: string }) => {
-        console.log('LOG: Spotify Web SDK Player pronto com ID:', device_id);
+        logger.log('LOG: Spotify Web SDK Player pronto com ID:', device_id);
         setBrowserDeviceId(device_id);
         setIsLoading(false);
         setSdkError(null);
@@ -218,30 +219,30 @@ export default function SpotifyPlayerWidget({
       });
 
       player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
-        console.log('LOG: Spotify Web SDK Player desconectado:', device_id);
+        logger.log('LOG: Spotify Web SDK Player desconectado:', device_id);
         setBrowserDeviceId(null);
       });
 
       player.addListener('initialization_error', ({ message }: { message: string }) => {
-        console.error('Spotify SDK initialization error:', message);
+        logger.error('Spotify SDK initialization error:', message);
         setSdkError("Erro ao inicializar o player no navegador.");
         setIsLoading(false);
       });
 
       player.addListener('authentication_error', ({ message }: { message: string }) => {
-        console.error('Spotify SDK auth error:', message);
+        logger.error('Spotify SDK auth error:', message);
         setSdkError("Sua sessão do Spotify expirou. Por favor, conecte novamente.");
         setIsLoading(false);
       });
 
       player.addListener('account_error', ({ message }: { message: string }) => {
-        console.error('Spotify SDK account error:', message);
+        logger.error('Spotify SDK account error:', message);
         setSdkError("O player integrado no navegador requer Spotify Premium.");
         setIsLoading(false);
       });
 
       player.addListener('playback_error', ({ message }: { message: string }) => {
-        console.error('Spotify SDK playback error:', message);
+        logger.error('Spotify SDK playback error:', message);
         toast.error("Erro na reprodução direta: " + message);
       });
 
@@ -307,10 +308,10 @@ export default function SpotifyPlayerWidget({
         fetchPlaybackState();
       } else {
         const errData = await res.json();
-        console.warn("Could not transfer playback:", errData.error);
+        logger.warn("Could not transfer playback:", errData.error);
       }
     } catch (err) {
-      console.warn("Playback transfer error:", err);
+      logger.warn("Playback transfer error:", err);
     }
   };
 

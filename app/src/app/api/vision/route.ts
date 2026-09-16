@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTextModel } from "@/lib/ai/providers";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -92,7 +93,7 @@ Formato de Saída:
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('!!! VISION API FAILURE !!!', error);
+    logger.error('!!! VISION API FAILURE !!!', error);
     return new Response(JSON.stringify({ error: 'Falha ao analisar oferenda', details: error.message }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }

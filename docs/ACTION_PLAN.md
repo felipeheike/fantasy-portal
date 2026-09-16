@@ -37,15 +37,32 @@ Criado `src/types/next-auth.d.ts` (module augmentation de `Session`/`JWT`) e `sr
 ### 8. `tsconfig.tsbuildinfo` versionado — ✅ corrigido
 Removido do git (`git rm --cached`) e adicionado `*.tsbuildinfo` ao `app/.gitignore`.
 
-## 🧹 Fase 3 — Manutenibilidade
+## 🧹 Fase 3 — Manutenibilidade ✅ parcial (feito em 2026-09-16)
 
-### 9. Arquivos grandes demais para editar com segurança
-`page.tsx` (803 linhas), `theme-hub/page.tsx` (802), `traveler-chamber/page.tsx` (795), `gameStore.ts` (791) e `NarrativePanel.tsx` (762) concentram lógica e UI juntas.
-*   **Ação:** extrair hooks (`useGameSession`, `useSceneStream`) e subcomponentes de `page.tsx` primeiro, por ser o hub central da jornada e o mais tocado a cada feature nova.
+### 9. Arquivos grandes demais para editar com segurança — ✅ `page.tsx` feito, resto pendente
+`page.tsx` foi reduzido de 803 para 591 linhas (-26%), extraindo (sem mudar nenhuma lógica, só realocando):
+*   `sceneSchema` → `src/lib/ai/sceneSchema.ts` (definição Zod pura, zero risco).
+*   `useProfileBootstrap` (fetch de AI status + perfil/temas + Spotify conectado).
+*   `useSpotifyMoodSync` (dispara playback do Spotify por mood da cena).
+*   `useJourneyPersistence` (criação da Journey no banco + sync incremental de cenas + PATCH periódico).
 
-### 10. Logging sem estrutura
-73 chamadas a `console.log/error/warn` em `src/`, sem nível configurável nem supressão em produção (o commit `98e20c3` já limpou o lado client; o lado server ainda está cru).
-*   **Ação:** wrapper simples (`lib/logger.ts`) que respeita `NODE_ENV` e padroniza prefixos — baixo esforço, ajuda muito em debug de produção.
+O núcleo de streaming da IA (`useObject`, `onFinish`, `triggerAI`) foi **deixado como está** — é o código mais crítico e mais interdependente do arquivo, e mover às cegas sem conseguir testar de ponta a ponta seria o tipo de risco que a Fase 1 já não corre. Testado ao vivo no navegador antes e depois da mudança (login, carregar jornada existente, submeter uma ação e ver uma cena nova gerada pela IA de verdade, abrir inventário) — comportamento idêntico.
+
+`theme-hub/page.tsx` (802), `traveler-chamber/page.tsx` (795), `gameStore.ts` (791) e `NarrativePanel.tsx` (762) continuam intocados — ficam para uma próxima rodada.
+
+**Achados no caminho (não corrigidos aqui, viraram itens 16 e 17):**
+*   `app/.env` real tinha `TEXT_MODEL="gemini-2.5-flashtrrrrrrrrrr"` (erro de digitação) — corrigido para `gemini-2.5-flash` a pedido do usuário, o que provavelmente estava quebrando toda geração de cena em produção antes desta sessão. Já corrigido, não precisa de item próprio.
+
+### 16. `sceneSchema` do cliente desatualizado em relação ao do servidor
+`api/chat/route.ts` tem sua própria cópia de `sceneSchema`, mais completa (com `.describe()` que vira parte do prompt pro modelo, mais os campos `skillChanges`, `durability`, `maxDurability`, `audioVoice`, `worldUpdate.reputations`) do que a cópia client-side que acabou de ser extraída para `src/lib/ai/sceneSchema.ts` nesta sessão. Como o Zod por padrão descarta chaves não declaradas ao fazer parse, é possível que a IA gere esses campos e o cliente simplesmente os descarte silenciosamente — o que explicaria bugs esporádicos em level-up de habilidade, durabilidade de equipamento ou seleção de voz de áudio.
+*   **Ação:** auditar as duas cópias campo a campo e todos os lugares que leem `scene.skillChanges`/`scene.durability`/`scene.audioVoice` no client antes de unificar — não é uma troca mecânica, os dois schemas podem ter divergido de propósito em algum campo.
+
+### 17. `POST /api/journey/[id]/scenes` quebra em cenas sem `visualDescription`
+Reproduzido ao vivo: a rota lança 500 (`Argument visualDescription is missing`) para qualquer cena sem esse campo, porque `visualDescription String` é obrigatório no schema do Prisma mas o código não tem fallback para ele (diferente de `options`, `tacticalOptions`, `puzzle`, que já usam `|| []`/`|| {}`). Isso afeta jornadas seed/legadas cuja cena inicial nunca teve uma `visualDescription` real. O idempotency check (`existingScene`) não protege esse caso quando a jornada nunca teve linha na tabela `Scene` normalizada (só no `history` JSON legado) — todo reload tenta recriar a cena do zero e cai no campo obrigatório ausente.
+*   **Ação:** adicionar fallback (`visualDescription: scene.visualDescription || ''`) e decidir se cenas legadas sem esse campo devem ganhar uma migração de backfill.
+
+### 10. Logging sem estrutura — ✅ feito
+Criado `src/lib/logger.ts` (log/warn silenciados em produção, error sempre visível). As 73 chamadas `console.log/error/warn` em 28 arquivos viraram `logger.*`. `vitest.config.ts` precisou de um alias `@` → `./src` porque o Vitest não resolve o path mapping do `tsconfig.json` sozinho — sem isso os testes de `security.ts` quebravam ao importar o novo logger (pego durante a verificação, não em produção).
 
 ## 🛠️ Fase 4 — Infraestrutura e DX ✅ (feito em 2026-09-16)
 
@@ -83,10 +100,12 @@ Ver nota do item 13. Precisa de uma sessão de teste manual no navegador (chat, 
 | 6 | SDK morto do Gemini | Trivial | Nenhum (só limpeza) | ✅ Removido |
 | 7 | `any` na sessão | Médio | Bugs de tipagem em auth | ✅ Corrigido |
 | 8 | `tsbuildinfo` versionado | Trivial | Ruído em diffs/commits | ✅ Corrigido |
-| 9 | Arquivos grandes | Alto (contínuo) | Custo de manutenção crescente | ⬜ Não iniciado |
-| 10 | Logging sem estrutura | Baixo | Debug de produção mais lento | ⬜ Não iniciado |
+| 9 | Arquivos grandes | Alto (contínuo) | Custo de manutenção crescente | 🟡 `page.tsx` feito (-26%), resto pendente |
+| 10 | Logging sem estrutura | Baixo | Debug de produção mais lento | ✅ Corrigido |
 | 11 | Sem CI | Médio | Bugs chegam a produção sem checagem | ✅ Criado (lint não-bloqueante) |
 | 12 | Dev/prd em paralelo | Trivial | Confusão, consumo de recursos | ✅ Documentado |
 | 13 | Sem headers de segurança | Baixo | Superfície de ataque maior no client | ✅ Headers básicos adicionados |
 | 14 | Débito de lint (185 erros) | Alto (contínuo) | CI de lint fica sempre não-confiável | ⬜ Não iniciado |
 | 15 | CSP real | Médio | Precisa de teste manual no navegador antes | ⬜ Não iniciado |
+| 16 | `sceneSchema` cliente/servidor divergentes | Médio | Campos da IA descartados silenciosamente | ⬜ Não iniciado |
+| 17 | 500 em cena sem `visualDescription` | Baixo | Falha ao sincronizar jornadas legadas/seed | ⬜ Não iniciado |

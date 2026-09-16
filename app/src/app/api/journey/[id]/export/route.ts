@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import * as jspdf from 'jspdf';
 import sharp from 'sharp';
 import { NarrativeScene, JourneySettings } from '@/types';
+import { logger } from '@/lib/logger';
 
 // Helper to generate hash of history based on mode
 function generateHistoryHash(history: any[], includeImages: boolean): string {
@@ -62,7 +63,7 @@ async function fetchAndCompressImage(url: string): Promise<{ data: string, forma
       format: 'JPEG' 
     };
   } catch (e) {
-    console.error("Image processing failed:", e);
+    logger.error("Image processing failed:", e);
     return null;
   }
 }
@@ -108,7 +109,7 @@ export async function POST(
     const cachedHash = includeImages ? journey.lastPdfHash : journey.lastTextPdfHash;
 
     if (cachedHash === currentHash && cachedUrl) {
-      console.log(`PDF_CACHE_HIT [${includeImages ? 'ART' : 'TEXT'}]: ${id}`);
+      logger.log(`PDF_CACHE_HIT [${includeImages ? 'ART' : 'TEXT'}]: ${id}`);
       return NextResponse.json({ 
         url: cachedUrl, 
         cached: true,
@@ -116,7 +117,7 @@ export async function POST(
       });
     }
 
-    console.log(`PDF_CACHE_MISS: Generating new ${includeImages ? 'Art' : 'Text'} PDF for ${id}`);
+    logger.log(`PDF_CACHE_MISS: Generating new ${includeImages ? 'Art' : 'Text'} PDF for ${id}`);
 
     // 2. Generate New PDF
     const jsPDFConstructor: any = (jspdf as any).jsPDF || (jspdf as any).default?.jsPDF || jspdf;
@@ -175,7 +176,7 @@ export async function POST(
             doc.addImage(`data:image/jpeg;base64,${imageData.data}`, 'JPEG', margin, currentY, contentWidth, imgHeight, undefined, 'FAST');
             currentY += imgHeight + 10;
           } catch (imgErr) {
-            console.error("jsPDF_addImage_ERR:", imgErr);
+            logger.error("jsPDF_addImage_ERR:", imgErr);
             doc.setFontSize(10);
             doc.setTextColor(150, 150, 150);
             doc.text(`[Ilustração preservada no portal]`, margin, currentY);
@@ -248,7 +249,7 @@ export async function POST(
         pdfUrl, currentHash, id
       );
     } catch (sqlErr) {
-      console.error('RAW_SQL_UPDATE_ERR:', sqlErr);
+      logger.error('RAW_SQL_UPDATE_ERR:', sqlErr);
     }
 
     return NextResponse.json({ 
@@ -258,7 +259,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('PDF_EXPORT_FAILURE:', error);
+    logger.error('PDF_EXPORT_FAILURE:', error);
     return NextResponse.json({ 
       error: 'Falha ao exportar PDF',
       details: error.message 

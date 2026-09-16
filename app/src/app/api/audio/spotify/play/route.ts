@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decrypt, encrypt } from "@/lib/security";
+import { logger } from '@/lib/logger';
 
 // Function to refresh Spotify access token
 async function refreshSpotifyToken(userId: string, encryptedRefreshToken: string, currentKeys: any) {
@@ -82,11 +83,11 @@ export async function POST(req: Request) {
 
     // Check if token is expired (using 1 minute safety buffer)
     if (Date.now() >= expiresAt - 60000) {
-      console.log('LOG: Spotify token expired. Refreshing...');
+      logger.log('LOG: Spotify token expired. Refreshing...');
       try {
         accessToken = await refreshSpotifyToken(userId, encryptedRefreshToken, apiKeys);
       } catch (err: any) {
-        console.error('LOG: Failed to refresh Spotify token:', err);
+        logger.error('LOG: Failed to refresh Spotify token:', err);
         return NextResponse.json({ error: "Falha ao renovar conexão com o Spotify. Por favor, conecte novamente." }, { status: 401 });
       }
     } else {
@@ -146,7 +147,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: errMessage }, { status });
   } catch (error: any) {
-    console.error('!!! SPOTIFY PLAY FAILURE !!!', error);
+    logger.error('!!! SPOTIFY PLAY FAILURE !!!', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

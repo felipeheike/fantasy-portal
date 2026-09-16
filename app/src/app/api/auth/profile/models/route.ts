@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { discoverAllModels } from "@/lib/ai/discovery";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(models);
   } catch (error: any) {
-    console.error('MODELS_DISCOVERY_API_ERR:', error);
+    logger.error('MODELS_DISCOVERY_API_ERR:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

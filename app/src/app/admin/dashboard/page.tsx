@@ -29,6 +29,7 @@ import {
   Terminal
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 type AdminTab = 'souls' | 'controls';
 type PlayerFilter = 'all' | 'ACTIVE' | 'PENDING' | 'INACTIVE';
@@ -59,7 +60,7 @@ export default function AdminDashboard() {
         toast.error('Falha ao consultar pergaminhos de jogadores.');
       }
     } catch (e) {
-      console.error(e);
+      logger.error(e);
     } finally {
       setIsLoading(false);
     }

@@ -4,6 +4,7 @@ import { uploadBuffer } from './storage';
 import { spawn } from 'child_process';
 import { Readable } from 'stream';
 import { decrypt } from './security';
+import { logger } from '@/lib/logger';
 
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -106,7 +107,7 @@ export async function generateSpeech(
       const apiKey = useUserKey ? decrypt(userKeys.openai) : OPENAI_API_KEY;
       
       if (!apiKey) throw new Error("API Key da OpenAI para áudio não configurada.");
-      console.log(`LOG: Generating OpenAI TTS (${ttsProvider}) ${useUserKey ? '(User Key)' : '(Global Key)'}`);
+      logger.log(`LOG: Generating OpenAI TTS (${ttsProvider}) ${useUserKey ? '(User Key)' : '(Global Key)'}`);
       audioBuffer = await generateOpenAISpeech(text, ttsProvider, apiKey);
     } else {
       // Default: Google Gemini
@@ -114,18 +115,18 @@ export async function generateSpeech(
       const apiKey = useUserKey ? decrypt(userKeys.gemini) : GOOGLE_API_KEY;
 
       if (!apiKey) throw new Error("API Key do Google para áudio não configurada.");
-      console.log(`LOG: Generating Gemini TTS ${useUserKey ? '(User Key)' : '(Global Key)'}`);
+      logger.log(`LOG: Generating Gemini TTS ${useUserKey ? '(User Key)' : '(Global Key)'}`);
       audioBuffer = await generateGoogleSpeech(text, gender, apiKey);
     }
 
     const fileName = `journeys/${journeyId}/audio_${sceneId}.mp3`;
     const audioUrl = await uploadBuffer(new Uint8Array(audioBuffer), fileName, 'audio/mpeg');
 
-    console.log(`LOG: Speech generated and uploaded: ${audioUrl}`);
+    logger.log(`LOG: Speech generated and uploaded: ${audioUrl}`);
     return audioUrl;
 
   } catch (error: any) {
-    console.error("!!! TTS CRITICAL FAILURE !!!", error);
+    logger.error("!!! TTS CRITICAL FAILURE !!!", error);
     throw new Error(`Falha na narração (${ttsProvider}): ${error.message}`);
   }
 }

@@ -7,6 +7,7 @@ import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Setti
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import JourneyDetailsModal from './JourneyDetailsModal';
+import { logger } from '@/lib/logger';
 
 export default function MainMenu() {
   const { data: session } = useSession();
@@ -41,7 +42,7 @@ export default function MainMenu() {
         setJourneys(data);
       }
     } catch (e) {
-      console.error("Fetch Journeys Error:", e);
+      logger.error("Fetch Journeys Error:", e);
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +65,7 @@ export default function MainMenu() {
         const res = await fetch(url, { method: 'DELETE' });
         if (res.ok) fetchJourneys();
       } catch (e) {
-        console.error("Delete Error:", e);
+        logger.error("Delete Error:", e);
       }
     }
   };

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -29,7 +30,7 @@ export async function GET() {
 
     return NextResponse.json(players);
   } catch (error) {
-    console.error("ADMIN_GET_PLAYERS_ERR:", error);
+    logger.error("ADMIN_GET_PLAYERS_ERR:", error);
     return NextResponse.json({ error: "Falha ao consultar aventureiros." }, { status: 500 });
   }
 }

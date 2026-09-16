@@ -1,4 +1,5 @@
 import { decrypt } from '../security';
+import { logger } from '@/lib/logger';
 
 export interface AIModelDiscovery {
   id: string;
@@ -41,7 +42,7 @@ async function discoverGoogleModels(encryptedKey: string): Promise<AIModelDiscov
 
     return models;
   } catch (err) {
-    console.error('DISCOVER_GOOGLE_ERR:', err);
+    logger.error('DISCOVER_GOOGLE_ERR:', err);
     return [];
   }
 }
@@ -80,7 +81,7 @@ async function discoverOpenAIModels(encryptedKey: string): Promise<AIModelDiscov
 
     return models;
   } catch (err) {
-    console.error('DISCOVER_OPENAI_ERR:', err);
+    logger.error('DISCOVER_OPENAI_ERR:', err);
     return [];
   }
 }
@@ -112,7 +113,7 @@ async function discoverAnthropicModels(encryptedKey: string): Promise<AIModelDis
         type: 'text'
       }));
   } catch (err) {
-    console.error('DISCOVER_ANTHROPIC_ERR:', err);
+    logger.error('DISCOVER_ANTHROPIC_ERR:', err);
     return [];
   }
 }

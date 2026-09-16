@@ -1,5 +1,6 @@
 import { NarrativeScene, JourneySettings } from '@/types';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 /**
  * Persistently exports a journey by calling the backend API.
@@ -50,7 +51,7 @@ export async function generateJourneyPDF(
     });
 
   } catch (error: any) {
-    console.error("PDF_EXPORT_UI_ERR:", error);
+    logger.error("PDF_EXPORT_UI_ERR:", error);
     toast.error("Erro na Manifestação", {
       id: toastId,
       description: "As sombras impediram a conclusão do seu livro de arte. Tente novamente em instantes."

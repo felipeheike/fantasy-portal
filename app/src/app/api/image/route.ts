@@ -4,6 +4,7 @@ import { uploadBuffer } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 60;
 
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
       if (player) userConfig = player;
     }
 
-    console.log(`LOG: Generating Image [Prompt: ${prompt.substring(0, 50)}...]`);
+    logger.log(`LOG: Generating Image [Prompt: ${prompt.substring(0, 50)}...]`);
 
     const { image } = await generateImage({
       model: getImageModel(userConfig),
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
     try {
       // Upload para o MinIO
       assetUrl = await uploadBuffer(image.uint8Array, fileName, 'image/png');
-      console.log(`LOG: Image uploaded to MinIO: ${assetUrl}`);
+      logger.log(`LOG: Image uploaded to MinIO: ${assetUrl}`);
 
       // Se tiver journeyId, salva no banco de dados
       if (journeyId) {
@@ -60,10 +61,10 @@ export async function POST(req: Request) {
             }
           }
         });
-        console.log(`LOG: Asset record created for journey ${journeyId}`);
+        logger.log(`LOG: Asset record created for journey ${journeyId}`);
       }
     } catch (storageError) {
-      console.error('!!! STORAGE FAILURE !!!', storageError);
+      logger.error('!!! STORAGE FAILURE !!!', storageError);
     }
 
     return new Response(Buffer.from(image.uint8Array), {
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (error: any) {
-    console.error('!!! IMAGE GENERATION FAILURE !!!', error);
+    logger.error('!!! IMAGE GENERATION FAILURE !!!', error);
     return new Response(JSON.stringify({ error: 'Falha ao ilustrar cena', details: error.message }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }

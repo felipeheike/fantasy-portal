@@ -22,75 +22,16 @@ import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { z } from 'zod';
+import { sceneSchema } from '@/lib/ai/sceneSchema';
 import { NarrativeScene, NarrativeOption, StatusLogEntry } from '@/types';
 import { LogOut, AlertCircle, Sparkles, Settings2, Clock, Type, Palette, RefreshCcw, Package, ShieldAlert, ShieldCheck, Eye, X, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
 import { generateJourneyPDF } from '@/lib/pdfUtils';
-import { SPOTIFY_THEMES } from '@/lib/audio/spotifyPlaylists';
-
-const sceneSchema = z.object({
-  sceneId: z.string(),
-  narration: z.string(),
-  visualDescription: z.string(),
-  audioDescription: z.string().optional(),
-  imageUrl: z.string().optional(),
-  audioUrl: z.string().optional(),
-  recommendedInputType: z.enum(['binary', 'multiple', 'combined', 'interpretative', 'puzzle', 'vision_requirement']),
-  visionPrompt: z.string().optional(),
-  options: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
-  tacticalOptions: z.object({
-    actions: z.array(z.object({ 
-      id: z.string(), 
-      label: z.string(), 
-      group: z.enum(['offensive', 'defensive']),
-      requiresItem: z.boolean().optional(),
-      itemType: z.enum(['weapon', 'armor', 'consumable', 'quest']).optional()
-    })),
-    targets: z.array(z.object({ id: z.string(), label: z.string(), description: z.string().optional() })),
-    availableItems: z.array(z.string()).optional(),
-    availableSkills: z.array(z.string()).optional()
-  }).optional(),
-  puzzle: z.object({
-    type: z.enum(['hangman', 'anagram', 'cipher', 'riddle']),
-    solution: z.string(),
-    hint: z.string(),
-    displayData: z.string(),
-    maxAttempts: z.number()
-  }).optional(),
-  statusChanges: z.object({ 
-    hp: z.number().optional(), 
-    hpSource: z.string().optional(),
-    sp: z.number().optional(), 
-    spSource: z.string().optional(),
-    combatPower: z.number().optional(), 
-    moral: z.number().optional(),
-    reputations: z.record(z.string(), z.number()).optional() ,
-    blessings: z.array(z.any()).optional(),
-    curses: z.array(z.any()).optional()
-  }).optional(),
-  inventoryChanges: z.object({
-    added: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string(),
-      quantity: z.number(),
-      type: z.enum(['weapon', 'armor', 'consumable', 'quest', 'companion']) , isSpectral: z.boolean().optional()
-    })).optional(),
-    removed: z.array(z.string()).optional()
-  }).optional(),
-  worldUpdate: z.object({
-    flags: z.record(z.string(), z.any()).optional(),
-    memories: z.array(z.string()).optional()
-  }).optional(),
-  audioTheme: z.object({
-    mood: z.enum(['exploration', 'combat', 'mystery', 'melancholic', 'victory']).optional(),
-    ambientEffects: z.array(z.string()).optional()
-  }).optional(),
-  isGameOver: z.boolean(),
-  requiresRoll: z.boolean().optional(),
-});
+import { logger } from '@/lib/logger';
+import { useProfileBootstrap } from '@/hooks/useProfileBootstrap';
+import { useSpotifyMoodSync } from '@/hooks/useSpotifyMoodSync';
+import { useJourneyPersistence } from '@/hooks/useJourneyPersistence';
 
 export default function GamePage() {
   const { data: session, status: authStatus } = useSession();
@@ -124,8 +65,6 @@ export default function GamePage() {
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [persistentError, setPersistentError] = useState<string | null>(null);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
-  const [aiModels, setAiModels] = useState<{ text?: string, image?: string }>({});
-  const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
   const [isSpotifyPlayerOpen, setIsSpotifyPlayerOpen] = useState(false);
   const [isSpotifyPlaying, setIsSpotifyPlaying] = useState(false);
   const startTimeRef = useRef<number | null>(null);
@@ -138,72 +77,9 @@ export default function GamePage() {
     }
   }, [isGameStarted]);
 
-  // Fetch AI status & Profile Data (Themes)
-  useEffect(() => {
-    if (hasHydrated && authStatus === 'authenticated') {
-      // AI Status
-      fetch('/api/ai-status')
-        .then(r => r.json())
-        .then(data => {
-          setAiModels({
-            text: data.text?.model || data.text,
-            image: data.image?.model || data.image
-          });
-        })
-        .catch(() => {});
+  const { aiModels, isSpotifyConnected } = useProfileBootstrap({ hasHydrated, authStatus, setCustomThemes, setActiveTheme });
 
-      // Profile (Themes)
-      fetch('/api/auth/profile')
-        .then(r => r.json())
-        .then(data => {
-          if (data.customThemes) {
-            setCustomThemes(data.customThemes);
-          }
-          if (data.activeThemeId) {
-            setActiveTheme(data.activeThemeId);
-          }
-          if (data.apiKeys && data.apiKeys.spotifyAccessToken) {
-            setIsSpotifyConnected(true);
-          } else {
-            setIsSpotifyConnected(false);
-          }
-        })
-        .catch(err => console.error("PROFILE_HYDRATION_ERR:", err));
-    }
-  }, [hasHydrated, authStatus, setCustomThemes, setActiveTheme]);
-
-  // Trigger Spotify music playback when scene mood changes
-  useEffect(() => {
-    if (!isGameStarted || !currentScene || !isSpotifyConnected) return;
-
-    const genre = settings?.genre?.toLowerCase() || 'fantasy';
-    const mood = currentScene.audioTheme?.mood || 'exploration';
-    const playlistUri = SPOTIFY_THEMES[genre]?.[mood];
-
-    if (playlistUri) {
-      console.log(`LOG: Triggering Spotify playback [Genre: ${genre}, Mood: ${mood}]`);
-      fetch('/api/audio/spotify/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contextUri: playlistUri })
-      })
-      .then(async (res) => {
-        if (!res.ok) {
-          const data = await res.json();
-          if (data.code === 'NO_ACTIVE_DEVICE') {
-            toast.warning("Spotify: Nenhum dispositivo ativo encontrado. Abra o app do Spotify e dê play.");
-          } else if (data.code === 'NOT_PREMIUM') {
-            toast.error("Spotify: Controle de player exige conta Spotify Premium.");
-          } else {
-            console.warn("Spotify Playback warning:", data.error);
-          }
-        }
-      })
-      .catch((err) => {
-        console.warn("Spotify Playback critical warning:", err);
-      });
-    }
-  }, [currentScene?.sceneId, isSpotifyConnected, isGameStarted, settings?.genre]);
+  useSpotifyMoodSync({ isGameStarted, currentScene, isSpotifyConnected, genre: settings?.genre });
 
   const initialTriggerDone = useRef(false);
   const creationInProgress = useRef(false);
@@ -240,7 +116,7 @@ export default function GamePage() {
       setImageLoading(sceneId, false);
     })
     .catch(e => {
-      console.error("IMAGE_GEN_ERR:", e);
+      logger.error("IMAGE_GEN_ERR:", e);
       setImageError(sceneId, true);
       setImageLoading(sceneId, false);
     });
@@ -264,7 +140,7 @@ export default function GamePage() {
       setAudioLoading(sceneId, false);
     })
     .catch(e => {
-      console.error("AUDIO_GEN_ERR:", e);
+      logger.error("AUDIO_GEN_ERR:", e);
       setAudioError(sceneId, true);
       setAudioLoading(sceneId, false);
     });
@@ -398,7 +274,7 @@ export default function GamePage() {
     },
     onError: (err) => {
       setIsProcessingAction(false);
-      console.error("LOG: useObject Error Callback:", err);
+      logger.error("LOG: useObject Error Callback:", err);
       const msg = err.message || "";
       if (msg.includes('429') || msg.includes('quota') || msg.includes('limit')) {
         setPersistentError('LIMITE_COTA');
@@ -472,99 +348,11 @@ export default function GamePage() {
     await generateJourneyPDF(history, settings, settings?.playerName || 'Viajante', currentJourneyId, includeImages);
   }, [history, settings, currentJourneyId]);
 
-  // DB Record Creation & Persistence Sync
-  useEffect(() => {
-    if (isGameStarted && !currentJourneyId && !creationInProgress.current && session?.user) {
-      creationInProgress.current = true;
-      fetch('/api/journey', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...settings, 
-          playerName: settings?.playerName || session.user.name || 'Viajante',
-          impersonatedPlayerId
-        })
-      })
-      .then(async r => {
-        const data = await r.json();
-        if (r.ok) {
-          setJourneyId(data.id, data.flags);
-        }
-      })
-      .finally(() => {
-        creationInProgress.current = false;
-      });
-    }
-  }, [isGameStarted, currentJourneyId, settings, setJourneyId, session, impersonatedPlayerId]);
-
-  // Sync state to DB on changes
-  const lastSyncedRef = useRef<string>('');
-  const lastSyncedSceneIdRef = useRef<string>('');
-  const syncInProgressRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    if (currentJourneyId && history.length > 0 && hasHydrated && authStatus === 'authenticated') {
-      const currentScene = history[history.length - 1];
-      const isNewScene = currentScene.sceneId !== lastSyncedSceneIdRef.current;
-
-      // Se for uma nova cena e não houver sincronização em curso para este ID específico
-      if (isNewScene && !syncInProgressRef.current) {
-        // Bloqueio imediato para evitar race conditions no re-render
-        lastSyncedSceneIdRef.current = currentScene.sceneId;
-        syncInProgressRef.current = true;
-
-        fetch(`/api/journey/${currentJourneyId}/scenes`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            scene: currentScene,
-            playerStatus: status, 
-            inventory,
-            statusHistory,
-            impersonatedPlayerId
-          })
-        })
-        .then(() => {
-          // Sincronização concluída
-          lastSyncedRef.current = JSON.stringify({ history, status, inventory });
-        })
-        .catch(err => {
-          console.error("INCREMENTAL_SYNC_ERR:", err);
-          // Em caso de erro, permitimos tentar novamente no próximo ciclo se o ID mudar
-          lastSyncedSceneIdRef.current = ''; 
-        })
-        .finally(() => {
-          syncInProgressRef.current = false;
-        });
-        return;
-      }
-
-      // Para outras mudanças (flags, memories, settings), mantemos o PATCH periódico
-      const currentStateString = JSON.stringify({ history, status, inventory, flags, memories, settings });
-      if (currentStateString === lastSyncedRef.current) return;
-
-      const timer = setTimeout(() => {
-        fetch(`/api/journey/${currentJourneyId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            history, 
-            playerStatus: status, 
-            inventory,
-            flags,
-            memories,
-            settings,
-            impersonatedPlayerId
-          })
-        })
-        .then(() => {
-          lastSyncedRef.current = currentStateString;
-        })
-        .catch(err => console.error("DB_SYNC_ERR:", err));
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [history, status, inventory, statusHistory, currentJourneyId, flags, memories, settings, hasHydrated, authStatus, impersonatedPlayerId]);
+  useJourneyPersistence({
+    isGameStarted, currentJourneyId, settings, setJourneyId, session: session ?? null, impersonatedPlayerId,
+    history, status, inventory, statusHistory, flags, memories, hasHydrated, authStatus,
+    creationInProgress
+  });
 
   // Auto-trigger first scene
   useEffect(() => {

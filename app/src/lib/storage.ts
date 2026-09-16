@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
+import { logger } from '@/lib/logger';
 
 const minioEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
 const minioPort = process.env.MINIO_PORT || '9000';
@@ -26,7 +27,7 @@ async function ensureBucketExists() {
     await s3Client.send(new HeadBucketCommand({ Bucket: bucketName }));
   } catch (error: any) {
     if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
-      console.log(`LOG: Creating bucket ${bucketName}...`);
+      logger.log(`LOG: Creating bucket ${bucketName}...`);
       await s3Client.send(new CreateBucketCommand({ Bucket: bucketName }));
     } else {
       throw error;
@@ -52,7 +53,7 @@ export async function uploadBuffer(buffer: Uint8Array | Buffer, key: string, con
     // Isso garante acessibilidade universal (Mobile/Web) através do túnel Cloudflare
     return `/api/assets/${key}`;
   } catch (error) {
-    console.error("Error uploading to MinIO:", error);
+    logger.error("Error uploading to MinIO:", error);
     throw error;
   }
 }

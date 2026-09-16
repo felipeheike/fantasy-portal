@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
+import { logger } from '@/lib/logger';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
@@ -22,11 +23,11 @@ export async function checkDatabaseHealth() {
     return { ok: true };
   } catch (error: any) {
     if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-      console.error("\n" + "=".repeat(60));
-      console.error("🚨 ERRO DE BANCO DE DADOS: Tabela 'Player' não encontrada.");
-      console.error("Isso geralmente significa que as migrações não foram aplicadas.");
-      console.error("Execute: npx prisma migrate deploy (Produção) ou prisma migrate dev (Dev)");
-      console.error("=".repeat(60) + "\n");
+      logger.error("\n" + "=".repeat(60));
+      logger.error("🚨 ERRO DE BANCO DE DADOS: Tabela 'Player' não encontrada.");
+      logger.error("Isso geralmente significa que as migrações não foram aplicadas.");
+      logger.error("Execute: npx prisma migrate deploy (Produção) ou prisma migrate dev (Dev)");
+      logger.error("=".repeat(60) + "\n");
       return { ok: false, error: "Database not initialized" };
     }
     return { ok: false, error: error.message };

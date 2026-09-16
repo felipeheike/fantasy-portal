@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/journey/[id]/scenes
@@ -74,7 +75,7 @@ export async function POST(
       });
 
       if (existingScene) {
-        console.log(`LOG: Scene [${scene.sceneId}] already exists. Skipping duplication.`);
+        logger.log(`LOG: Scene [${scene.sceneId}] already exists. Skipping duplication.`);
         return existingScene;
       }
 
@@ -113,7 +114,7 @@ export async function POST(
 
       // --- LEGACY SNAPSHOT (Cofre da Lenda) ---
       if (scene.isGameOver) {
-        console.log(`LOG: Capture total legacy snapshot for journey ${journeyId}`);
+        logger.log(`LOG: Capture total legacy snapshot for journey ${journeyId}`);
 
         await tx.journey.update({
           where: { id: journeyId },

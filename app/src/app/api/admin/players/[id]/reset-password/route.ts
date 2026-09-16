@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: Request,
@@ -35,7 +36,7 @@ export async function POST(
       message: "Senha resetada com sucesso. Copie a senha temporária abaixo." 
     });
   } catch (error: any) {
-    console.error("ADMIN_RESET_PASSWORD_ERR:", error);
+    logger.error("ADMIN_RESET_PASSWORD_ERR:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

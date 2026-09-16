@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { authenticator } from '@otplib/preset-default';
 import QRCode from 'qrcode';
+import { logger } from '@/lib/logger';
 
 // A chave mestra deve ter 32 caracteres para aes-256
 const ENCRYPTION_KEY = process.env.MASTER_ENCRYPTION_KEY || 'f4nt4sy-p0rt4l-m4st3r-k3y-32-ch4rs'; 
@@ -32,7 +33,7 @@ export function decrypt(text: string): string {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (error) {
-    console.error('DECRYPTION_ERR:', error);
+    logger.error('DECRYPTION_ERR:', error);
     return '';
   }
 }

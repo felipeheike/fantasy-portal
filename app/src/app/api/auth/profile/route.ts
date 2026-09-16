@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { encrypt, decrypt, maskKey, generateMfaSecret, generateQrCode, verifyMfaCode } from "@/lib/security";
 import bcrypt from "bcrypt";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
       isImpersonated: userId !== session.user.id
     });
   } catch (error: any) {
-    console.error('PROFILE_GET_ERR:', error);
+    logger.error('PROFILE_GET_ERR:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

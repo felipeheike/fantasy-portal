@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PlayerStatus, InventoryItem, NarrativeScene, JourneySettings, GameNotification, StatusLogEntry } from '@/types';
+import { logger } from '@/lib/logger';
 
 export interface ThemePalette {
   bg: string;
@@ -298,7 +299,7 @@ export const useGameStore = create<GameState>()(
             hasMoreHistory: olderScenes.length === 10
           }));
         } catch (error) {
-          console.error("Erro ao carregar mais cenas:", error);
+          logger.error("Erro ao carregar mais cenas:", error);
           set({ isLoadingHistory: false });
         }
       },

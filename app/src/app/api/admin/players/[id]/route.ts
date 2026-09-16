@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   req: Request,
@@ -28,7 +29,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedPlayer);
   } catch (error: any) {
-    console.error("ADMIN_PATCH_PLAYER_ERR:", error);
+    logger.error("ADMIN_PATCH_PLAYER_ERR:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { s3Client } from '@/lib/storage';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: Request,
@@ -57,7 +58,7 @@ export async function GET(
     if (error.name === 'NoSuchKey') {
       return new Response('Asset not found', { status: 404 });
     }
-    console.error('!!! ASSET PROXY ERROR !!!', error);
+    logger.error('!!! ASSET PROXY ERROR !!!', error);
     return new Response('Error fetching asset', { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(journeys);
   } catch (error) {
-    console.error('Failed to fetch journeys:', error);
+    logger.error('Failed to fetch journeys:', error);
     return NextResponse.json({ error: 'Failed to fetch journeys' }, { status: 500 });
   }
 }
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(journey);
   } catch (error: any) {
-    console.error('!!! FAILED TO CREATE JOURNEY !!!', error);
+    logger.error('!!! FAILED TO CREATE JOURNEY !!!', error);
     return NextResponse.json({ error: 'Failed to create journey' }, { status: 500 });
   }
 }

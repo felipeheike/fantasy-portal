@@ -33,6 +33,7 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 type ProfileTab = 'identity' | 'security' | 'apikeys' | 'preferences' | 'spotify';
 
@@ -195,7 +196,7 @@ export default function TravelerChamberPage() {
         setDiscoveredModels(data);
       }
     } catch (err) {
-      console.error('DISCOVERY_FETCH_ERR:', err);
+      logger.error('DISCOVERY_FETCH_ERR:', err);
     } finally {
       setIsDiscovering(false);
     }

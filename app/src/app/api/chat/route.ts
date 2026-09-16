@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { streamObject } from 'ai';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 60;
 
@@ -150,7 +151,7 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log(
+    logger.log(
       'LOG: Chat Request [Player:', playerContext?.settings?.playerName, 
       '| Step:', actualSceneCount, 
       '| Forced:', forcedEnding || forcedType || 'None', ']'
@@ -277,7 +278,7 @@ CONTEXTO ATUAL:
     return result.toTextStreamResponse();
 
   } catch (error: any) {
-    console.error('!!! CHAT API CRITICAL FAILURE !!!', error);
+    logger.error('!!! CHAT API CRITICAL FAILURE !!!', error);
 
     const isQuotaError = 
       error?.message?.includes('429') || 

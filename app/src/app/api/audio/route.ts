@@ -2,6 +2,7 @@ import { generateSpeech } from '@/lib/audio';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 60;
 
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('!!! AUDIO GENERATION FAILURE !!!', error);
+    logger.error('!!! AUDIO GENERATION FAILURE !!!', error);
     return new Response(JSON.stringify({ error: 'Falha ao gerar narração', details: error.message }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }

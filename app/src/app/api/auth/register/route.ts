@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, id: newPlayer.id });
   } catch (error: any) {
-    console.error("REGISTRATION_ERROR:", error);
+    logger.error("REGISTRATION_ERROR:", error);
     return NextResponse.json({ error: "Erro interno ao selar o registro." }, { status: 500 });
   }
 }

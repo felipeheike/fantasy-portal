@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 60;
 
@@ -72,7 +73,7 @@ ${history.slice(-3).map((h: any) => h.narration).join('\n---\n')}
           });
         }
       } catch (dbErr) {
-        console.error('INQUIRY_PERSISTENCE_ERR:', dbErr);
+        logger.error('INQUIRY_PERSISTENCE_ERR:', dbErr);
         // Não falhamos a requisição se o log falhar, apenas logamos
       }
     }
@@ -80,7 +81,7 @@ ${history.slice(-3).map((h: any) => h.narration).join('\n---\n')}
     return NextResponse.json({ answer: text });
 
   } catch (error: any) {
-    console.error('INQUIRY_API_FAILURE:', error);
+    logger.error('INQUIRY_API_FAILURE:', error);
 
     const isQuotaError = 
       error?.message?.includes('429') || 
