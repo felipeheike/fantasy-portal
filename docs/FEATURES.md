@@ -31,7 +31,8 @@ A funcionalidade mais inovadora do sistema:
 *   **Personalização:** Um editor completo para criar paletas de cores customizadas.
 *   **Modo Sol e Lua:** Suporte nativo a temas Light/Dark com cores vibrantes independentes, persistidos na nuvem vinculados ao perfil do usuário.
 *   **Presets de Acessibilidade:** Alto Contraste, Leitura Fácil (fonte Atkinson Hyperlegible) e Contraste Seguro (paleta amigável para daltonismo), prontos pra ativar com um clique.
-*   **Reduzir Animações:** Toggle global que desliga as animações do sistema, respeitando também a preferência de acessibilidade do próprio sistema operacional.
+*   **Painel de Acessibilidade:** Reduzir Animações, Seguir Tema do Sistema e Tamanho da Fonte (P/M/G/GG), reunidos num único botão no Hub de Temas.
+*   **Importar/Exportar Tema:** Copie o código de um tema (cores + fontes) e envie pra alguém colar e aplicar como ponto de partida do próprio tema.
 
 ## 👁️‍🗨️ Modo Espectador
 *   **Link de Compartilhamento:** O dono da jornada gera um link com token de uso único — a primeira pessoa que abrir "resgata" o acesso, qualquer reabertura por outra pessoa é bloqueada.
