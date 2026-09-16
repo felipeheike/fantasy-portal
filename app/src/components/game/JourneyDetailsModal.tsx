@@ -360,29 +360,6 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
                     Cada link só pode ser aberto uma vez, por uma pessoa. Depois de aberto, o acesso de leitura fica valendo até você revogar.
                   </p>
 
-                  {newLink && (
-                    <div className="p-3 bg-primary/10 border border-primary/30 rounded-2xl space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-primary">
-                        {copied ? 'Link copiado para a área de transferência' : 'Copie o link abaixo'}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <input
-                          readOnly
-                          value={newLink.url}
-                          onFocus={(e) => e.target.select()}
-                          className="flex-1 min-w-0 bg-portal-bg border border-portal-border rounded-xl px-3 py-2 text-[11px] font-mono text-zinc-300 truncate"
-                        />
-                        <button
-                          onClick={handleCopyNewLink}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-xl text-[10px] font-black uppercase shrink-0 transition-colors"
-                        >
-                          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                          {copied ? 'Copiado' : 'Copiar'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {shareLinks.length > 0 && (
                     <div className="space-y-2">
                       {shareLinks.map((link) => (
@@ -390,13 +367,24 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
                           <span className="text-[11px] font-bold text-zinc-300">
                             {shareStatusLabel[link.status]}
                           </span>
-                          <button
-                            onClick={() => handleRevokeShareLink(link.id)}
-                            className="flex items-center gap-1 text-[10px] font-black uppercase text-red-400 hover:text-red-300 transition-colors"
-                          >
-                            <Ban className="w-3 h-3" />
-                            Revogar
-                          </button>
+                          <div className="flex items-center gap-3">
+                            {newLink?.id === link.id && (
+                              <button
+                                onClick={handleCopyNewLink}
+                                className="flex items-center gap-1 text-[10px] font-black uppercase text-primary hover:text-primary/80 transition-colors"
+                              >
+                                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                {copied ? 'Copiado' : 'Copiar'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRevokeShareLink(link.id)}
+                              className="flex items-center gap-1 text-[10px] font-black uppercase text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              <Ban className="w-3 h-3" />
+                              Revogar
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
