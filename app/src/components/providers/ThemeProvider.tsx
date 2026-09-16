@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import { ACCESSIBILITY_PRESETS } from '@/lib/themePresets';
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { activeThemeId, customThemes, lightMode, theme } = useGameStore();
+  const { activeThemeId, customThemes, lightMode, theme, reduceMotion } = useGameStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -27,7 +29,11 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     return <>{children}</>;
   }
 
-  const activeTheme = (customThemes || []).find((t) => t.id === activeThemeId);
+  // 'user' respeita o prefers-reduced-motion do SO por padrão; 'always' força quando o
+  // jogador liga o toggle no Theme Hub, independente do SO.
+  const motionPreference = reduceMotion ? 'always' : 'user';
+
+  const activeTheme = [...ACCESSIBILITY_PRESETS, ...(customThemes || [])].find((t) => t.id === activeThemeId);
   const isDefault = !activeTheme || activeThemeId === 'default';
   const palette = activeTheme ? (lightMode ? (activeTheme.colors.light || activeTheme.colors) : (activeTheme.colors.dark || activeTheme.colors)) : null;
   const fonts = activeTheme?.fonts;
@@ -47,7 +53,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   const googleFontsUrl = getGoogleFontsUrl();
 
   return (
-    <>
+    <MotionConfig reducedMotion={motionPreference}>
       {googleFontsUrl && <link rel="stylesheet" href={googleFontsUrl} />}
       {!isDefault && activeTheme && (
         <style dangerouslySetInnerHTML={{
@@ -72,6 +78,6 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
         }} />
       )}
       {children}
-    </>
+    </MotionConfig>
   );
 }

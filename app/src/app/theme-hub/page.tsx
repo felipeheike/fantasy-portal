@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, ThemePalette } from '@/store/gameStore';
-import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, Moon, Sun, Settings2, RefreshCcw, BookOpen, Info, Sparkles, User, LogOut, Trophy, Ghost, Skull, Bell, Clock, ChevronRight } from 'lucide-react';
+import { ACCESSIBILITY_PRESETS, isBuiltInThemeId } from '@/lib/themePresets';
+import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, Moon, Sun, Settings2, RefreshCcw, BookOpen, Info, Sparkles, User, LogOut, Trophy, Ghost, Skull, Bell, Clock, ChevronRight, Accessibility } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { logger } from '@/lib/logger';
@@ -12,10 +13,9 @@ import { logger } from '@/lib/logger';
 export default function ThemeHubPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { 
-    activeThemeId, customThemes, setActiveTheme, 
-    createTheme, updateTheme, deleteTheme, setCustomThemes,
-    lightMode, toggleLightMode
+  const {
+    activeThemeId, customThemes, setActiveTheme,
+    lightMode, toggleLightMode, reduceMotion, toggleReduceMotion
   } = useGameStore();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -184,6 +184,7 @@ export default function ThemeHubPage() {
   const suggestedFonts = [
     { name: 'Inter', type: 'Sans-Serif' },
     { name: 'Geist', type: 'Moderna (Padrão)' },
+    { name: 'Atkinson Hyperlegible', type: 'Acessibilidade (Dislexia/Baixa Visão)' },
     { name: 'Libre Baskerville', type: 'Serif (Narrativa)' },
     { name: 'Cinzel', type: 'Serif (Especial)' },
     { name: 'MedievalSharp', type: 'Gótica' },
@@ -252,7 +253,7 @@ export default function ThemeHubPage() {
     }
   };
 
-  const allThemes = [defaultTheme, ...(customThemes || [])];
+  const allThemes = [defaultTheme, ...ACCESSIBILITY_PRESETS, ...(customThemes || [])];
 
   const handleCreateTheme = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,6 +262,13 @@ export default function ThemeHubPage() {
       return;
     }
 
+    // O preview ao vivo (essências/presets) injeta um tema temporário 'preview-temp' no
+    // store enquanto o formulário está aberto — nunca deve ser persistido de verdade.
+    const cleanCustomThemes = (customThemes || []).filter(t => t.id !== 'preview-temp');
+
+    // Presets de acessibilidade preenchem os 8 tokens com precisão de contraste — nesse
+    // caso preservamos o valor exato em vez de recalcular pela heurística abaixo (que
+    // existe só pra completar essências antigas, que só definem primary/bg/surface/border).
     const themePayload = {
       name: newThemeName,
       colors: {
@@ -269,37 +277,35 @@ export default function ThemeHubPage() {
           bg: darkPalette.bg!,
           surface: darkPalette.surface!,
           border: darkPalette.border!,
-          surfaceHover: darkPalette.border!,
-          primaryForeground: darkPalette.bg!,
-          text: '#f4f4f5',
-          textMuted: '#71717a'
+          surfaceHover: darkPalette.surfaceHover || darkPalette.border!,
+          primaryForeground: darkPalette.primaryForeground || darkPalette.bg!,
+          text: darkPalette.text || '#f4f4f5',
+          textMuted: darkPalette.textMuted || '#71717a'
         },
         light: {
           primary: lightPalette.primary!,
           bg: lightPalette.bg!,
           surface: lightPalette.surface!,
           border: lightPalette.border!,
-          surfaceHover: lightPalette.border!,
-          primaryForeground: lightPalette.bg!,
-          text: '#09090b',
-          textMuted: '#52525b'
+          surfaceHover: lightPalette.surfaceHover || lightPalette.border!,
+          primaryForeground: lightPalette.primaryForeground || lightPalette.bg!,
+          text: lightPalette.text || '#09090b',
+          textMuted: lightPalette.textMuted || '#52525b'
         }
       },
       fonts: fonts
     };
 
-    if (editingThemeId) {
-      const updated = (customThemes || []).map(t => t.id === editingThemeId ? { ...t, name: newThemeName, colors: themePayload.colors, fonts: themePayload.fonts } : t);
-      updateTheme(editingThemeId, themePayload);
-      await syncThemesToCloud(updated);
-      toast.success('Alterações gravadas no pergaminho!');
-    } else {
-      const newId = `theme-${Date.now()}`;
-      const updated = [...(customThemes || []), { ...themePayload, id: newId }];
-      createTheme(themePayload);
-      await syncThemesToCloud(updated);
-      toast.success('Novo tema forjado com sucesso!');
-    }
+    const updated = editingThemeId
+      ? cleanCustomThemes.map(t => t.id === editingThemeId ? { ...t, name: newThemeName, colors: themePayload.colors, fonts: themePayload.fonts } : t)
+      : [...cleanCustomThemes, { ...themePayload, id: `theme-${Date.now()}` }];
+
+    // Salvar sempre encerra o preview ao vivo: volta o activeThemeId pro que era antes de
+    // abrir o formulário (evita ficar preso em 'preview-temp') e grava a lista já limpa.
+    const restoredActiveId = originalThemeState ? originalThemeState.activeThemeId : activeThemeId;
+    useGameStore.setState({ customThemes: updated, activeThemeId: restoredActiveId });
+    await syncThemesToCloud(updated, restoredActiveId);
+    toast.success(editingThemeId ? 'Alterações gravadas no pergaminho!' : 'Novo tema forjado com sucesso!');
 
     setIsCreating(false);
     setEditingThemeId(null);
@@ -318,9 +324,10 @@ export default function ThemeHubPage() {
 
   const handleDeleteTheme = async (id: string) => {
     if (confirm('Excluir este tema para sempre?')) {
-      const updated = (customThemes || []).filter(t => t.id !== id);
-      deleteTheme(id);
-      await syncThemesToCloud(updated);
+      const updated = (customThemes || []).filter(t => t.id !== id && t.id !== 'preview-temp');
+      const restoredActiveId = activeThemeId === 'preview-temp' ? 'default' : activeThemeId;
+      useGameStore.setState({ customThemes: updated, activeThemeId: restoredActiveId });
+      await syncThemesToCloud(updated, restoredActiveId);
       toast.success('Tema excluído.');
     }
   };
@@ -400,8 +407,22 @@ export default function ThemeHubPage() {
                 <p className="text-portal-text-muted font-body italic">Molde a realidade da sua jornada</p>
               </div>
             </div>
+            <button
+              onClick={() => {
+                toggleReduceMotion();
+                toast.success(reduceMotion ? 'Animações restauradas' : 'Animações reduzidas');
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all ${
+                reduceMotion
+                  ? 'bg-portal-primary/10 border-portal-primary/40 text-portal-primary'
+                  : 'bg-portal-surface border-portal-border text-portal-text-muted hover:text-portal-text'
+              }`}
+            >
+              <Accessibility className="w-3.5 h-3.5" />
+              Reduzir Animações {reduceMotion ? '(Ativado)' : '(Desativado)'}
+            </button>
           </div>
-          
+
           {!isCreating && hasBYOK && (
             <button 
               onClick={() => {
@@ -525,6 +546,26 @@ export default function ThemeHubPage() {
                                 Escolha uma essência para preencher automaticamente cores e fontes. O preview é aplicado em todo o sistema em tempo real.
                               </p>
                            </div>
+
+                          <h3 className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted mb-2 pt-2 border-t border-portal-border flex items-center gap-2">
+                            <Accessibility className="w-3.5 h-3.5" /> Presets de Acessibilidade
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                             {ACCESSIBILITY_PRESETS.map((p) => (
+                               <button
+                                 key={p.id}
+                                 type="button"
+                                 onClick={() => applyEssence(p)}
+                                 className="p-4 bg-portal-bg border border-portal-border rounded-2xl hover:border-portal-primary/50 transition-all text-left space-y-2 group"
+                               >
+                                  <div className="flex justify-between items-start">
+                                     <span className="text-[10px] font-black uppercase tracking-tight text-portal-text">{p.name}</span>
+                                     <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: p.colors.dark.primary }} />
+                                  </div>
+                                  <p className="text-[8px] text-portal-text-muted leading-snug">{p.description}</p>
+                               </button>
+                             ))}
+                          </div>
                        </div>
                     ) : activeTab !== 'fonts' ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -744,7 +785,7 @@ export default function ThemeHubPage() {
                       </button>
                     )}
 
-                    {t.id !== 'default' && (
+                    {!isBuiltInThemeId(t.id) && (
                       <div className="flex gap-1.5">
                         <button 
                           onClick={() => startEditing(t)}

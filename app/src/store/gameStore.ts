@@ -57,6 +57,7 @@ interface GameState {
   showDebugInfo: boolean; // Admin tool: Show AI models and latency
   showAdminPanel: boolean; // Admin tool: Show/hide narrative panel admin buttons
   readingMode: boolean; // Immersion: Hide all UI except narrative
+  reduceMotion: boolean; // Accessibility: disable/minimize framer-motion animations
   isLoadingHistory: boolean;
   hasMoreHistory: boolean;
   
@@ -93,6 +94,7 @@ interface GameState {
   stopImpersonation: () => void;
   toggleTheme: () => void;
   toggleLightMode: () => void;
+  toggleReduceMotion: () => void;
   setActiveTheme: (id: string) => void;
   setCustomThemes: (themes: CustomTheme[]) => void;
   createTheme: (theme: Omit<CustomTheme, 'id'>) => void;
@@ -157,6 +159,7 @@ export const useGameStore = create<GameState>()(
       showDebugInfo: false,
       showAdminPanel: true,
       readingMode: false,
+      reduceMotion: false,
       isLoadingHistory: false,
       hasMoreHistory: true,
 
@@ -176,6 +179,7 @@ export const useGameStore = create<GameState>()(
         lightMode: state.theme === 'dark' // Sync lightMode with legacy theme toggle for compatibility
       })),
       toggleLightMode: () => set((state) => ({ lightMode: !state.lightMode, theme: !state.lightMode ? 'light' : 'dark' })),
+      toggleReduceMotion: () => set((state) => ({ reduceMotion: !state.reduceMotion })),
       
       // Theme Actions
       setActiveTheme: (id) => set({ activeThemeId: id }),
@@ -788,7 +792,8 @@ export const useGameStore = create<GameState>()(
         forcedEndingType: state.forcedEndingType,
         showAdminPanel: state.showAdminPanel,
         showDebugInfo: state.showDebugInfo,
-        readingMode: state.readingMode
+        readingMode: state.readingMode,
+        reduceMotion: state.reduceMotion
       }),
     }
   )
