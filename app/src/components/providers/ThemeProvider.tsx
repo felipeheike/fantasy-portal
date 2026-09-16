@@ -6,7 +6,7 @@ import { useGameStore } from '@/store/gameStore';
 import { ACCESSIBILITY_PRESETS } from '@/lib/themePresets';
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { activeThemeId, customThemes, lightMode, theme, reduceMotion } = useGameStore();
+  const { activeThemeId, customThemes, lightMode, theme, reduceMotion, fontScale, useSystemTheme } = useGameStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -24,6 +24,18 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       }
     }
   }, [lightMode, theme, mounted]);
+
+  useEffect(() => {
+    if (!mounted || !useSystemTheme) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const applySystemTheme = () => {
+      const isDark = mediaQuery.matches;
+      useGameStore.setState({ lightMode: !isDark, theme: isDark ? 'dark' : 'light' });
+    };
+    applySystemTheme();
+    mediaQuery.addEventListener('change', applySystemTheme);
+    return () => mediaQuery.removeEventListener('change', applySystemTheme);
+  }, [mounted, useSystemTheme]);
 
   if (!mounted) {
     return <>{children}</>;
@@ -55,6 +67,9 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   return (
     <MotionConfig reducedMotion={motionPreference}>
       {googleFontsUrl && <link rel="stylesheet" href={googleFontsUrl} />}
+      {fontScale !== 1 && (
+        <style dangerouslySetInnerHTML={{ __html: `html { font-size: ${fontScale * 100}% !important; }` }} />
+      )}
       {!isDefault && activeTheme && (
         <style dangerouslySetInnerHTML={{
           __html: `

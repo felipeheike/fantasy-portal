@@ -58,6 +58,8 @@ interface GameState {
   showAdminPanel: boolean; // Admin tool: Show/hide narrative panel admin buttons
   readingMode: boolean; // Immersion: Hide all UI except narrative
   reduceMotion: boolean; // Accessibility: disable/minimize framer-motion animations
+  fontScale: number; // Accessibility: global text size multiplier
+  useSystemTheme: boolean; // Follow OS prefers-color-scheme instead of manual toggle
   isLoadingHistory: boolean;
   hasMoreHistory: boolean;
   
@@ -95,6 +97,8 @@ interface GameState {
   toggleTheme: () => void;
   toggleLightMode: () => void;
   toggleReduceMotion: () => void;
+  setFontScale: (scale: number) => void;
+  setUseSystemTheme: (value: boolean) => void;
   setActiveTheme: (id: string) => void;
   setCustomThemes: (themes: CustomTheme[]) => void;
   createTheme: (theme: Omit<CustomTheme, 'id'>) => void;
@@ -160,6 +164,8 @@ export const useGameStore = create<GameState>()(
       showAdminPanel: true,
       readingMode: false,
       reduceMotion: false,
+      fontScale: 1,
+      useSystemTheme: false,
       isLoadingHistory: false,
       hasMoreHistory: true,
 
@@ -174,12 +180,19 @@ export const useGameStore = create<GameState>()(
         flags: initialFlags ? { ...state.flags, ...initialFlags } : state.flags
       })),
       startGame: () => set({ isGameStarted: true, isSetupMode: false }),
-      toggleTheme: () => set((state) => ({ 
+      toggleTheme: () => set((state) => ({
         theme: state.theme === 'dark' ? 'light' : 'dark',
-        lightMode: state.theme === 'dark' // Sync lightMode with legacy theme toggle for compatibility
+        lightMode: state.theme === 'dark', // Sync lightMode with legacy theme toggle for compatibility
+        useSystemTheme: false // manual override takes precedence over following the OS
       })),
-      toggleLightMode: () => set((state) => ({ lightMode: !state.lightMode, theme: !state.lightMode ? 'light' : 'dark' })),
+      toggleLightMode: () => set((state) => ({
+        lightMode: !state.lightMode,
+        theme: !state.lightMode ? 'light' : 'dark',
+        useSystemTheme: false
+      })),
       toggleReduceMotion: () => set((state) => ({ reduceMotion: !state.reduceMotion })),
+      setFontScale: (scale) => set({ fontScale: scale }),
+      setUseSystemTheme: (value) => set({ useSystemTheme: value }),
       
       // Theme Actions
       setActiveTheme: (id) => set({ activeThemeId: id }),
@@ -793,7 +806,9 @@ export const useGameStore = create<GameState>()(
         showAdminPanel: state.showAdminPanel,
         showDebugInfo: state.showDebugInfo,
         readingMode: state.readingMode,
-        reduceMotion: state.reduceMotion
+        reduceMotion: state.reduceMotion,
+        fontScale: state.fontScale,
+        useSystemTheme: state.useSystemTheme
       }),
     }
   )

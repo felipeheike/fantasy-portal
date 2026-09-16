@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, ThemePalette } from '@/store/gameStore';
 import { ACCESSIBILITY_PRESETS, isBuiltInThemeId } from '@/lib/themePresets';
-import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, Moon, Sun, Settings2, RefreshCcw, BookOpen, Info, Sparkles, User, LogOut, Trophy, Ghost, Skull, Bell, Clock, ChevronRight, Accessibility } from 'lucide-react';
+import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, Moon, Sun, Settings2, RefreshCcw, BookOpen, Info, Sparkles, User, LogOut, Trophy, Ghost, Skull, Bell, Clock, ChevronRight, Accessibility, Monitor, Type, Copy, ClipboardPaste } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { logger } from '@/lib/logger';
@@ -15,7 +15,8 @@ export default function ThemeHubPage() {
   const { data: session } = useSession();
   const {
     activeThemeId, customThemes, setActiveTheme,
-    lightMode, toggleLightMode, reduceMotion, toggleReduceMotion
+    lightMode, toggleLightMode, reduceMotion, toggleReduceMotion,
+    fontScale, setFontScale, useSystemTheme, setUseSystemTheme
   } = useGameStore();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -46,6 +47,16 @@ export default function ThemeHubPage() {
   const [activeTab, setActiveTab] = useState<'dark' | 'light' | 'fonts' | 'essences'>('dark');
   const [previewMode, setPreviewMode] = useState<'dark' | 'light'>('dark');
   const [originalThemeState, setOriginalThemeState] = useState<any>(null);
+  const [importCode, setImportCode] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const [showA11yPanel, setShowA11yPanel] = useState(false);
+
+  const FONT_SCALE_OPTIONS = [
+    { label: 'P', value: 0.875 },
+    { label: 'M', value: 1 },
+    { label: 'G', value: 1.15 },
+    { label: 'GG', value: 1.3 }
+  ];
 
   const visualEssences = [
     {
@@ -322,6 +333,32 @@ export default function ThemeHubPage() {
     setIsCreating(true);
   };
 
+  const handleCopyThemeCode = (t: any) => {
+    const code = JSON.stringify({ name: t.name, colors: t.colors, fonts: t.fonts });
+    navigator.clipboard?.writeText(code)
+      .then(() => toast.success('Código do tema copiado! Envie pra quem quiser usar.'))
+      .catch(() => toast.error('Não foi possível copiar automaticamente.'));
+  };
+
+  const handleImportThemeCode = () => {
+    try {
+      const parsed = JSON.parse(importCode);
+      if (!parsed?.colors?.dark?.primary || !parsed?.colors?.light?.primary) {
+        throw new Error('missing colors');
+      }
+      setNewThemeName(parsed.name ? `${parsed.name} (Importado)` : 'Tema Importado');
+      setDarkPalette(parsed.colors.dark);
+      setLightPalette(parsed.colors.light);
+      if (parsed.fonts) setFonts(parsed.fonts);
+      updateLivePreview(parsed.colors, parsed.fonts || fonts);
+      setImportCode('');
+      setShowImport(false);
+      toast.success('Código do tema aplicado! Revise e salve pra guardar.');
+    } catch {
+      toast.error('Código de tema inválido.');
+    }
+  };
+
   const handleDeleteTheme = async (id: string) => {
     if (confirm('Excluir este tema para sempre?')) {
       const updated = (customThemes || []).filter(t => t.id !== id && t.id !== 'preview-temp');
@@ -349,13 +386,30 @@ export default function ThemeHubPage() {
         }}
       >
         <link rel="stylesheet" href={previewFontsUrl} />
+
+        {/* Mini status bar — reflete o mesmo painel de HP/SP do jogo real */}
+        <div className="flex items-center gap-4 mb-4 pb-4 border-b" style={{ borderColor: currentP.border }}>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#f87171' }}>HP</span>
+            <div className="w-14 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: currentP.surface, border: `1px solid ${currentP.border}` }}>
+              <div className="h-full rounded-full" style={{ width: '75%', backgroundColor: '#ef4444' }} />
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#60a5fa' }}>SP</span>
+            <div className="w-14 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: currentP.surface, border: `1px solid ${currentP.border}` }}>
+              <div className="h-full rounded-full" style={{ width: '60%', backgroundColor: '#3b82f6' }} />
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 mb-4">
            <div className="p-2 rounded-xl shadow-lg" style={{ backgroundColor: currentP.primary, color: isDark ? '#000' : '#fff' }}>
               <Sparkles className="w-4 h-4" />
            </div>
            <h4 className="font-black uppercase tracking-tight text-sm" style={{ fontFamily: fonts.title }}>Título da Cena</h4>
         </div>
-        
+
         <p className="text-xs leading-relaxed mb-6 italic" style={{ fontFamily: fonts.body }}>
           "O vento sopra gélido pelas ruínas, carregando sussurros de uma era esquecida..."
         </p>
@@ -407,20 +461,89 @@ export default function ThemeHubPage() {
                 <p className="text-portal-text-muted font-body italic">Molde a realidade da sua jornada</p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                toggleReduceMotion();
-                toast.success(reduceMotion ? 'Animações restauradas' : 'Animações reduzidas');
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all ${
-                reduceMotion
-                  ? 'bg-portal-primary/10 border-portal-primary/40 text-portal-primary'
-                  : 'bg-portal-surface border-portal-border text-portal-text-muted hover:text-portal-text'
-              }`}
-            >
-              <Accessibility className="w-3.5 h-3.5" />
-              Reduzir Animações {reduceMotion ? '(Ativado)' : '(Desativado)'}
-            </button>
+            <div className="relative inline-block">
+              <button
+                onClick={() => setShowA11yPanel(!showA11yPanel)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all ${
+                  showA11yPanel || reduceMotion || useSystemTheme || fontScale !== 1
+                    ? 'bg-portal-primary/10 border-portal-primary/40 text-portal-primary'
+                    : 'bg-portal-surface border-portal-border text-portal-text-muted hover:text-portal-text'
+                }`}
+              >
+                <Accessibility className="w-3.5 h-3.5" />
+                Acessibilidade
+                <ChevronRight className={`w-3 h-3 transition-transform ${showA11yPanel ? 'rotate-90' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {showA11yPanel && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowA11yPanel(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="absolute left-0 top-full mt-2 z-50 w-80 p-5 bg-portal-surface border-2 border-portal-border rounded-3xl shadow-2xl space-y-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Accessibility className="w-3.5 h-3.5 text-portal-text-muted" />
+                          <span className="text-xs font-bold text-portal-text">Reduzir Animações</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            toggleReduceMotion();
+                            toast.success(reduceMotion ? 'Animações restauradas' : 'Animações reduzidas');
+                          }}
+                          className={`w-10 h-5 rounded-full transition-all relative p-1 ${reduceMotion ? 'bg-primary' : 'bg-portal-surface-hover'}`}
+                        >
+                          <motion.div animate={{ x: reduceMotion ? 20 : 0 }} className="w-3 h-3 bg-white rounded-full shadow-md" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Monitor className="w-3.5 h-3.5 text-portal-text-muted" />
+                          <span className="text-xs font-bold text-portal-text">Seguir Sistema</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const next = !useSystemTheme;
+                            setUseSystemTheme(next);
+                            toast.success(next ? 'Seguindo o tema do sistema' : 'Tema manual restaurado');
+                          }}
+                          className={`w-10 h-5 rounded-full transition-all relative p-1 ${useSystemTheme ? 'bg-primary' : 'bg-portal-surface-hover'}`}
+                        >
+                          <motion.div animate={{ x: useSystemTheme ? 20 : 0 }} className="w-3 h-3 bg-white rounded-full shadow-md" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t border-portal-border">
+                        <div className="flex items-center gap-2">
+                          <Type className="w-3.5 h-3.5 text-portal-text-muted" />
+                          <span className="text-xs font-bold text-portal-text">Tamanho da Fonte</span>
+                        </div>
+                        <div className="flex items-center gap-1 p-1 bg-portal-bg border border-portal-border rounded-2xl">
+                          {FONT_SCALE_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.label}
+                              onClick={() => setFontScale(opt.value)}
+                              className={`flex-1 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                fontScale === opt.value
+                                  ? 'bg-portal-primary text-portal-primary-foreground'
+                                  : 'text-portal-text-muted hover:text-portal-text'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {!isCreating && hasBYOK && (
@@ -466,6 +589,35 @@ export default function ThemeHubPage() {
                     className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-4 text-portal-text placeholder:text-portal-text-muted focus:border-portal-primary outline-none transition-all font-bold"
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowImport(!showImport)}
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-portal-text-muted hover:text-portal-primary transition-colors ml-4"
+                  >
+                    <ClipboardPaste className="w-3.5 h-3.5" />
+                    {showImport ? 'Cancelar importação' : 'Importar código de um tema'}
+                  </button>
+                  {showImport && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={importCode}
+                        onChange={(e) => setImportCode(e.target.value)}
+                        placeholder="Cole aqui o código copiado de outro tema..."
+                        className="flex-1 bg-portal-bg border-2 border-portal-border rounded-2xl p-3 text-[11px] font-mono text-portal-text placeholder:text-portal-text-muted focus:border-portal-primary outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleImportThemeCode}
+                        className="px-4 py-3 bg-portal-primary/10 hover:bg-portal-primary/20 text-portal-primary rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors shrink-0"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tabs for Dark/Light Mode editing */}
@@ -787,7 +939,14 @@ export default function ThemeHubPage() {
 
                     {!isBuiltInThemeId(t.id) && (
                       <div className="flex gap-1.5">
-                        <button 
+                        <button
+                          onClick={() => handleCopyThemeCode(t)}
+                          className="p-2 bg-portal-border/50 text-portal-text-muted hover:text-portal-primary hover:bg-portal-primary/10 rounded-xl transition-colors"
+                          title="Copiar Código do Tema"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => startEditing(t)}
                           className="p-2 bg-portal-border/50 text-portal-text-muted hover:text-portal-primary hover:bg-portal-primary/10 rounded-xl transition-colors"
                           title="Editar Tema"
@@ -795,7 +954,7 @@ export default function ThemeHubPage() {
                         >
                           <Settings2 className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteTheme(t.id)}
                           className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-colors"
                           title="Excluir Tema"
