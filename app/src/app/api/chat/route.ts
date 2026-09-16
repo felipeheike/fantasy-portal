@@ -290,7 +290,7 @@ CONTEXTO ATUAL:
       JSON.stringify({
         error: isQuotaError ? 'LIMITE_COTA' : 'ERRO_MESTRE',
         message: isQuotaError 
-          ? 'Quota exceeded: O limite diário do Gemini foi atingido.' 
+          ? 'Quota exceeded: O limite diário do provedor de IA foi atingido.'
           : (error?.message ?? 'Erro desconhecido'),
       }),
       {
