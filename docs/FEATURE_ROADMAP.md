@@ -52,9 +52,9 @@ Extensão mais ambiciosa: dois `Player` compartilhando uma `Journey`, cada um co
 
 ### Acessibilidade e personalização
 
-**10. Presets de acessibilidade no Theme Hub**
-Além da paleta customizável já existente, adicionar presets prontos (alto contraste, fonte para dislexia, tamanho de texto ajustável) como um passo a mais no editor de temas.
-*Esforço: baixo · Apoia-se em: `theme-hub/page.tsx`, `ThemeProvider.tsx`.*
+**10. Presets de acessibilidade no Theme Hub — ✅ implementado (2026-09-16)**
+Três temas embutidos (`src/lib/themePresets.ts`, `ACCESSIBILITY_PRESETS`), ativáveis com um clique direto na lista principal do Theme Hub, ao lado do "Tema Padrão" — sem precisar passar pelo formulário de criação: **Alto Contraste** (paletas dark/light com 8 tokens precisos, WCAG AA/AAA), **Leitura Fácil** (fonte Atkinson Hyperlegible, feita pelo Braille Institute) e **Contraste Seguro** (paleta Okabe-Ito, azul em vez de âmbar/vermelho para daltonismo). Continuam também disponíveis na aba "Essências" do formulário de criação, como ponto de partida pra quem quiser personalizar sua própria variante. Também adicionado um toggle global "Reduzir Animações" (`gameStore.reduceMotion`) via `MotionConfig` do framer-motion, que respeita `prefers-reduced-motion` do SO por padrão.
+*Apoia-se em: mesmo padrão dos presets de "Essência" cosméticos já existentes; tamanho de texto ajustável ficou fora do escopo (exigiria um mecanismo novo de escala de fonte, não cabe no modelo de tema atual).*
 
 **11. Narração em outros idiomas**
 Hoje a narrativa é fixa em PT-BR por convenção do prompt. Tornar o idioma da narração uma preferência de jogador (mantendo os nomes de campos do schema em inglês, só o conteúdo textual muda) abriria o app para outros públicos.
@@ -115,7 +115,7 @@ Hoje o admin só tem `forcedNextAction`/`forcedEndingType` (força o *próximo* 
 | 7 | Trilha sonora gerativa (fallback Spotify) | Jogador | Médio–Alto |
 | 8 | Modo espectador (somente leitura) | Jogador | ✅ Implementado |
 | 9 | Jornadas cooperativas | Jogador | Alto |
-| 10 | Presets de acessibilidade | Jogador | Baixo |
+| 10 | Presets de acessibilidade | Jogador | ✅ Implementado |
 | 11 | Narração em outros idiomas | Jogador | Médio |
 | 12 | Dashboard de custo/uso | Admin | Médio |
 | 13 | Monitor de sessões ao vivo | Admin | Baixo–Médio |
