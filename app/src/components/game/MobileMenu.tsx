@@ -64,7 +64,7 @@ export default function MobileMenu({
     showAdminPanel
   } = useGameStore();
 
-  const isAdmin = (session?.user as any)?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'ADMIN';
   const unreadCount = notificationHistory.filter(n => !n.read).length;
 
   const menuItems = [

@@ -28,7 +28,7 @@ export default function ForcePasswordChangeModal() {
   const [isLoading, setIsLoading] = useState(false);
 
   // If the flag is not set, we don't show anything
-  if (!(session?.user as any)?.forcePasswordChange) return null;
+  if (!session?.user?.forcePasswordChange) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

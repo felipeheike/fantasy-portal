@@ -138,7 +138,7 @@ export default function MainMenu() {
             <Palette className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden md:inline">Hub de Temas</span>
           </button>
 
-          {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
+          {session?.user && session.user.role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
               className="p-2.5 md:p-3 bg-portal-surface border border-portal-border rounded-xl md:rounded-2xl text-primary hover:bg-portal-surface-hover transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl group"

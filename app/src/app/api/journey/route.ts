@@ -12,9 +12,9 @@ export async function GET(req: Request) {
     const userId = searchParams.get('userId');
 
     // SECURITY: Only ADMIN can impersonate other users
-    const targetUserId = (session.user as any).role === 'ADMIN' && userId 
+    const targetUserId = session.user.role === 'ADMIN' && userId 
       ? userId 
-      : (session.user as any).id;
+      : session.user.id;
 
     const journeys = await prisma.journey.findMany({
       where: { playerId: targetUserId },
@@ -40,9 +40,9 @@ export async function POST(req: Request) {
     const { genre, journeyLength, punishSystem, visualStyle, narrativeStyle, tone, readStyle, playerName, impersonatedPlayerId } = body;
 
     // SECURITY: Only ADMIN can create journeys for others
-    const targetUserId = (session.user as any).role === 'ADMIN' && impersonatedPlayerId 
+    const targetUserId = session.user.role === 'ADMIN' && impersonatedPlayerId 
       ? impersonatedPlayerId 
-      : (session.user as any).id;
+      : session.user.id;
 
     // --- LIMIT VALIDATION (Tier System) ---
     const player = await prisma.player.findUnique({

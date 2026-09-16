@@ -217,7 +217,7 @@ export default function ThemeHubPage() {
     toast.success(`Tema ${name} ativado!`);
   };
 
-  const hasBYOK = (session?.user as any)?.role === 'ADMIN' || true;
+  const hasBYOK = session?.user?.role === 'ADMIN' || true;
 
   const defaultTheme = {
     id: 'default',

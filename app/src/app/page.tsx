@@ -643,7 +643,7 @@ export default function GamePage() {
       >
         {/* Top Actions Hub */}
         <div className={`absolute ${readingMode ? 'hidden' : ''} ${impersonatedPlayerId ? 'top-32 lg:top-40' : 'top-24 lg:top-28'} ${isInquiryOpen ? 'lg:left-[468px]' : 'left-4 lg:left-10'} z-50 flex gap-2 transition-all duration-500 ease-in-out`}>
-          {session?.user && (session.user as any).role === 'ADMIN' && !impersonatedPlayerId && (
+          {session?.user && session.user.role === 'ADMIN' && !impersonatedPlayerId && (
             <button 
               onClick={() => router.push('/admin/dashboard')}
               className="hidden lg:block p-3 bg-portal-surface border border-portal-border rounded-2xl text-primary hover:bg-portal-surface-hover transition-all shadow-xl"

@@ -12,11 +12,11 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const requestedUserId = searchParams.get('userId');
-    const isAdmin = (session.user as any).role === 'ADMIN';
+    const isAdmin = session.user.role === 'ADMIN';
 
     // Se um ID foi solicitado e quem pede é ADMIN, usamos o ID alvo. 
     // Caso contrário, usamos o ID da própria sessão.
-    const userId = (requestedUserId && isAdmin) ? requestedUserId : (session.user as any).id;
+    const userId = (requestedUserId && isAdmin) ? requestedUserId : session.user.id;
 
     const player = await prisma.player.findUnique({
       where: { id: userId },
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
       activeThemeId: player.activeThemeId,
       usageStats: player.usageStats || {},
       mfaEnabled: player.mfaEnabled,
-      isImpersonated: userId !== (session.user as any).id
+      isImpersonated: userId !== session.user.id
     });
   } catch (error: any) {
     console.error('PROFILE_GET_ERR:', error);
@@ -77,8 +77,8 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { name, currentPassword, newPassword, apiKeys, apiEnabled, aiPreferences, customThemes, activeThemeId, mfaAction, mfaToken, targetUserId } = body;
     
-    const isAdmin = (session.user as any).role === 'ADMIN';
-    const userId = (targetUserId && isAdmin) ? targetUserId : (session.user as any).id;
+    const isAdmin = session.user.role === 'ADMIN';
+    const userId = (targetUserId && isAdmin) ? targetUserId : session.user.id;
 
     const player = await prisma.player.findUnique({ where: { id: userId } });
     if (!player) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
@@ -90,7 +90,7 @@ export async function PATCH(req: Request) {
 
     // 2. Trocar Senha (Só permitida para o próprio usuário ou Admin sem checar senha atual)
     if (newPassword) {
-      const isSelf = userId === (session.user as any).id;
+      const isSelf = userId === session.user.id;
       if (isSelf) {
         if (!currentPassword) return NextResponse.json({ error: "Senha atual obrigatória" }, { status: 400 });
         const isValid = await bcrypt.compare(currentPassword, player.passwordHash || '');

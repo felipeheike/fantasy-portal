@@ -43,7 +43,7 @@ export async function GET() {
 
     if (session) {
       const player = await prisma.player.findUnique({
-        where: { id: (session.user as any).id },
+        where: { id: session.user.id },
         select: { apiKeys: true, apiEnabled: true, aiPreferences: true }
       });
       if (player) userConfig = player;

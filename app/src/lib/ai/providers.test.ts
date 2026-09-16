@@ -1,0 +1,68 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { getAIConfigMetadata } from './providers';
+
+describe('getAIConfigMetadata', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    delete process.env.TEXT_MODEL;
+    delete process.env.IMAGE_MODEL;
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it('falls back to the system Claude model when no user config is given', () => {
+    const meta = getAIConfigMetadata();
+    expect(meta.text.model).toBe('claude-sonnet-5');
+    expect(meta.text.isCustomKey).toBe(false);
+    expect(meta.image.isCustomKey).toBe(false);
+  });
+
+  it('uses the .env TEXT_MODEL/IMAGE_MODEL as the fallback when set', () => {
+    process.env.TEXT_MODEL = 'gemini-2.0-flash';
+    process.env.IMAGE_MODEL = 'imagen-3.0-generate-001';
+    const meta = getAIConfigMetadata();
+    expect(meta.text.model).toBe('gemini-2.0-flash');
+    expect(meta.image.model).toBe('imagen-3.0-generate-001');
+  });
+
+  it('uses the BYOK text model + key when the user has one configured and enabled', () => {
+    const meta = getAIConfigMetadata({
+      aiPreferences: { textModel: 'gpt-4o' },
+      apiKeys: { openai: 'encrypted-key' },
+      apiEnabled: {},
+    });
+    expect(meta.text.model).toBe('gpt-4o');
+    expect(meta.text.isCustomKey).toBe(true);
+  });
+
+  it('does not report a custom key when the matching provider key is missing', () => {
+    const meta = getAIConfigMetadata({
+      aiPreferences: { textModel: 'gpt-4o' },
+      apiKeys: {},
+      apiEnabled: {},
+    });
+    expect(meta.text.isCustomKey).toBe(false);
+  });
+
+  it('does not report a custom key when the provider is explicitly disabled', () => {
+    const meta = getAIConfigMetadata({
+      aiPreferences: { textModel: 'gpt-4o' },
+      apiKeys: { openai: 'encrypted-key' },
+      apiEnabled: { openai: false },
+    });
+    expect(meta.text.isCustomKey).toBe(false);
+  });
+
+  it('resolves the image provider from a dall-e model id', () => {
+    const meta = getAIConfigMetadata({
+      aiPreferences: { imageModel: 'dall-e-3' },
+      apiKeys: { openai: 'encrypted-key' },
+      apiEnabled: {},
+    });
+    expect(meta.image.model).toBe('dall-e-3');
+    expect(meta.image.isCustomKey).toBe(true);
+  });
+});

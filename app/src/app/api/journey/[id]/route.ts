@@ -24,9 +24,9 @@ export async function PATCH(
     } = body;
 
     // SECURITY: ADMIN can patch anyone, PLAYER can only patch themselves
-    const targetUserId = (session.user as any).role === "ADMIN" && impersonatedPlayerId 
+    const targetUserId = session.user.role === "ADMIN" && impersonatedPlayerId 
       ? impersonatedPlayerId 
-      : (session.user as any).id;
+      : session.user.id;
 
     const journey = await prisma.journey.update({
       where: { id, playerId: targetUserId },
@@ -58,9 +58,9 @@ export async function DELETE(
     const { searchParams } = new URL(req.url);
     const impersonatedPlayerId = searchParams.get("impersonatedPlayerId");
 
-    const targetUserId = (session.user as any).role === "ADMIN" && impersonatedPlayerId 
+    const targetUserId = session.user.role === "ADMIN" && impersonatedPlayerId 
       ? impersonatedPlayerId 
-      : (session.user as any).id;
+      : session.user.id;
 
     await prisma.journey.delete({ 
       where: { id, playerId: targetUserId } 

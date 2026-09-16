@@ -78,7 +78,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     let accessToken;
     try {
       accessToken = await getAccessToken(userId);
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
     }
 
     const { action, volume, deviceId, state } = await req.json();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     let accessToken;
     try {
       accessToken = await getAccessToken(userId);

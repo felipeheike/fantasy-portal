@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     // Fetch User AI Config (BYOK)
     const player = await prisma.player.findUnique({
-      where: { id: (session.user as any).id },
+      where: { id: session.user.id },
       select: { apiKeys: true, aiPreferences: true, apiEnabled: true }
     });
 

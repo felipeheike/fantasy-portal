@@ -7,6 +7,7 @@ O projeto utiliza um `Makefile` na pasta `/app` para simplificar as operações 
 *   `make prd`: Inicia o ambiente de produção (build otimizado).
 *   `make down`: Para e remove todos os containers.
 *   `make status`: Lista o status dos containers do projeto.
+*   `make test`: Roda a suíte de testes (Vitest) dentro do container de dev.
 *   `make clean`: Remove volumes, containers e limpa o sistema Docker (Cuidado!).
 *   `make dev-logs`: Acompanha os logs em tempo real do Next.js.
 
@@ -22,3 +23,5 @@ O projeto utiliza um `Makefile` na pasta `/app` para simplificar as operações 
 
 ---
 **Dica:** Sempre execute os comandos de dentro da pasta `/app`.
+
+**Atenção:** rode só uma stack por vez (`dev` ou `prd`). Elas compartilham o mesmo projeto Docker Compose (`fantasy-portal`) e algumas dependências (ex.: `pgadmin`), então subir as duas juntas gera containers órfãos e consumo de recursos desnecessário.

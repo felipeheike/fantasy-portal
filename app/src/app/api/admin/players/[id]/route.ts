@@ -11,7 +11,7 @@ export async function PATCH(
     const session = await getServerSession(authOptions);
     const { id } = await params;
     
-    if (!session || (session.user as any).role !== "ADMIN") {
+    if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
@@ -41,12 +41,12 @@ export async function DELETE(
     const session = await getServerSession(authOptions);
     const { id } = await params;
     
-    if (!session || (session.user as any).role !== "ADMIN") {
+    if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
     // Safety: prevent self-deletion
-    if ((session.user as any).id === id) {
+    if (session.user.id === id) {
       return NextResponse.json({ error: "Você não pode banir a si mesmo do portal." }, { status: 400 });
     }
 

@@ -11,9 +11,9 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const requestedUserId = searchParams.get('userId');
-    const isAdmin = (session.user as any).role === 'ADMIN';
+    const isAdmin = session.user.role === 'ADMIN';
 
-    const userId = (requestedUserId && isAdmin) ? requestedUserId : (session.user as any).id;
+    const userId = (requestedUserId && isAdmin) ? requestedUserId : session.user.id;
 
     const player = await prisma.player.findUnique({
       where: { id: userId },

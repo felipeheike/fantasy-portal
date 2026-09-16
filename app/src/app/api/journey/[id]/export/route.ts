@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { s3Client } from '@/lib/storage';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 import crypto from 'crypto';
 import * as jspdf from 'jspdf';
 import sharp from 'sharp';
@@ -70,6 +72,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
     const { id } = await params;
     const { includeImages = true } = await req.json();
 
@@ -80,6 +85,10 @@ export async function POST(
 
     if (!journey) {
       return NextResponse.json({ error: 'Jornada não encontrada' }, { status: 404 });
+    }
+
+    if (journey.playerId !== session.user.id && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
     }
 
     const history = (journey.history as any[]) || [];

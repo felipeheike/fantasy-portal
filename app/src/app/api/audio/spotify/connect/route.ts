@@ -9,7 +9,7 @@ export async function GET(req: Request) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const clientId = process.env.SPOTIFY_CLIENT_ID || "";
     
     // Construct redirect URI prioritizing SPOTIFY_REDIRECT_URI, then NEXTAUTH_URL, then request headers

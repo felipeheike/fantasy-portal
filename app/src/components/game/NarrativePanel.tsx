@@ -69,7 +69,7 @@ export default function NarrativePanel({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [audioTimes, setAudioTimes] = useState<Record<string, { current: number, duration: number }>>({});
-  const isAdmin = (session?.user as any)?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   // State mapping for Punishment System
   const toleranceLimits: Record<string, number> = {

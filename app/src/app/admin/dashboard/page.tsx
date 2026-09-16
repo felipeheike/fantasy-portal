@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (status === 'unauthenticated' || (session && (session.user as any).role !== 'ADMIN')) {
+    if (status === 'unauthenticated' || (session && session.user.role !== 'ADMIN')) {
       router.push('/');
     } else if (status === 'authenticated') {
       fetchPlayers();

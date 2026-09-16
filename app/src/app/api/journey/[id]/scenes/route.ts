@@ -52,9 +52,9 @@ export async function POST(
     const body = await req.json();
     const { scene, playerStatus, inventory, impersonatedPlayerId } = body;
 
-    const targetUserId = (session.user as any).role === "ADMIN" && impersonatedPlayerId 
+    const targetUserId = session.user.role === "ADMIN" && impersonatedPlayerId 
       ? impersonatedPlayerId 
-      : (session.user as any).id;
+      : session.user.id;
 
     // Verificar se a jornada pertence ao usuário
     const journey = await prisma.journey.findUnique({

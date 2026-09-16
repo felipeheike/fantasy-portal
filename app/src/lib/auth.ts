@@ -1,8 +1,10 @@
 import { NextAuthOptions } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcrypt";
 import { verifyMfaCode, decrypt } from "./security";
+import { PlayerRole, PlayerAccountStatus } from "@/types/auth";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -49,8 +51,8 @@ export const authOptions: NextAuthOptions = {
           id: player.id,
           email: player.email,
           name: player.name,
-          role: player.role,
-          accountStatus: player.accountStatus,
+          role: player.role as PlayerRole,
+          accountStatus: player.accountStatus as PlayerAccountStatus,
           forcePasswordChange: player.forcePasswordChange
         };
       }
@@ -60,19 +62,17 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
-        token.accountStatus = (user as any).accountStatus;
-        token.forcePasswordChange = (user as any).forcePasswordChange;
+        token.role = user.role;
+        token.accountStatus = user.accountStatus;
+        token.forcePasswordChange = user.forcePasswordChange;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).accountStatus = token.accountStatus;
-        (session.user as any).forcePasswordChange = token.forcePasswordChange;
-      }
+      session.user.id = token.id;
+      session.user.role = token.role;
+      session.user.accountStatus = token.accountStatus;
+      session.user.forcePasswordChange = token.forcePasswordChange;
       return session;
     }
   },
@@ -84,3 +84,17 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+/**
+ * Server-side helper for API routes: returns the typed session user,
+ * or null if there is no active session. Replaces the repeated
+ * `getServerSession(authOptions)` + `session.user` pattern.
+ */
+export async function getSessionUser() {
+  const session = await getServerSession(authOptions);
+  return session?.user ?? null;
+}
+
+export function isAdmin(user: { role: PlayerRole } | null): boolean {
+  return user?.role === "ADMIN";
+}

@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Context URI is required" }, { status: 400 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const player = await prisma.player.findUnique({
       where: { id: userId },
       select: { apiKeys: true }

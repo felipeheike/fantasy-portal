@@ -26,8 +26,10 @@ All app commands run from the `app/` directory. The project runs inside Docker; 
 - `make prd` — start the production stack (builds image).
 - `make down` — stop and remove all containers.
 - `make status` — list running containers for this project.
+- `make test` — run the Vitest suite inside the (already running) dev container.
 - `make clean` — remove volumes/containers and prune Docker (destructive).
 - `make sh-dev` / `make sh-prd` — open a shell in the app container.
+- Only one stack (dev or prd) should run at a time — they share ports/containers by project name and `make prd`/`make dev` will warn about orphaned containers from the other stack if both are up.
 
 ### Database (Prisma, run via the dev container)
 - `make prisma-gen` — regenerate the Prisma client after schema changes.
@@ -40,8 +42,9 @@ All app commands run from the `app/` directory. The project runs inside Docker; 
 - `npm run build` — `next build`
 - `npm run start` — `next start`
 - `npm run lint` — `eslint`
+- `npm test` — `vitest run` (unit tests only; colocated as `*.test.ts` next to the module under test, e.g. `src/lib/security.test.ts`). Coverage is intentionally minimal so far — pure-logic modules like `lib/security.ts` and `lib/ai/providers.ts` — not a full suite.
 
-There is no test runner configured in `package.json`. Ad hoc/manual test and debug scripts live in `app/prisma/check_*.ts`, `app/prisma/seed_*.ts`, and `tools/debug/`, run individually with `npx tsx <path>` (or `tsx` if installed globally).
+Ad hoc/manual test and debug scripts live in `app/prisma/check_*.ts`, `app/prisma/seed_*.ts`, and `tools/debug/`, run individually with `npx tsx <path>` (or `tsx` if installed globally). These are separate from the Vitest suite above.
 
 Default dev URL: `http://localhost:25035`. MinIO console: `http://localhost:9001`.
 
@@ -62,7 +65,7 @@ The core of the app is a single AI-driven story loop: `app/src/app/api/chat/rout
 ### State and persistence layers
 - **Client state:** `app/src/store/gameStore.ts` — a single Zustand store (persisted to localStorage) holding player status, inventory, scene history, theming, admin/debug toggles, and impersonation (admin "supervision mode"). This is the primary state hub most game components read/write.
 - **Server state:** Prisma models in `app/prisma/schema.prisma` — `Player` (auth, BYOK keys, MFA, themes, usage stats), `Journey` (one playthrough: history/flags/settings JSON blobs plus "final" snapshot fields written at game-over), `Scene` (persisted per-scene record mirroring the `sceneSchema` shape), `Asset` (generated image/audio references in MinIO). Most gameplay fields are loosely-typed `Json` columns rather than normalized relations — expect to parse/shape JSON on both read and write.
-- **Auth:** NextAuth credentials provider (`app/src/lib/auth.ts`) with bcrypt password hashing, optional TOTP MFA (`app/src/lib/security.ts`), and an `accountStatus` gate (`PENDING`/`ACTIVE`) enforced both in `authorize()` and in `app/src/middleware.ts`. Route protection (auth required, `/admin/*` requires `role === "ADMIN"`) is centralized in the middleware matcher, not per-route checks.
+- **Auth:** NextAuth credentials provider (`app/src/lib/auth.ts`) with bcrypt password hashing, optional TOTP MFA (`app/src/lib/security.ts`), and an `accountStatus` gate (`PENDING`/`ACTIVE`) enforced both in `authorize()` and in `app/src/middleware.ts`. The middleware `matcher` only covers page routes (`/`, `/admin/:path*`) plus `/api/journey/:path*` and `/api/image/:path*` — every other API route (`/api/chat`, `/api/vision`, `/api/audio/*`, `/api/admin/*`, etc.) enforces its own `getServerSession(authOptions)` check at the top of the handler (use `getSessionUser()` from `lib/auth.ts`). When adding a new API route that touches player data, add that check explicitly — don't assume the middleware covers it.
 - **Secrets:** user-supplied API keys and MFA secrets are AES-256-CBC encrypted at rest via `encrypt`/`decrypt` in `lib/security.ts`, decrypted only in-memory when calling out to an AI provider.
 
 ### Assets and export

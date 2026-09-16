@@ -13,7 +13,7 @@ export async function POST(
     const session = await getServerSession(authOptions);
     const { id } = await params;
     
-    if (!session || (session.user as any).role !== "ADMIN") {
+    if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 

@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     let userConfig = undefined;
     if (session) {
       const player = await prisma.player.findUnique({
-        where: { id: (session.user as any).id },
+        where: { id: session.user.id },
         select: { apiKeys: true, aiPreferences: true, apiEnabled: true }
       });
       if (player) userConfig = player;
