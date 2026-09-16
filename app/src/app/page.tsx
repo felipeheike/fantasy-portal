@@ -393,7 +393,7 @@ export default function GamePage() {
 
         setPersistentError(null);
       } else {
-        setPersistentError("O Portal não conseguiu materializar esta cena. Verifique o limite de cota do Gemini.");
+        setPersistentError("O Portal não conseguiu materializar esta cena. Verifique o limite de cota do provedor de IA.");
       }
     },
     onError: (err) => {

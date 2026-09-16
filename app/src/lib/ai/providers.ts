@@ -50,12 +50,12 @@ export function getTextModel(userConfig?: UserAIConfig) {
 
   // Fallback if not configured or if key is missing/disabled
   if (!modelId) {
-    modelId = process.env.TEXT_MODEL || 'gemini-1.5-flash';
-    provider = 'google';
+    modelId = process.env.TEXT_MODEL || 'claude-sonnet-5';
+    provider = 'anthropic';
     if (modelId.startsWith('gpt-') || modelId.startsWith('o1-') || modelId.startsWith('o3-')) {
       provider = 'openai';
-    } else if (modelId.startsWith('claude-')) {
-      provider = 'anthropic';
+    } else if (modelId.startsWith('gemini-')) {
+      provider = 'google';
     }
 
     useUserKey = provider === 'google'
@@ -83,9 +83,9 @@ export function getTextModel(userConfig?: UserAIConfig) {
     return anthropic(modelId);
   }
 
-  // Final fallback to system gemini
-  const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || '' });
-  return google('gemini-1.5-flash');
+  // Final fallback to system Claude
+  const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
+  return anthropic('claude-sonnet-5');
 }
 
 /**
@@ -150,12 +150,12 @@ export function getAIConfigMetadata(userConfig?: UserAIConfig) {
   const apiEnabled = userConfig?.apiEnabled || {};
 
   // Text Model Resolution
-  const textModelId = preferences.textModel || process.env.TEXT_MODEL || 'gemini-1.5-flash';
-  let textProvider: TextProvider = 'google';
+  const textModelId = preferences.textModel || process.env.TEXT_MODEL || 'claude-sonnet-5';
+  let textProvider: TextProvider = 'anthropic';
   if (textModelId.startsWith('gpt-') || textModelId.startsWith('o1-') || textModelId.startsWith('o3-')) {
     textProvider = 'openai';
-  } else if (textModelId.startsWith('claude-')) {
-    textProvider = 'anthropic';
+  } else if (textModelId.startsWith('gemini-')) {
+    textProvider = 'google';
   }
   
   let useUserTextKey = false;

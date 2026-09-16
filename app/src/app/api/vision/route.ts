@@ -1,8 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
+import { generateText } from "ai";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { decrypt } from "@/lib/security";
+import { getTextModel } from "@/lib/ai/providers";
 
 export async function POST(req: Request) {
   try {
@@ -21,15 +21,11 @@ export async function POST(req: Request) {
       select: { apiKeys: true, aiPreferences: true, apiEnabled: true }
     });
 
-    const userKeys = (player?.apiKeys as any) || {};
-    const preferences = (player?.aiPreferences as any) || {};
-    const apiEnabled = (player?.apiEnabled as any) || {};
-
-    const useUserKey = userKeys.gemini && apiEnabled.gemini !== false;
-    const apiKey = useUserKey ? decrypt(userKeys.gemini) : process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    const modelId = preferences.textModel || process.env.TEXT_MODEL || "gemini-1.5-flash-latest";
-
-    const ai = new GoogleGenAI({ apiKey: apiKey || "" });
+    const userConfig = {
+      apiKeys: (player?.apiKeys as any) || {},
+      aiPreferences: (player?.aiPreferences as any) || {},
+      apiEnabled: (player?.apiEnabled as any) || {},
+    };
 
     const systemPrompt = `
 Você é o "Olho do Mestre" no sistema Fantasy Portal. 
@@ -71,22 +67,24 @@ Formato de Saída:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: [
-        systemPrompt,
+    const { text } = await generateText({
+      model: getTextModel(userConfig),
+      messages: [
         {
-          inlineData: {
-            data: image.split(",")[1], // Remove o prefixo data:image/png;base64,
-            mimeType: "image/jpeg"
-          }
+          role: "user",
+          content: [
+            { type: "text", text: systemPrompt },
+            {
+              type: "image",
+              image: image.split(",")[1], // Remove o prefixo data:image/png;base64,
+              mediaType: "image/jpeg"
+            }
+          ]
         }
       ]
     });
 
-    const text = response.text || "";
-    
-    // Tenta extrair o JSON da resposta (Gemini as vezes coloca ```json)
+    // Tenta extrair o JSON da resposta (o modelo às vezes envolve em ```json)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const itemData = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(text);
 
