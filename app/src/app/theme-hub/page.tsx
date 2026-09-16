@@ -106,11 +106,29 @@ export default function ThemeHubPage() {
     }
   ];
 
-  const updateLivePreview = (colors: { dark: any, light: any }, currentFonts: any) => {
+  // Preenche os 4 tokens que o editor de cor-a-cor e o "Me Surpreenda" nunca definem
+  // (surfaceHover/primaryForeground/text/textMuted) — sem isso, o fundo do modal muda ao
+  // vivo mas o texto fica preso na cor de antes (herdada do tema real), podendo ficar
+  // ilegível (ex.: texto escuro sobre fundo que acabou de virar escuro).
+  const completeLivePreviewPalette = (p: Partial<ThemePalette>, fallbackText: string, fallbackTextMuted: string): ThemePalette => ({
+    primary: p.primary!,
+    bg: p.bg!,
+    surface: p.surface!,
+    border: p.border!,
+    surfaceHover: p.surfaceHover || p.border!,
+    primaryForeground: p.primaryForeground || p.bg!,
+    text: p.text || fallbackText,
+    textMuted: p.textMuted || fallbackTextMuted
+  });
+
+  const updateLivePreview = (colors: { dark: Partial<ThemePalette>, light: Partial<ThemePalette> }, currentFonts: any) => {
     const tempTheme = {
       id: 'preview-temp',
       name: 'Preview',
-      colors,
+      colors: {
+        dark: completeLivePreviewPalette(colors.dark, '#f4f4f5', '#71717a'),
+        light: completeLivePreviewPalette(colors.light, '#09090b', '#52525b')
+      },
       fonts: currentFonts
     };
     
