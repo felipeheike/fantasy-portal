@@ -562,23 +562,31 @@ export default function ThemeHubPage() {
           )}
         </div>
 
-        <AnimatePresence mode="wait">
-          {isCreating ? (
-            <motion.div
-              key="create-form"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="p-8 bg-portal-surface border-2 border-portal-primary/30 rounded-[40px] shadow-2xl space-y-8"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black uppercase tracking-tight text-white">{editingThemeId ? 'Reforjar Essência' : 'Criar Paleta Dual'}</h2>
-                <button onClick={() => { setIsCreating(false); setEditingThemeId(null); }} className="p-2 hover:bg-portal-border rounded-full text-portal-text-muted">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+        <AnimatePresence>
+          {isCreating && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleCancel}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-5xl bg-portal-surface border-2 border-portal-primary/30 rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              >
+                <div className="flex items-center justify-between p-8 pb-0 shrink-0">
+                  <h2 className="text-xl font-black uppercase tracking-tight text-white">{editingThemeId ? 'Reforjar Essência' : 'Criar Paleta Dual'}</h2>
+                  <button onClick={handleCancel} className="p-2 hover:bg-portal-border rounded-full text-portal-text-muted">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              <form onSubmit={handleCreateTheme} className="space-y-6">
+              <form onSubmit={handleCreateTheme} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted ml-4">Nome do Tema</label>
                   <input 
@@ -844,7 +852,7 @@ export default function ThemeHubPage() {
                     )}
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 lg:sticky lg:top-0">
                     <div className="flex items-center justify-between ml-4">
                       <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted">Card de Amostra</label>
                       {(activeTab === 'fonts' || activeTab === 'essences') && (
@@ -871,16 +879,17 @@ export default function ThemeHubPage() {
                     <PreviewCard />
                   </div>
                 </div>
+              </div>
 
-                <div className="pt-4 flex justify-end gap-4">
-                  <button 
-                    type="button" 
+                <div className="p-6 border-t border-portal-border flex justify-end gap-4 shrink-0">
+                  <button
+                    type="button"
                     onClick={handleCancel}
                     className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-portal-text-muted hover:text-white transition-colors"
                   >
                     Cancelar
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="px-8 py-4 bg-portal-primary text-portal-primary-foreground rounded-2xl flex items-center gap-2 font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all shadow-xl"
                   >
@@ -888,8 +897,13 @@ export default function ThemeHubPage() {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          ) : (
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {!isCreating && (
             <motion.div
               key="theme-list"
               initial={{ opacity: 0 }}
