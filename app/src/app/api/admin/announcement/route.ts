@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { logAdminAction } from '@/lib/audit';
 
 export async function GET() {
   try {
@@ -36,6 +37,13 @@ export async function PUT(req: Request) {
       update: { message: message.trim(), variant, isActive: true },
     });
 
+    await logAdminAction({
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Admin',
+      action: 'ANNOUNCEMENT_PUBLISHED',
+      metadata: { variant, messagePreview: message.trim().slice(0, 80) },
+    });
+
     return NextResponse.json(announcement);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -49,6 +57,13 @@ export async function DELETE() {
     if (session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
     await prisma.announcement.updateMany({ where: { id: 'global' }, data: { isActive: false } });
+
+    await logAdminAction({
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Admin',
+      action: 'ANNOUNCEMENT_CLEARED',
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -142,3 +142,21 @@ model NarrativeConfig {
   extraDirectives String?
   updatedAt       DateTime @updatedAt
 }
+
+// Trilha de ações administrativas (quem, o quê, quando, em qual jogador).
+// targetPlayerId NÃO é uma foreign key de propósito: um banimento (Player.delete)
+// apaga a linha do Player, mas o registro de auditoria desse banimento precisa
+// sobreviver — daí targetPlayerName ser uma cópia (snapshot) do nome no momento da ação.
+model AuditLog {
+  id               String   @id @default(cuid())
+  actorId          String
+  actorName        String
+  action           String
+  targetPlayerId   String?
+  targetPlayerName String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetPlayerId])
+}

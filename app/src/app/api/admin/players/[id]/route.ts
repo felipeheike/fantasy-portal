@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { logAdminAction } from '@/lib/audit';
 
 export async function PATCH(
   req: Request,
@@ -11,13 +12,15 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
     const { id } = await params;
-    
+
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
     const body = await req.json();
     const { accountStatus, role } = body;
+
+    const previousPlayer = await prisma.player.findUnique({ where: { id }, select: { name: true, accountStatus: true } });
 
     const updatedPlayer = await prisma.player.update({
       where: { id },
@@ -26,6 +29,17 @@ export async function PATCH(
         role: role || undefined
       }
     });
+
+    if (accountStatus && previousPlayer) {
+      await logAdminAction({
+        actorId: session.user.id,
+        actorName: session.user.name || session.user.email || 'Admin',
+        action: 'PLAYER_STATUS_CHANGE',
+        targetPlayerId: id,
+        targetPlayerName: updatedPlayer.name || undefined,
+        metadata: { from: previousPlayer.accountStatus, to: accountStatus },
+      });
+    }
 
     return NextResponse.json(updatedPlayer);
   } catch (error: any) {
@@ -51,7 +65,19 @@ export async function DELETE(
       return NextResponse.json({ error: "Você não pode banir a si mesmo do portal." }, { status: 400 });
     }
 
+    const targetPlayer = await prisma.player.findUnique({ where: { id }, select: { name: true, email: true } });
+
     await prisma.player.delete({ where: { id } });
+
+    await logAdminAction({
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Admin',
+      action: 'PLAYER_BANNED',
+      targetPlayerId: id,
+      targetPlayerName: targetPlayer?.name || undefined,
+      metadata: { email: targetPlayer?.email },
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

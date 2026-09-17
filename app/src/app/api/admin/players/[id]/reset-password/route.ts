@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { logger } from '@/lib/logger';
+import { logAdminAction } from '@/lib/audit';
 
 export async function POST(
   req: Request,
@@ -13,7 +14,7 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
     const { id } = await params;
-    
+
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
@@ -22,7 +23,7 @@ export async function POST(
     const tempPassword = "fp-" + crypto.randomBytes(3).toString("hex");
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    await prisma.player.update({
+    const updatedPlayer = await prisma.player.update({
       where: { id },
       data: {
         passwordHash,
@@ -30,7 +31,16 @@ export async function POST(
       }
     });
 
-    return NextResponse.json({ 
+    // Nunca inclua a senha temporária no metadata do log — auditoria não é cofre de segredo.
+    await logAdminAction({
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Admin',
+      action: 'PASSWORD_RESET',
+      targetPlayerId: id,
+      targetPlayerName: updatedPlayer.name || undefined,
+    });
+
+    return NextResponse.json({
       success: true, 
       tempPassword,
       message: "Senha resetada com sucesso. Copie a senha temporária abaixo." 

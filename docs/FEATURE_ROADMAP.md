@@ -74,9 +74,9 @@ Hoje a narrativa é fixa em PT-BR por convenção do prompt. Tornar o idioma da 
 Ver quais jogadores estão ativos agora e em qual cena, sem precisar entrar em modo de supervisão/impersonação completo — um "radar" leve antes de decidir impersonar. Pode começar como polling simples (`updatedAt` da `Journey` recente) antes de evoluir para algo real-time.
 *Esforço: baixo (versão polling) / médio (versão real-time com SSE) · Apoia-se em: `Journey.updatedAt`, `impersonatedPlayerId` já existente no `gameStore`.*
 
-**14. Log de auditoria de ações administrativas**
-Hoje resetar senha, banir e impersonar não deixam rastro. Um log simples (quem, o quê, quando, em qual jogador) é barato de implementar e evita "quem fez o quê" ficar só na memória do admin.
-*Esforço: baixo · Requer: uma tabela nova (`AuditLog`) ou campo `Json` acumulativo em `Player`.*
+**14. Log de auditoria de ações administrativas — ✅ implementado (2026-09-16)**
+Aba "Auditoria" no dashboard admin lista as últimas 100 ações administrativas (quem, o quê, quando, em qual jogador): mudança de acesso, banimento, reset de senha, início de supervisão, publicação/remoção do aviso global, envio de missiva individual e edição/reset do prompt narrativo. Guardado em `AuditLog`, sem foreign key para `Player` de propósito — o registro de um banimento precisa sobreviver à exclusão do jogador banido.
+*Esforço: baixo · Apoia-se em: `AuditLog`, `src/lib/audit.ts`, `api/admin/audit-log/route.ts`.*
 
 **15. Métricas de balanceamento de jogo**
 Agregações sobre as `Scene`s já persistidas: taxa de falha em rolagens de dado, causas mais comuns de game over (`finalStatus`), distribuição de karma final, enigmas mais abandonados. Dado que já existe, só falta a agregação — útil para ajustar `CORE_MECHANICS.md` com dados reais em vez de intuição.
@@ -119,7 +119,7 @@ Hoje o admin só tem `forcedNextAction`/`forcedEndingType` (força o *próximo* 
 | 11 | Narração em outros idiomas | Jogador | Médio |
 | 12 | Dashboard de custo/uso | Admin | Médio |
 | 13 | Monitor de sessões ao vivo | Admin | Baixo–Médio |
-| 14 | Log de auditoria | Admin | Baixo |
+| 14 | Log de auditoria | Admin | ✅ Implementado |
 | 15 | Métricas de balanceamento de jogo | Admin | Médio |
 | 16 | Editor de prompt/regras sem deploy | Admin | ✅ Implementado |
 | 17 | Aviso global (MOTD) | Admin | ✅ Implementado |

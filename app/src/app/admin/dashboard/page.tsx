@@ -34,14 +34,42 @@ import {
   X,
   Wand2,
   RotateCcw,
-  Info
+  Info,
+  ScrollText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
-type AdminTab = 'souls' | 'controls' | 'narrative';
+type AdminTab = 'souls' | 'controls' | 'narrative' | 'audit';
 type PlayerFilter = 'all' | 'ACTIVE' | 'PENDING' | 'INACTIVE';
 type SortKey = 'name' | 'createdAt' | 'journeys';
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  PLAYER_STATUS_CHANGE: 'Alterou acesso',
+  PLAYER_BANNED: 'Baniu permanentemente',
+  PASSWORD_RESET: 'Resetou senha',
+  IMPERSONATION_START: 'Iniciou supervisão',
+  ANNOUNCEMENT_PUBLISHED: 'Publicou aviso global',
+  ANNOUNCEMENT_CLEARED: 'Removeu aviso global',
+  PLAYER_NOTICE_SENT: 'Enviou missiva individual',
+  NARRATIVE_CONFIG_UPDATED: 'Editou prompt do narrador',
+  NARRATIVE_CONFIG_RESET: 'Restaurou prompt do narrador',
+};
+
+function describeAuditLog(log: any): string {
+  const meta = log.metadata || {};
+  switch (log.action) {
+    case 'PLAYER_STATUS_CHANGE':
+      return `${meta.from || '?'} → ${meta.to || '?'}`;
+    case 'PLAYER_BANNED':
+      return meta.email || '';
+    case 'ANNOUNCEMENT_PUBLISHED':
+    case 'PLAYER_NOTICE_SENT':
+      return `[${meta.variant || 'info'}] "${meta.messagePreview || ''}"`;
+    default:
+      return '';
+  }
+}
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -69,6 +97,8 @@ export default function AdminDashboard() {
   });
   const [isNarrativeCustom, setIsNarrativeCustom] = useState(false);
   const [isSavingNarrative, setIsSavingNarrative] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
 
   const fetchPlayers = useCallback(async () => {
     setIsLoading(true);
@@ -119,6 +149,22 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchAuditLogs = useCallback(async () => {
+    setIsLoadingAuditLogs(true);
+    try {
+      const res = await fetch('/api/admin/audit-log');
+      if (res.ok) {
+        setAuditLogs(await res.json());
+      } else {
+        toast.error('Falha ao consultar o registro de auditoria.');
+      }
+    } catch (e) {
+      logger.error(e);
+    } finally {
+      setIsLoadingAuditLogs(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (status === 'unauthenticated' || (session && session.user.role !== 'ADMIN')) {
       router.push('/');
@@ -126,8 +172,9 @@ export default function AdminDashboard() {
       fetchPlayers();
       fetchAnnouncement();
       fetchNarrativeConfig();
+      fetchAuditLogs();
     }
-  }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig]);
+  }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig, fetchAuditLogs]);
 
   const handlePublishAnnouncement = async () => {
     if (!announcementDraft.trim()) {
@@ -297,7 +344,12 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSupervise = (player: any) => {
+  const handleSupervise = async (player: any) => {
+    try {
+      await fetch(`/api/admin/players/${player.id}/impersonate`, { method: 'POST' });
+    } catch (e) {
+      logger.error(e);
+    }
     startImpersonation(player.id, player.name);
     toast.success(`Iniciando supervisão de ${player.name}`);
     router.push('/');
@@ -409,6 +461,7 @@ export default function AdminDashboard() {
               { id: 'souls',    label: 'Almas',     icon: Users,             badge: players.filter(p => p.accountStatus === 'PENDING').length || null },
               { id: 'controls', label: 'Controles', icon: SlidersHorizontal, badge: null },
               { id: 'narrative', label: 'Narrativa', icon: Wand2,            badge: null },
+              { id: 'audit',    label: 'Auditoria',  icon: ScrollText,       badge: null },
             ] as const).map(tab => (
               <button
                 key={tab.id}
@@ -946,6 +999,56 @@ export default function AdminDashboard() {
                     <Send className="w-4 h-4" /> Salvar Prompt
                   </button>
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'audit' && (
+              <motion.div
+                key="audit"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="p-6 md:p-10 space-y-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <ScrollText className="w-4 h-4 text-portal-text-muted" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-portal-text-muted">Trilha de Ações Administrativas</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchAuditLogs}
+                    disabled={isLoadingAuditLogs}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-portal-surface border border-portal-border text-portal-text-muted hover:text-portal-primary hover:border-portal-primary/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30"
+                  >
+                    <RefreshCcw className={`w-3 h-3 ${isLoadingAuditLogs ? 'animate-spin' : ''}`} /> Atualizar
+                  </button>
+                </div>
+
+                {isLoadingAuditLogs && auditLogs.length === 0 ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-portal-primary" /></div>
+                ) : auditLogs.length === 0 ? (
+                  <p className="text-center py-16 text-[11px] text-portal-text-muted uppercase font-bold">Nenhuma ação administrativa registrada ainda.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {auditLogs.map((log) => (
+                      <div key={log.id} className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4 p-3.5 bg-portal-surface border border-portal-border rounded-2xl">
+                        <span className="text-[9px] text-portal-text-muted font-bold uppercase shrink-0 md:w-36">
+                          {new Date(log.createdAt).toLocaleString('pt-BR')}
+                        </span>
+                        <span className="text-[11px] text-portal-text font-bold shrink-0 md:w-32 truncate">{log.actorName}</span>
+                        <span className="text-[10px] text-portal-primary font-black uppercase tracking-wide shrink-0 md:w-44">
+                          {AUDIT_ACTION_LABELS[log.action] || log.action}
+                        </span>
+                        {log.targetPlayerName && (
+                          <span className="text-[10px] text-portal-text-muted shrink-0">→ {log.targetPlayerName}</span>
+                        )}
+                        <span className="text-[10px] text-portal-text-muted italic truncate">{describeAuditLog(log)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

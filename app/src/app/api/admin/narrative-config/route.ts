@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { NARRATIVE_DEFAULTS } from '@/lib/narrativeDefaults';
+import { logAdminAction } from '@/lib/audit';
 
 export async function GET() {
   try {
@@ -53,6 +54,12 @@ export async function PUT(req: Request) {
       },
     });
 
+    await logAdminAction({
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Admin',
+      action: 'NARRATIVE_CONFIG_UPDATED',
+    });
+
     return NextResponse.json(config);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -66,6 +73,13 @@ export async function DELETE() {
     if (session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
     await prisma.narrativeConfig.deleteMany({ where: { id: 'global' } });
+
+    await logAdminAction({
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Admin',
+      action: 'NARRATIVE_CONFIG_RESET',
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

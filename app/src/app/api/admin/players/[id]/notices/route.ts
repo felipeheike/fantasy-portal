@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { logAdminAction } from '@/lib/audit';
 
 export async function GET(
   req: Request,
@@ -48,6 +49,15 @@ export async function POST(
 
     const notice = await prisma.playerNotice.create({
       data: { playerId: id, message: message.trim(), variant },
+    });
+
+    await logAdminAction({
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Admin',
+      action: 'PLAYER_NOTICE_SENT',
+      targetPlayerId: id,
+      targetPlayerName: player.name || undefined,
+      metadata: { variant, messagePreview: message.trim().slice(0, 80) },
     });
 
     return NextResponse.json(notice);
