@@ -30,12 +30,24 @@ import {
   Power,
   PowerOff,
   Music,
-  X
+  X,
+  Bell,
+  AlertTriangle,
+  ShieldAlert as ShieldAlertCritical,
+  Megaphone
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
-type ProfileTab = 'identity' | 'security' | 'apikeys' | 'preferences' | 'spotify';
+type ProfileTab = 'identity' | 'security' | 'apikeys' | 'preferences' | 'spotify' | 'notifications';
+
+interface PlayerNoticeEntry {
+  id: string;
+  message: string;
+  variant: 'info' | 'warning' | 'critical';
+  createdAt: string;
+  readAt: string | null;
+}
 
 interface DiscoveredModel {
   id: string;
@@ -53,6 +65,8 @@ export default function TravelerChamberPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [notices, setNotices] = useState<PlayerNoticeEntry[]>([]);
+  const [isLoadingNotices, setIsLoadingNotices] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
@@ -150,6 +164,18 @@ export default function TravelerChamberPage() {
       fetchDiscoveredModels();
     }
   }, [activeTab, hasPersonalKeys, impersonatedPlayerId, authStatus]);
+
+  // Load notice history when Missivas tab is active
+  useEffect(() => {
+    if (activeTab === 'notifications' && authStatus === 'authenticated') {
+      setIsLoadingNotices(true);
+      fetch('/api/notices/history')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => setNotices(Array.isArray(data) ? data : []))
+        .catch(() => setNotices([]))
+        .finally(() => setIsLoadingNotices(false));
+    }
+  }, [activeTab, authStatus]);
 
   const fetchProfile = async () => {
     setIsInitialLoading(true);
@@ -371,6 +397,7 @@ export default function TravelerChamberPage() {
               { id: 'apikeys', label: 'Canalização', icon: Zap },
               { id: 'preferences', label: 'Oráculo', icon: Bot },
               { id: 'spotify', label: 'Sinfonia', icon: Music },
+              { id: 'notifications', label: 'Missivas', icon: Bell },
             ].map(tab => (
               <button 
                 key={tab.id}
@@ -773,8 +800,46 @@ export default function TravelerChamberPage() {
                   </div>
                 )}
 
+                {/* TAB: NOTIFICATIONS (MISSIVAS) */}
+                {activeTab === 'notifications' && (
+                  <div className="space-y-4">
+                    {isLoadingNotices ? (
+                      <div className="h-40 flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-portal-primary" />
+                      </div>
+                    ) : notices.length === 0 ? (
+                      <div className="h-40 flex flex-col items-center justify-center gap-3 text-portal-text-muted">
+                        <Bell className="w-8 h-8 opacity-30" />
+                        <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma missiva recebida ainda.</p>
+                      </div>
+                    ) : (
+                      notices.map((notice) => {
+                        const variantStyles = {
+                          info: { icon: Megaphone, classes: 'bg-portal-primary/10 border-portal-primary/20 text-portal-primary' },
+                          warning: { icon: AlertTriangle, classes: 'bg-amber-500/10 border-amber-500/20 text-amber-500' },
+                          critical: { icon: ShieldAlertCritical, classes: 'bg-red-500/10 border-red-500/20 text-red-400' },
+                        } as const;
+                        const { icon: Icon, classes } = variantStyles[notice.variant] || variantStyles.info;
+                        return (
+                          <div key={notice.id} className={`p-4 border rounded-2xl flex items-start gap-3 ${classes}`}>
+                            <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold leading-relaxed text-portal-text">{notice.message}</p>
+                              <p className="text-[9px] uppercase font-black tracking-widest text-portal-text-muted mt-1.5">
+                                {new Date(notice.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {' · '}
+                                {notice.readAt ? 'Lida' : 'Não lida'}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
                 {/* Submit button bar */}
-                {activeTab !== 'spotify' && (
+                {activeTab !== 'spotify' && activeTab !== 'notifications' && (
                   <div className="pt-8 border-t border-portal-border/50 flex justify-end">
                     <button 
                       type="submit"
