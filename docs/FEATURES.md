@@ -41,3 +41,11 @@ A funcionalidade mais inovadora do sistema:
 ## 📜 Exportação de Lendas
 *   **The Legend's Book:** Gere um PDF diagramado da sua aventura ao final da jornada.
 *   **Modo Dual PDF:** Escolha entre uma versão "Art" (com ilustrações) ou "Text" (focada em leitura limpa) para preservar sua história.
+
+## 📯 Avisos e Comunicação (Câmara do Mestre)
+*   **Aviso Global (MOTD):** O admin publica uma mensagem vista por todo jogador ao abrir o app, com variantes info/aviso/crítico.
+*   **Avisos Individuais:** Envie uma missiva direto para uma alma específica pela aba "Almas" do dashboard, com histórico consultável pelo próprio jogador em "Missivas".
+
+## 🪄 Editor de Prompt do Narrador (sem deploy)
+*   **Aba "Narrativa":** O admin ajusta a persona do narrador e o tom das 4 magnitudes de cena (curto/médio/longo/épico), além de diretrizes extras de tom — tudo aplicado na próxima cena gerada, sem precisar de um novo deploy.
+*   **Contrato Protegido:** As regras ligadas ao formato JSON da cena (dado, puzzle, combate, mundo) continuam fixas em código, fora do alcance do editor.

@@ -84,13 +84,13 @@ Agregações sobre as `Scene`s já persistidas: taxa de falha em rolagens de dad
 
 ### Controle de conteúdo e configuração
 
-**16. Editor de prompt/regras sem deploy**
-O prompt do sistema (regras de dado, pacing, anti-repetição) está hardcoded em `api/chat/route.ts`. Externalizar as partes ajustáveis (não a lógica de schema) para uma tabela/config editável pelo admin permitiria testar variações de tom ou dificuldade sem precisar de um novo deploy.
-*Esforço: médio–alto · Risco: separar o que é "conteúdo ajustável" do que é lógica crítica do contrato de cena exige cuidado para não quebrar o `sceneSchema`.*
+**16. Editor de prompt/regras sem deploy — ✅ implementado (2026-09-16)**
+Aba "Narrativa" no dashboard admin edita a persona do narrador e as 4 descrições de magnitude (curto/médio/longo/épico) mais diretrizes extras opcionais, guardadas em um `NarrativeConfig` singleton lido por `api/chat/route.ts` a cada requisição, com fallback para os defaults hardcoded quando não há override. Toda a lógica ligada ao `sceneSchema` (dado, puzzle, combate, mundo) continua fixa em código.
+*Esforço: médio–alto · Apoia-se em: `NarrativeConfig`, `src/lib/narrativeDefaults.ts`, `api/admin/narrative-config/route.ts`.*
 
-**17. Aviso global (MOTD/banner)**
-Mensagem que o admin publica e todo jogador vê ao abrir o app (manutenção agendada, novidades, aviso de custo de API) — hoje o único canal de comunicação com o jogador é o toast de eventos de jogo (`Sonner`), não há canal para avisos administrativos.
-*Esforço: baixo · Requer: uma linha de config simples (ex. `Settings` singleton ou `Journey`-like tabela `Announcement`).*
+**17. Aviso global (MOTD/banner) — ✅ implementado (2026-09-16)**
+Aba "Controles" no dashboard admin publica um aviso global (`Announcement` singleton) visto por todo jogador ao abrir o app, com variantes info/aviso/crítico. Estendido também para avisos individuais por jogador (`PlayerNotice`, enviados pela aba "Almas") e um histórico ("Missivas") no perfil do jogador.
+*Esforço: baixo · Apoia-se em: `Announcement`, `PlayerNotice`, `AnnouncementBanner.tsx`.*
 
 **18. Limites de orçamento por jogador**
 Complementar ao item 3 do `ACTION_PLAN.md`: em vez de (ou além de) um rate limit técnico, dar ao admin um controle direto de "teto mensal de gasto estimado" por jogador BYOK/sistema, com aviso automático quando o teto é atingido.
@@ -121,8 +121,8 @@ Hoje o admin só tem `forcedNextAction`/`forcedEndingType` (força o *próximo* 
 | 13 | Monitor de sessões ao vivo | Admin | Baixo–Médio |
 | 14 | Log de auditoria | Admin | Baixo |
 | 15 | Métricas de balanceamento de jogo | Admin | Médio |
-| 16 | Editor de prompt/regras sem deploy | Admin | Médio–Alto |
-| 17 | Aviso global (MOTD) | Admin | Baixo |
+| 16 | Editor de prompt/regras sem deploy | Admin | ✅ Implementado |
+| 17 | Aviso global (MOTD) | Admin | ✅ Implementado |
 | 18 | Limites de orçamento por jogador | Admin | Médio |
 | 19 | Correção de jornada travada | Admin | Médio |
 
