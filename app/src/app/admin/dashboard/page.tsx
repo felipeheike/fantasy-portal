@@ -31,12 +31,15 @@ import {
   AlertTriangle,
   ShieldAlert,
   Send,
-  X
+  X,
+  Wand2,
+  RotateCcw,
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
-type AdminTab = 'souls' | 'controls';
+type AdminTab = 'souls' | 'controls' | 'narrative';
 type PlayerFilter = 'all' | 'ACTIVE' | 'PENDING' | 'INACTIVE';
 type SortKey = 'name' | 'createdAt' | 'journeys';
 
@@ -61,6 +64,11 @@ export default function AdminDashboard() {
   const [noticeVariant, setNoticeVariant] = useState<'info' | 'warning' | 'critical'>('info');
   const [isSendingNotice, setIsSendingNotice] = useState(false);
   const [playerNotices, setPlayerNotices] = useState<Record<string, any[]>>({});
+  const [narrativeConfig, setNarrativeConfig] = useState({
+    persona: '', detailShort: '', detailMedium: '', detailLong: '', detailEpic: '', extraDirectives: ''
+  });
+  const [isNarrativeCustom, setIsNarrativeCustom] = useState(false);
+  const [isSavingNarrative, setIsSavingNarrative] = useState(false);
 
   const fetchPlayers = useCallback(async () => {
     setIsLoading(true);
@@ -95,14 +103,31 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchNarrativeConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/narrative-config');
+      if (res.ok) {
+        const data = await res.json();
+        setNarrativeConfig({
+          persona: data.persona, detailShort: data.detailShort, detailMedium: data.detailMedium,
+          detailLong: data.detailLong, detailEpic: data.detailEpic, extraDirectives: data.extraDirectives || ''
+        });
+        setIsNarrativeCustom(!!data.updatedAt);
+      }
+    } catch (e) {
+      logger.error(e);
+    }
+  }, []);
+
   useEffect(() => {
     if (status === 'unauthenticated' || (session && session.user.role !== 'ADMIN')) {
       router.push('/');
     } else if (status === 'authenticated') {
       fetchPlayers();
       fetchAnnouncement();
+      fetchNarrativeConfig();
     }
-  }, [status, session, router, fetchPlayers, fetchAnnouncement]);
+  }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig]);
 
   const handlePublishAnnouncement = async () => {
     if (!announcementDraft.trim()) {
@@ -181,6 +206,51 @@ export default function AdminDashboard() {
       toast.error('Erro de conexão com o mestre.');
     } finally {
       setIsSendingNotice(false);
+    }
+  };
+
+  const handleSaveNarrativeConfig = async () => {
+    const { persona, detailShort, detailMedium, detailLong, detailEpic } = narrativeConfig;
+    if (![persona, detailShort, detailMedium, detailLong, detailEpic].every(v => v.trim())) {
+      toast.error('Persona e as 4 magnitudes não podem ficar vazias.');
+      return;
+    }
+    setIsSavingNarrative(true);
+    try {
+      const res = await fetch('/api/admin/narrative-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(narrativeConfig)
+      });
+      if (res.ok) {
+        toast.success('Prompt narrativo atualizado — vale já na próxima cena gerada.');
+        setIsNarrativeCustom(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Falha ao salvar.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingNarrative(false);
+    }
+  };
+
+  const handleResetNarrativeConfig = async () => {
+    if (!confirm('Restaurar os textos padrão do prompt narrativo? Suas edições atuais serão perdidas.')) return;
+    setIsSavingNarrative(true);
+    try {
+      const res = await fetch('/api/admin/narrative-config', { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Prompt narrativo restaurado ao padrão.');
+        fetchNarrativeConfig();
+      } else {
+        toast.error('Falha ao restaurar.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingNarrative(false);
     }
   };
 
@@ -338,6 +408,7 @@ export default function AdminDashboard() {
             {([
               { id: 'souls',    label: 'Almas',     icon: Users,             badge: players.filter(p => p.accountStatus === 'PENDING').length || null },
               { id: 'controls', label: 'Controles', icon: SlidersHorizontal, badge: null },
+              { id: 'narrative', label: 'Narrativa', icon: Wand2,            badge: null },
             ] as const).map(tab => (
               <button
                 key={tab.id}
@@ -783,6 +854,98 @@ export default function AdminDashboard() {
                     <span className="text-[8px] font-black uppercase tracking-widest text-portal-text-muted px-3 py-1.5 border border-portal-border rounded-xl shrink-0">Em Breve</span>
                   </div>
                 ))}
+              </motion.div>
+            )}
+
+            {/* ── TAB: NARRATIVA ───────────────────────────────── */}
+            {activeTab === 'narrative' && (
+              <motion.div
+                key="narrative"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="p-6 md:p-10 space-y-6"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <Wand2 className="w-4 h-4 text-portal-text-muted" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-portal-text-muted">Prompt do Narrador — sem deploy</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isNarrativeCustom && (
+                      <span className="px-2.5 py-1 bg-portal-primary/10 border border-portal-primary/20 text-portal-primary text-[8px] font-black uppercase rounded-full">Personalizado</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleResetNarrativeConfig}
+                      disabled={isSavingNarrative || !isNarrativeCustom}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-portal-surface border border-portal-border text-portal-text-muted hover:text-red-400 hover:border-red-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Restaurar Padrão
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-portal-primary/5 border border-portal-primary/20 rounded-2xl flex items-start gap-3">
+                  <Info className="w-4 h-4 text-portal-primary mt-0.5 shrink-0" />
+                  <p className="text-[9px] font-body italic text-portal-text-muted leading-relaxed">
+                    Só o conteúdo de tom/estilo do narrador fica editável aqui. As regras técnicas ligadas ao contrato de dados da cena (dado, puzzle, combate, memória do mundo) continuam fixas no código, pra nenhuma edição aqui quebrar o JSON que o app espera.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted">Persona do Narrador</label>
+                  <textarea
+                    value={narrativeConfig.persona}
+                    onChange={(e) => setNarrativeConfig(prev => ({ ...prev, persona: e.target.value }))}
+                    rows={2}
+                    className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-4 text-xs text-portal-text focus:border-portal-primary outline-none transition-all resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {([
+                    { key: 'detailShort' as const, label: 'Magnitude — Curto' },
+                    { key: 'detailMedium' as const, label: 'Magnitude — Médio' },
+                    { key: 'detailLong' as const, label: 'Magnitude — Longo' },
+                    { key: 'detailEpic' as const, label: 'Magnitude — Épico' },
+                  ]).map((f) => (
+                    <div key={f.key} className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted">{f.label}</label>
+                      <textarea
+                        value={narrativeConfig[f.key]}
+                        onChange={(e) => setNarrativeConfig(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        rows={2}
+                        className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-3 text-[11px] text-portal-text focus:border-portal-primary outline-none transition-all resize-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-portal-text-muted">Diretrizes Extras (opcional)</label>
+                  <textarea
+                    value={narrativeConfig.extraDirectives}
+                    onChange={(e) => setNarrativeConfig(prev => ({ ...prev, extraDirectives: e.target.value }))}
+                    placeholder="Ex: Dê mais ênfase a subtramas de romance esta semana. Reduza a frequência de combates."
+                    rows={3}
+                    maxLength={600}
+                    className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-4 text-xs text-portal-text placeholder:text-portal-text-muted focus:border-portal-primary outline-none transition-all resize-none"
+                  />
+                  <p className="text-[9px] text-portal-text-muted uppercase font-bold">Guia de tom livre — nunca peça campos que não existem no contrato JSON.</p>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveNarrativeConfig}
+                    disabled={isSavingNarrative}
+                    className="flex items-center gap-2 px-6 py-3.5 bg-portal-primary text-portal-primary-foreground rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" /> Salvar Prompt
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

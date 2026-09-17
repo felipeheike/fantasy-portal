@@ -128,3 +128,17 @@ model PlayerNotice {
 
   @@index([playerId])
 }
+
+// Singleton (id fixo "global") — só o conteúdo seguro do prompt narrativo (persona,
+// magnitude, diretrizes extras). As regras ligadas aos nomes de campo do sceneSchema
+// (dado, puzzle, combate, mundo) continuam fixas em código, fora deste editor.
+model NarrativeConfig {
+  id              String   @id
+  persona         String
+  detailShort     String
+  detailMedium    String
+  detailLong      String
+  detailEpic      String
+  extraDirectives String?
+  updatedAt       DateTime @updatedAt
+}

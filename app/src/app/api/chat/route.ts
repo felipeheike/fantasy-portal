@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { streamObject } from 'ai';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { NARRATIVE_DEFAULTS } from '@/lib/narrativeDefaults';
 
 export const maxDuration = 60;
 
@@ -88,12 +89,16 @@ export async function POST(req: Request) {
 
     const { messages, playerContext } = await req.json();
 
-    // Fetch User AI Config (BYOK)
-    const player = await prisma.player.findUnique({
-      where: { id: session.user.id },
-      select: { apiKeys: true, aiPreferences: true, apiEnabled: true }
-    });
-    
+    // Fetch User AI Config (BYOK) + conteúdo editável do prompt narrativo (persona,
+    // magnitude, diretrizes extras) — sem linha na tabela, cai nos padrões de sempre.
+    const [player, narrativeConfig] = await Promise.all([
+      prisma.player.findUnique({
+        where: { id: session.user.id },
+        select: { apiKeys: true, aiPreferences: true, apiEnabled: true }
+      }),
+      prisma.narrativeConfig.findUnique({ where: { id: 'global' } }),
+    ]);
+
     // Total de cenas reais no histórico do banco
     const actualSceneCount = playerContext?.sceneCount ?? 0;
 
@@ -117,14 +122,16 @@ export async function POST(req: Request) {
     const effectiveLimit = baseLimit + (aprofundarCount * 10);
     const isExceeded = actualSceneCount >= effectiveLimit;
 
-    // MAGNITUDE NARRATIVA (VERBOSIDADE)
+    // MAGNITUDE NARRATIVA (VERBOSIDADE) — texto editável pelo admin, sem deploy
     const narrativeDetail = playerContext?.settings?.narrativeDetail || 'medium';
     const detailInstructions: Record<string, string> = {
-      short: "CURTO: 1-2 parágrafos objetivos. Foco na ação imediata.",
-      medium: "MÉDIO: 3-4 parágrafos. Equilíbrio entre descrição e fluidez.",
-      long: "LONGO: 5-7 parágrafos. Rico em detalhes sensoriais e ambientação.",
-      epic: "ÉPICO: 8+ parágrafos. Imersão literária total, monólogos internos e exploração profunda do cenário."
+      short: narrativeConfig?.detailShort || NARRATIVE_DEFAULTS.detailShort,
+      medium: narrativeConfig?.detailMedium || NARRATIVE_DEFAULTS.detailMedium,
+      long: narrativeConfig?.detailLong || NARRATIVE_DEFAULTS.detailLong,
+      epic: narrativeConfig?.detailEpic || NARRATIVE_DEFAULTS.detailEpic,
     };
+    const narratorPersona = narrativeConfig?.persona || NARRATIVE_DEFAULTS.persona;
+    const extraDirectives = narrativeConfig?.extraDirectives?.trim();
 
     // ADMIN: FORÇAR TIPO DE AÇÃO OU DESFECHO
     const forcedType = playerContext?.forcedNextAction;
@@ -162,7 +169,7 @@ export async function POST(req: Request) {
       schema: sceneSchema,
       output: 'object',
       system: `
-Você é o Narrador soberano do "Fantasy Portal".
+${narratorPersona}
 ${forceRule}
 
 REGRAS DE DIVERSIFICAÇÃO (ANTI-REPETIÇÃO):
@@ -258,7 +265,11 @@ REGRAS TÉCNICAS ABSOLUTAS:
 ESTILO NARRATIVO:
 - Tom literário compatível com o gênero: ${playerContext?.settings?.genre}.
 - Narre em PT-BR, de forma imersiva e sem repetições.
-
+${extraDirectives ? `
+DIRETRIZES ADICIONAIS DO MESTRE (ADMIN):
+${extraDirectives}
+IMPORTANTE: siga essas diretrizes como guia de tom/ênfase narrativa — elas NUNCA introduzem campos novos além dos já definidos no schema JSON.
+` : ''}
 CONTEXTO ATUAL:
 - Protagonista: ${playerContext?.settings?.playerName}
 - Status: HP ${playerContext?.status?.hp}/${playerContext?.status?.maxHp} | SP ${playerContext?.status?.sp}/${playerContext?.status?.maxSp} | Agilidade: ${playerContext?.status?.agility} | Sorte: ${playerContext?.status?.luck}
