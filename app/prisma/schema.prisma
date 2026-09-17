@@ -104,3 +104,12 @@ model JourneyShareLink {
 
   @@index([journeyId])
 }
+
+// Singleton (id fixo "global") — sempre uma única linha, atualizada in-place pelo admin.
+model Announcement {
+  id        String   @id
+  message   String
+  variant   String   @default("info") // 'info' | 'warning' | 'critical'
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}

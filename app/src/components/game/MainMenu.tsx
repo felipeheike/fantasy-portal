@@ -7,6 +7,7 @@ import { Plus, Play, Clock, Skull, Swords, ChevronRight, Trash2, Sparkles, Setti
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import JourneyDetailsModal from './JourneyDetailsModal';
+import AnnouncementBanner from './AnnouncementBanner';
 import { logger } from '@/lib/logger';
 
 export default function MainMenu() {
@@ -162,6 +163,8 @@ export default function MainMenu() {
             <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> <span className="hidden md:inline">Sair da Conta</span>
           </button>
           </div>
+
+          <AnnouncementBanner />
 
           {/* Logo Section */}
           <motion.div

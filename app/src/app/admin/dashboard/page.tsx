@@ -26,7 +26,12 @@ import {
   ChevronDown,
   ChevronUp,
   Filter,
-  Terminal
+  Terminal,
+  Megaphone,
+  AlertTriangle,
+  ShieldAlert,
+  Send,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
@@ -48,6 +53,10 @@ export default function AdminDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortAsc, setSortAsc] = useState(false);
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<{ message: string; variant: string; isActive: boolean } | null>(null);
+  const [announcementDraft, setAnnouncementDraft] = useState('');
+  const [announcementVariant, setAnnouncementVariant] = useState<'info' | 'warning' | 'critical'>('info');
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
 
   const fetchPlayers = useCallback(async () => {
     setIsLoading(true);
@@ -66,13 +75,72 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchAnnouncement = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/announcement');
+      if (res.ok) {
+        const data = await res.json();
+        setAnnouncement(data);
+        if (data) {
+          setAnnouncementDraft(data.message);
+          setAnnouncementVariant(data.variant);
+        }
+      }
+    } catch (e) {
+      logger.error(e);
+    }
+  }, []);
+
   useEffect(() => {
     if (status === 'unauthenticated' || (session && session.user.role !== 'ADMIN')) {
       router.push('/');
     } else if (status === 'authenticated') {
       fetchPlayers();
+      fetchAnnouncement();
     }
-  }, [status, session, router, fetchPlayers]);
+  }, [status, session, router, fetchPlayers, fetchAnnouncement]);
+
+  const handlePublishAnnouncement = async () => {
+    if (!announcementDraft.trim()) {
+      toast.error('Escreva uma mensagem antes de publicar.');
+      return;
+    }
+    setIsSavingAnnouncement(true);
+    try {
+      const res = await fetch('/api/admin/announcement', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: announcementDraft.trim(), variant: announcementVariant })
+      });
+      if (res.ok) {
+        toast.success('Aviso publicado para todos os jogadores.');
+        fetchAnnouncement();
+      } else {
+        toast.error('Falha ao publicar o aviso.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingAnnouncement(false);
+    }
+  };
+
+  const handleClearAnnouncement = async () => {
+    setIsSavingAnnouncement(true);
+    try {
+      const res = await fetch('/api/admin/announcement', { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Aviso removido.');
+        fetchAnnouncement();
+      } else {
+        toast.error('Falha ao remover o aviso.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingAnnouncement(false);
+    }
+  };
 
   const updatePlayerStatus = async (id: string, newStatus: string) => {
     try {
@@ -489,6 +557,72 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-3 mb-6">
                   <Terminal className="w-4 h-4 text-portal-text-muted" />
                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-portal-text-muted">Configurações Globais do Painel</span>
+                </div>
+
+                {/* Aviso Global (MOTD) */}
+                <div className="p-5 bg-portal-bg/50 border-2 border-portal-border rounded-3xl space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-2xl transition-colors ${announcement?.isActive ? 'bg-portal-primary/10 text-portal-primary' : 'bg-portal-surface text-portal-text-muted'}`}>
+                      <Megaphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-widest text-portal-text">Aviso Global</p>
+                      <p className="text-[9px] text-portal-text-muted uppercase font-bold mt-0.5">
+                        {announcement?.isActive ? 'Ativo — visível pra todo jogador ao abrir o portal' : 'Nenhum aviso publicado no momento'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={announcementDraft}
+                    onChange={(e) => setAnnouncementDraft(e.target.value)}
+                    placeholder="Ex: Manutenção agendada para hoje às 22h — o portal ficará fora do ar por ~15 minutos."
+                    rows={3}
+                    maxLength={280}
+                    className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 text-xs text-portal-text placeholder:text-portal-text-muted focus:border-portal-primary outline-none transition-all resize-none"
+                  />
+
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex p-1 bg-portal-surface rounded-2xl border border-portal-border">
+                      {([
+                        { id: 'info', label: 'Info', icon: Megaphone },
+                        { id: 'warning', label: 'Atenção', icon: AlertTriangle },
+                        { id: 'critical', label: 'Crítico', icon: ShieldAlert }
+                      ] as const).map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => setAnnouncementVariant(v.id)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                            announcementVariant === v.id ? 'bg-portal-bg text-portal-text shadow-sm' : 'text-portal-text-muted hover:text-portal-text'
+                          }`}
+                        >
+                          <v.icon className="w-3 h-3" /> {v.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {announcement?.isActive && (
+                        <button
+                          type="button"
+                          onClick={handleClearAnnouncement}
+                          disabled={isSavingAnnouncement}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                        >
+                          <X className="w-3.5 h-3.5" /> Remover
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handlePublishAnnouncement}
+                        disabled={isSavingAnnouncement}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-portal-primary text-portal-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Publicar
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Toggle: Painel Narrativo Admin */}

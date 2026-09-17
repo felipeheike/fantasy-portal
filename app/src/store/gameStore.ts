@@ -60,6 +60,7 @@ interface GameState {
   reduceMotion: boolean; // Accessibility: disable/minimize framer-motion animations
   fontScale: number; // Accessibility: global text size multiplier
   useSystemTheme: boolean; // Follow OS prefers-color-scheme instead of manual toggle
+  dismissedAnnouncementAt: string | null; // updatedAt of the last global announcement the player closed
   isLoadingHistory: boolean;
   hasMoreHistory: boolean;
   
@@ -99,6 +100,7 @@ interface GameState {
   toggleReduceMotion: () => void;
   setFontScale: (scale: number) => void;
   setUseSystemTheme: (value: boolean) => void;
+  dismissAnnouncement: (updatedAt: string) => void;
   setActiveTheme: (id: string) => void;
   setCustomThemes: (themes: CustomTheme[]) => void;
   createTheme: (theme: Omit<CustomTheme, 'id'>) => void;
@@ -166,6 +168,7 @@ export const useGameStore = create<GameState>()(
       reduceMotion: false,
       fontScale: 1,
       useSystemTheme: false,
+      dismissedAnnouncementAt: null,
       isLoadingHistory: false,
       hasMoreHistory: true,
 
@@ -193,6 +196,7 @@ export const useGameStore = create<GameState>()(
       toggleReduceMotion: () => set((state) => ({ reduceMotion: !state.reduceMotion })),
       setFontScale: (scale) => set({ fontScale: scale }),
       setUseSystemTheme: (value) => set({ useSystemTheme: value }),
+      dismissAnnouncement: (updatedAt) => set({ dismissedAnnouncementAt: updatedAt }),
       
       // Theme Actions
       setActiveTheme: (id) => set({ activeThemeId: id }),
@@ -808,7 +812,8 @@ export const useGameStore = create<GameState>()(
         readingMode: state.readingMode,
         reduceMotion: state.reduceMotion,
         fontScale: state.fontScale,
-        useSystemTheme: state.useSystemTheme
+        useSystemTheme: state.useSystemTheme,
+        dismissedAnnouncementAt: state.dismissedAnnouncementAt
       }),
     }
   )
