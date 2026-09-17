@@ -57,6 +57,10 @@ export default function AdminDashboard() {
   const [announcementDraft, setAnnouncementDraft] = useState('');
   const [announcementVariant, setAnnouncementVariant] = useState<'info' | 'warning' | 'critical'>('info');
   const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
+  const [noticeDraft, setNoticeDraft] = useState('');
+  const [noticeVariant, setNoticeVariant] = useState<'info' | 'warning' | 'critical'>('info');
+  const [isSendingNotice, setIsSendingNotice] = useState(false);
+  const [playerNotices, setPlayerNotices] = useState<Record<string, any[]>>({});
 
   const fetchPlayers = useCallback(async () => {
     setIsLoading(true);
@@ -139,6 +143,44 @@ export default function AdminDashboard() {
       toast.error('Erro de conexão com o mestre.');
     } finally {
       setIsSavingAnnouncement(false);
+    }
+  };
+
+  const fetchPlayerNotices = async (playerId: string) => {
+    try {
+      const res = await fetch(`/api/admin/players/${playerId}/notices`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlayerNotices((prev) => ({ ...prev, [playerId]: data }));
+      }
+    } catch (e) {
+      logger.error(e);
+    }
+  };
+
+  const handleSendNotice = async (playerId: string) => {
+    if (!noticeDraft.trim()) {
+      toast.error('Escreva uma mensagem antes de enviar.');
+      return;
+    }
+    setIsSendingNotice(true);
+    try {
+      const res = await fetch(`/api/admin/players/${playerId}/notices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: noticeDraft.trim(), variant: noticeVariant })
+      });
+      if (res.ok) {
+        toast.success('Aviso enviado pra essa alma.');
+        setNoticeDraft('');
+        fetchPlayerNotices(playerId);
+      } else {
+        toast.error('Falha ao enviar o aviso.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSendingNotice(false);
     }
   };
 
@@ -495,7 +537,13 @@ export default function AdminDashboard() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                                  onClick={() => {
+                                    const next = isExpanded ? null : player.id;
+                                    setExpandedPlayerId(next);
+                                    setNoticeDraft('');
+                                    setNoticeVariant('info');
+                                    if (next && !playerNotices[next]) fetchPlayerNotices(next);
+                                  }}
                                   className="p-2.5 bg-portal-surface border border-portal-border text-portal-text-muted hover:text-portal-primary hover:border-portal-primary/30 transition-all rounded-xl cursor-pointer"
                                   title="Ver detalhes"
                                 >
@@ -531,6 +579,64 @@ export default function AdminDashboard() {
                                       <p className="text-[8px] font-black uppercase tracking-widest text-portal-text-muted mb-1">Membro desde</p>
                                       <p className="text-[9px] font-black text-portal-text">{new Date(player.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                                     </div>
+                                  </div>
+
+                                  {/* Aviso Individual */}
+                                  <div className="px-5 pb-5 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                      <Megaphone className="w-3.5 h-3.5 text-portal-text-muted" />
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-portal-text-muted">Enviar Aviso Individual</span>
+                                    </div>
+                                    <textarea
+                                      value={noticeDraft}
+                                      onChange={(e) => setNoticeDraft(e.target.value)}
+                                      placeholder={`Ex: Sua conta foi verificada, ${player.name || 'aventureiro'}.`}
+                                      rows={2}
+                                      maxLength={280}
+                                      className="w-full bg-portal-bg border-2 border-portal-border rounded-2xl p-3 text-xs text-portal-text placeholder:text-portal-text-muted focus:border-portal-primary outline-none transition-all resize-none"
+                                    />
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                      <div className="flex p-1 bg-portal-bg rounded-2xl border border-portal-border">
+                                        {([
+                                          { id: 'info', label: 'Info', icon: Megaphone },
+                                          { id: 'warning', label: 'Atenção', icon: AlertTriangle },
+                                          { id: 'critical', label: 'Crítico', icon: ShieldAlert }
+                                        ] as const).map((v) => (
+                                          <button
+                                            key={v.id}
+                                            type="button"
+                                            onClick={() => setNoticeVariant(v.id)}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                              noticeVariant === v.id ? 'bg-portal-surface text-portal-text shadow-sm' : 'text-portal-text-muted hover:text-portal-text'
+                                            }`}
+                                          >
+                                            <v.icon className="w-3 h-3" /> {v.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSendNotice(player.id)}
+                                        disabled={isSendingNotice}
+                                        className="flex items-center gap-2 px-4 py-2 bg-portal-primary text-portal-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shrink-0"
+                                      >
+                                        <Send className="w-3.5 h-3.5" /> Enviar
+                                      </button>
+                                    </div>
+
+                                    {(playerNotices[player.id]?.length || 0) > 0 && (
+                                      <div className="space-y-1.5 pt-2 border-t border-portal-border/50">
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-portal-text-muted">Últimos avisos enviados</p>
+                                        {playerNotices[player.id].map((n) => (
+                                          <div key={n.id} className="flex items-center justify-between gap-3 p-2.5 bg-portal-bg rounded-xl border border-portal-border/50">
+                                            <p className="text-[10px] text-portal-text-muted truncate flex-1">{n.message}</p>
+                                            <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${n.readAt ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                              {n.readAt ? 'Lido' : 'Não lido'}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </motion.div>
                               )}

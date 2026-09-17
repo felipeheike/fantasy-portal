@@ -25,6 +25,7 @@ model Player {
   customThemes        Json?
   activeThemeId       String?   @default("default")
   journeys            Journey[]
+  notices             PlayerNotice[]
 }
 
 model Journey {
@@ -112,4 +113,18 @@ model Announcement {
   variant   String   @default("info") // 'info' | 'warning' | 'critical'
   isActive  Boolean  @default(true)
   updatedAt DateTime @updatedAt
+}
+
+// Aviso individual (admin -> um jogador específico), diferente do Announcement global:
+// cada envio é sua própria linha, com leitura rastreada por jogador.
+model PlayerNotice {
+  id        String    @id @default(cuid())
+  playerId  String
+  message   String
+  variant   String    @default("info") // 'info' | 'warning' | 'critical'
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+  player    Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
 }
