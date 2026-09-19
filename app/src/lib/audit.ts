@@ -11,7 +11,9 @@ export type AdminAction =
   | 'ANNOUNCEMENT_CLEARED'
   | 'PLAYER_NOTICE_SENT'
   | 'NARRATIVE_CONFIG_UPDATED'
-  | 'NARRATIVE_CONFIG_RESET';
+  | 'NARRATIVE_CONFIG_RESET'
+  | 'MAINTENANCE_ENABLED'
+  | 'MAINTENANCE_DISABLED';
 
 interface LogAdminActionInput {
   actorId: string;

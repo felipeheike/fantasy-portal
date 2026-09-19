@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { useMaintenanceStatus } from '@/hooks/useMaintenanceStatus';
+import MaintenanceScreen from '@/components/game/MaintenanceScreen';
 
 type ProfileTab = 'identity' | 'security' | 'apikeys' | 'preferences' | 'spotify' | 'notifications';
 
@@ -60,6 +62,7 @@ export default function TravelerChamberPage() {
   const router = useRouter();
   const { data: session, update: updateSession, status: authStatus } = useSession();
   const { impersonatedPlayerId } = useGameStore();
+  const { isActive: isMaintenanceActive, message: maintenanceMessage } = useMaintenanceStatus(authStatus === 'authenticated');
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('identity');
   const [isLoading, setIsLoading] = useState(false);
@@ -348,6 +351,10 @@ export default function TravelerChamberPage() {
          <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isMaintenanceActive && session?.user?.role !== 'ADMIN') {
+    return <MaintenanceScreen message={maintenanceMessage} />;
   }
 
   return (

@@ -9,10 +9,13 @@ import { ArrowLeft, Palette, Plus, Trash2, CheckCircle2, ShieldCheck, X, Save, M
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { logger } from '@/lib/logger';
+import { useMaintenanceStatus } from '@/hooks/useMaintenanceStatus';
+import MaintenanceScreen from '@/components/game/MaintenanceScreen';
 
 export default function ThemeHubPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status: authStatus } = useSession();
+  const { isActive: isMaintenanceActive, message: maintenanceMessage } = useMaintenanceStatus(authStatus === 'authenticated');
   const {
     activeThemeId, customThemes, setActiveTheme,
     lightMode, toggleLightMode, reduceMotion, toggleReduceMotion,
@@ -455,6 +458,10 @@ export default function ThemeHubPage() {
       </div>
     );
   };
+
+  if (isMaintenanceActive && session?.user?.role !== 'ADMIN') {
+    return <MaintenanceScreen message={maintenanceMessage} />;
+  }
 
   return (
     <div className="min-h-screen w-full bg-portal-bg text-portal-text p-6 md:p-12 relative overflow-hidden">

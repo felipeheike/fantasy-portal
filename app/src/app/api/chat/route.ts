@@ -90,14 +90,20 @@ export async function POST(req: Request) {
     const { messages, playerContext } = await req.json();
 
     // Fetch User AI Config (BYOK) + conteúdo editável do prompt narrativo (persona,
-    // magnitude, diretrizes extras) — sem linha na tabela, cai nos padrões de sempre.
-    const [player, narrativeConfig] = await Promise.all([
+    // magnitude, diretrizes extras) + flag de manutenção — sem linha em qualquer uma
+    // dessas tabelas, cai nos padrões de sempre.
+    const [player, narrativeConfig, maintenance] = await Promise.all([
       prisma.player.findUnique({
         where: { id: session.user.id },
         select: { apiKeys: true, aiPreferences: true, apiEnabled: true }
       }),
       prisma.narrativeConfig.findUnique({ where: { id: 'global' } }),
+      prisma.maintenanceMode.findUnique({ where: { id: 'global' } }),
     ]);
+
+    if (maintenance?.isActive && session.user.role !== 'ADMIN') {
+      return new Response(JSON.stringify({ error: "O portal está em manutenção no momento. Tente novamente em instantes." }), { status: 503 });
+    }
 
     // Total de cenas reais no histórico do banco
     const actualSceneCount = playerContext?.sceneCount ?? 0;

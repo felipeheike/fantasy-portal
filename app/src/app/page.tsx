@@ -18,6 +18,7 @@ import MainMenu from '@/components/game/MainMenu';
 import JourneyDetailsModal from '@/components/game/JourneyDetailsModal';
 import ScreenEffects from '@/components/game/ScreenEffects';
 import ExportPDFModal from '@/components/game/ExportPDFModal';
+import MaintenanceScreen from '@/components/game/MaintenanceScreen';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -32,6 +33,7 @@ import { logger } from '@/lib/logger';
 import { useProfileBootstrap } from '@/hooks/useProfileBootstrap';
 import { useSpotifyMoodSync } from '@/hooks/useSpotifyMoodSync';
 import { useJourneyPersistence } from '@/hooks/useJourneyPersistence';
+import { useMaintenanceStatus } from '@/hooks/useMaintenanceStatus';
 
 export default function GamePage() {
   const { data: session, status: authStatus } = useSession();
@@ -82,6 +84,7 @@ export default function GamePage() {
   }, [isGameStarted]);
 
   const { aiModels, isSpotifyConnected } = useProfileBootstrap({ hasHydrated, authStatus, setCustomThemes, setActiveTheme });
+  const { isActive: isMaintenanceActive, message: maintenanceMessage } = useMaintenanceStatus(hasHydrated && authStatus === 'authenticated');
 
   useSpotifyMoodSync({ isGameStarted, currentScene, isSpotifyConnected, genre: settings?.genre, playInBrowser: isSpotifyPlayInBrowser });
 
@@ -367,6 +370,10 @@ export default function GamePage() {
   }, [isGameStarted, currentJourneyId, history.length, isLoading, object, triggerAI, settings?.playerName]);
 
   if (!hasHydrated || authStatus === 'loading') return null;
+
+  if (isMaintenanceActive && session?.user?.role !== 'ADMIN') {
+    return <MaintenanceScreen message={maintenanceMessage} />;
+  }
 
   if (!isGameStarted) {
     return (

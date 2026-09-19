@@ -160,3 +160,13 @@ model AuditLog {
   @@index([createdAt])
   @@index([targetPlayerId])
 }
+
+// Singleton (id fixo "global") — liga/desliga a tela de manutenção pra quem não é
+// ADMIN. Nunca mexe no processo Next.js em si: o app continua rodando o tempo todo,
+// só muda o que renderiza pro jogador comum enquanto isso estiver ativo.
+model MaintenanceMode {
+  id        String   @id
+  isActive  Boolean  @default(false)
+  message   String?
+  updatedAt DateTime @updatedAt
+}

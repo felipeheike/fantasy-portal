@@ -38,7 +38,8 @@ import {
   ScrollText,
   Radar,
   Heart,
-  Zap
+  Zap,
+  Wrench
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
@@ -67,6 +68,8 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   PLAYER_NOTICE_SENT: 'Enviou missiva individual',
   NARRATIVE_CONFIG_UPDATED: 'Editou prompt do narrador',
   NARRATIVE_CONFIG_RESET: 'Restaurou prompt do narrador',
+  MAINTENANCE_ENABLED: 'Ativou modo manutenção',
+  MAINTENANCE_DISABLED: 'Desativou modo manutenção',
 };
 
 function describeAuditLog(log: any): string {
@@ -79,6 +82,8 @@ function describeAuditLog(log: any): string {
     case 'ANNOUNCEMENT_PUBLISHED':
     case 'PLAYER_NOTICE_SENT':
       return `[${meta.variant || 'info'}] "${meta.messagePreview || ''}"`;
+    case 'MAINTENANCE_ENABLED':
+      return meta.messagePreview ? `"${meta.messagePreview}"` : '';
     default:
       return '';
   }
@@ -112,6 +117,9 @@ export default function AdminDashboard() {
   const [isSavingNarrative, setIsSavingNarrative] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
+  const [maintenance, setMaintenance] = useState<{ isActive: boolean; message: string | null } | null>(null);
+  const [maintenanceDraft, setMaintenanceDraft] = useState('');
+  const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
 
@@ -142,6 +150,19 @@ export default function AdminDashboard() {
           setAnnouncementDraft(data.message);
           setAnnouncementVariant(data.variant);
         }
+      }
+    } catch (e) {
+      logger.error(e);
+    }
+  }, []);
+
+  const fetchMaintenance = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/maintenance');
+      if (res.ok) {
+        const data = await res.json();
+        setMaintenance(data);
+        setMaintenanceDraft(data.message || '');
       }
     } catch (e) {
       logger.error(e);
@@ -204,8 +225,9 @@ export default function AdminDashboard() {
       fetchAnnouncement();
       fetchNarrativeConfig();
       fetchAuditLogs();
+      fetchMaintenance();
     }
-  }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig, fetchAuditLogs]);
+  }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig, fetchAuditLogs, fetchMaintenance]);
 
   // Radar leve: só faz polling enquanto a aba "Ao Vivo" está aberta, pra não gerar
   // tráfego de fundo constante com o admin em outra aba do painel.
@@ -255,6 +277,45 @@ export default function AdminDashboard() {
       toast.error('Erro de conexão com o mestre.');
     } finally {
       setIsSavingAnnouncement(false);
+    }
+  };
+
+  const handleEnableMaintenance = async () => {
+    if (!confirm('Ativar o modo manutenção? Todo jogador não-admin verá a tela de manutenção até você desativar.')) return;
+    setIsSavingMaintenance(true);
+    try {
+      const res = await fetch('/api/admin/maintenance', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: maintenanceDraft.trim() })
+      });
+      if (res.ok) {
+        toast.success('Modo manutenção ativado.');
+        fetchMaintenance();
+      } else {
+        toast.error('Falha ao ativar o modo manutenção.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingMaintenance(false);
+    }
+  };
+
+  const handleDisableMaintenance = async () => {
+    setIsSavingMaintenance(true);
+    try {
+      const res = await fetch('/api/admin/maintenance', { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Modo manutenção desativado.');
+        fetchMaintenance();
+      } else {
+        toast.error('Falha ao desativar o modo manutenção.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingMaintenance(false);
     }
   };
 
@@ -1020,9 +1081,55 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
+                {/* Modo Manutenção */}
+                <div className="p-5 bg-portal-bg/50 border-2 border-portal-border rounded-3xl space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-2xl transition-colors ${maintenance?.isActive ? 'bg-red-500/10 text-red-500' : 'bg-portal-surface text-portal-text-muted'}`}>
+                      <Wrench className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-widest text-portal-text">Modo Manutenção</p>
+                      <p className="text-[9px] text-portal-text-muted uppercase font-bold mt-0.5">
+                        {maintenance?.isActive ? 'Ativo — jogadores não-admin veem a tela de manutenção' : 'Desativado — o portal funciona normalmente'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={maintenanceDraft}
+                    onChange={(e) => setMaintenanceDraft(e.target.value)}
+                    placeholder="Ex: Estamos ajustando algo por trás das cortinas. Volte em ~15 minutos."
+                    rows={2}
+                    maxLength={200}
+                    disabled={!!maintenance?.isActive}
+                    className="w-full bg-portal-surface border-2 border-portal-border rounded-2xl p-4 text-xs text-portal-text placeholder:text-portal-text-muted focus:border-portal-primary outline-none transition-all resize-none disabled:opacity-50"
+                  />
+
+                  <div className="flex justify-end">
+                    {maintenance?.isActive ? (
+                      <button
+                        type="button"
+                        onClick={handleDisableMaintenance}
+                        disabled={isSavingMaintenance}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Desativar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleEnableMaintenance}
+                        disabled={isSavingMaintenance}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                      >
+                        <Wrench className="w-3.5 h-3.5" /> Ativar Manutenção
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Placeholder cards for future controls */}
                 {[
-                  { icon: BookOpen, label: 'Modo Manutenção', desc: 'Exibe tela de manutenção para jogadores não-admin (em breve)', disabled: true },
                   { icon: Users,    label: 'Cadastro de Novos Jogadores', desc: 'Habilita ou bloqueia o registro de novas contas (em breve)', disabled: true },
                 ].map(ctrl => (
                   <div key={ctrl.label} className="p-5 bg-portal-bg/30 border border-dashed border-portal-border/50 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 opacity-50">

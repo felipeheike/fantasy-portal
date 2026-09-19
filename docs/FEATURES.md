@@ -55,3 +55,7 @@ A funcionalidade mais inovadora do sistema:
 
 ## 📡 Radar de Sessões Ativas
 *   **Aba "Ao Vivo":** Veja quem está jogando agora, em qual gênero e cena, com HP/SP e a última narração — um jeito leve de checar o pulso do portal antes de decidir supervisionar alguém.
+
+## 🔧 Modo Manutenção
+*   **Toggle na Câmara do Mestre:** O admin ativa uma tela de manutenção (com mensagem customizável) pra todo jogador não-admin, sem precisar reiniciar ou derrubar o app — o servidor continua rodando o tempo todo, só muda o que renderiza.
+*   **Sempre Acessível:** Login e o painel admin continuam abertos durante a manutenção; o `/api/chat` também recusa gerar cena nova nesse período, evitando gasto de IA numa aba esquecida aberta. Links de espectador continuam funcionando normalmente.
