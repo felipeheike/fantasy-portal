@@ -9,15 +9,21 @@ interface UseSpotifyMoodSyncParams {
   currentScene: NarrativeScene | null | undefined;
   isSpotifyConnected: boolean;
   genre: string | undefined;
+  playInBrowser: boolean;
 }
 
 /**
  * Triggers Spotify playback of a mood-matched playlist whenever the current
  * scene's audio mood changes, for players with Spotify connected.
+ *
+ * Gated on `playInBrowser`: without it, this would call the Spotify Web API's
+ * play endpoint with no deviceId, which targets whichever device is currently
+ * active — hijacking playback on the player's phone/desktop just from opening
+ * a session. Only opt in (by flipping "Tocar neste Navegador") should do that.
  */
-export function useSpotifyMoodSync({ isGameStarted, currentScene, isSpotifyConnected, genre }: UseSpotifyMoodSyncParams) {
+export function useSpotifyMoodSync({ isGameStarted, currentScene, isSpotifyConnected, genre, playInBrowser }: UseSpotifyMoodSyncParams) {
   useEffect(() => {
-    if (!isGameStarted || !currentScene || !isSpotifyConnected) return;
+    if (!isGameStarted || !currentScene || !isSpotifyConnected || !playInBrowser) return;
 
     const normalizedGenre = genre?.toLowerCase() || 'fantasy';
     const mood = currentScene.audioTheme?.mood || 'exploration';
@@ -46,5 +52,5 @@ export function useSpotifyMoodSync({ isGameStarted, currentScene, isSpotifyConne
         logger.warn("Spotify Playback critical warning:", err);
       });
     }
-  }, [currentScene?.sceneId, isSpotifyConnected, isGameStarted, genre]);
+  }, [currentScene?.sceneId, isSpotifyConnected, isGameStarted, genre, playInBrowser]);
 }

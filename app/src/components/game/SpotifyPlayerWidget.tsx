@@ -36,17 +36,20 @@ interface SpotifyPlayerWidgetProps {
   isOpen: boolean;
   onClose: () => void;
   onPlaybackStateChange?: (isPlaying: boolean) => void;
+  playInBrowser: boolean;
+  onPlayInBrowserChange: (value: boolean) => void;
 }
 
-export default function SpotifyPlayerWidget({ 
-  isSpotifyConnected, 
-  isOpen, 
+export default function SpotifyPlayerWidget({
+  isSpotifyConnected,
+  isOpen,
   onClose,
-  onPlaybackStateChange 
+  onPlaybackStateChange,
+  playInBrowser,
+  onPlayInBrowserChange
 }: SpotifyPlayerWidgetProps) {
   const { currentScene, settings } = useGameStore();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playInBrowser, setPlayInBrowser] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   // Track info
@@ -645,10 +648,10 @@ export default function SpotifyPlayerWidget({
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 text-primary animate-spin" />
                   ) : (
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={playInBrowser}
-                      onChange={(e) => setPlayInBrowser(e.target.checked)}
+                      onChange={(e) => onPlayInBrowserChange(e.target.checked)}
                       className="sr-only peer"
                     />
                   )}

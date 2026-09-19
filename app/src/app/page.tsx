@@ -67,6 +67,10 @@ export default function GamePage() {
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
   const [isSpotifyPlayerOpen, setIsSpotifyPlayerOpen] = useState(false);
   const [isSpotifyPlaying, setIsSpotifyPlaying] = useState(false);
+  // Só true quando o jogador liga "Tocar neste Navegador" no widget — antes disso,
+  // o mood-sync automático não deve mandar comando de play pro dispositivo Spotify
+  // ativo do jogador (que pode estar tocando em outro aparelho).
+  const [isSpotifyPlayInBrowser, setIsSpotifyPlayInBrowser] = useState(false);
   const startTimeRef = useRef<number | null>(null);
 
   // Reset semaphores when game is not started
@@ -79,7 +83,7 @@ export default function GamePage() {
 
   const { aiModels, isSpotifyConnected } = useProfileBootstrap({ hasHydrated, authStatus, setCustomThemes, setActiveTheme });
 
-  useSpotifyMoodSync({ isGameStarted, currentScene, isSpotifyConnected, genre: settings?.genre });
+  useSpotifyMoodSync({ isGameStarted, currentScene, isSpotifyConnected, genre: settings?.genre, playInBrowser: isSpotifyPlayInBrowser });
 
   const initialTriggerDone = useRef(false);
   const creationInProgress = useRef(false);
@@ -568,11 +572,13 @@ export default function GamePage() {
       <StatusLogPanel type="hp" isOpen={isHPLogOpen} onClose={() => setIsHPLogOpen(false)} />
       <StatusLogPanel type="sp" isOpen={isSPLogOpen} onClose={() => setIsSPLogOpen(false)} />
       <InquiryPanel isOpen={isInquiryOpen} onClose={() => setIsInquiryOpen(false)} />
-      <SpotifyPlayerWidget 
-        isSpotifyConnected={isSpotifyConnected} 
+      <SpotifyPlayerWidget
+        isSpotifyConnected={isSpotifyConnected}
         isOpen={isSpotifyPlayerOpen}
         onClose={() => setIsSpotifyPlayerOpen(false)}
         onPlaybackStateChange={setIsSpotifyPlaying}
+        playInBrowser={isSpotifyPlayInBrowser}
+        onPlayInBrowserChange={setIsSpotifyPlayInBrowser}
       />
       <JourneyDetailsModal 
         isOpen={isDetailsOpen} 
