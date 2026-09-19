@@ -52,3 +52,6 @@ A funcionalidade mais inovadora do sistema:
 
 ## 📋 Auditoria Administrativa
 *   **Aba "Auditoria":** Trilha das últimas ações do time de moderação — mudança de acesso, banimento, reset de senha, supervisão, avisos e edições do prompt narrativo — com quem fez, quando e em qual jogador.
+
+## 📡 Radar de Sessões Ativas
+*   **Aba "Ao Vivo":** Veja quem está jogando agora, em qual gênero e cena, com HP/SP e a última narração — um jeito leve de checar o pulso do portal antes de decidir supervisionar alguém.

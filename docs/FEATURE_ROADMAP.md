@@ -70,9 +70,9 @@ Hoje a narrativa é fixa em PT-BR por convenção do prompt. Tornar o idioma da 
 `Player.usageStats` já existe no schema mas não há uma tela que agregue isso por provedor (Google/OpenAI/Anthropic) e por período. Direto relacionado ao item 3 do `ACTION_PLAN.md` (rate limiting congelado) — mesmo sem limitar, só *visualizar* gasto estimado já dá ao admin visibilidade que hoje não existe.
 *Esforço: médio · Apoia-se em: `Player.usageStats`, `admin/dashboard/page.tsx`.*
 
-**13. Monitor de sessões ao vivo**
-Ver quais jogadores estão ativos agora e em qual cena, sem precisar entrar em modo de supervisão/impersonação completo — um "radar" leve antes de decidir impersonar. Pode começar como polling simples (`updatedAt` da `Journey` recente) antes de evoluir para algo real-time.
-*Esforço: baixo (versão polling) / médio (versão real-time com SSE) · Apoia-se em: `Journey.updatedAt`, `impersonatedPlayerId` já existente no `gameStore`.*
+**13. Monitor de sessões ao vivo — ✅ implementado (2026-09-19)**
+Aba "Ao Vivo" no dashboard admin lista as jornadas com `status: 'active'` (nome do herói, gênero, nº de cenas, HP/SP, prévia da última narração, há quanto tempo), com um indicador pulsante para jornadas com atividade nos últimos 5 minutos. Faz polling a cada 15s só enquanto a aba está aberta. Cada linha tem um botão "Ver" que já entra direto na cena atual daquela jornada em modo de supervisão (sem passar pela listagem de lendas do jogador) — o radar leve antes de decidir impersonar.
+*Esforço: baixo (versão polling) · Apoia-se em: `Journey.updatedAt`/`history`, `api/admin/live-sessions/route.ts`.*
 
 **14. Log de auditoria de ações administrativas — ✅ implementado (2026-09-16)**
 Aba "Auditoria" no dashboard admin lista as últimas 100 ações administrativas (quem, o quê, quando, em qual jogador): mudança de acesso, banimento, reset de senha, início de supervisão, publicação/remoção do aviso global, envio de missiva individual e edição/reset do prompt narrativo. Guardado em `AuditLog`, sem foreign key para `Player` de propósito — o registro de um banimento precisa sobreviver à exclusão do jogador banido.
@@ -118,7 +118,7 @@ Hoje o admin só tem `forcedNextAction`/`forcedEndingType` (força o *próximo* 
 | 10 | Presets de acessibilidade | Jogador | ✅ Implementado |
 | 11 | Narração em outros idiomas | Jogador | Médio |
 | 12 | Dashboard de custo/uso | Admin | Médio |
-| 13 | Monitor de sessões ao vivo | Admin | Baixo–Médio |
+| 13 | Monitor de sessões ao vivo | Admin | ✅ Implementado |
 | 14 | Log de auditoria | Admin | ✅ Implementado |
 | 15 | Métricas de balanceamento de jogo | Admin | Médio |
 | 16 | Editor de prompt/regras sem deploy | Admin | ✅ Implementado |

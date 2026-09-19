@@ -35,14 +35,27 @@ import {
   Wand2,
   RotateCcw,
   Info,
-  ScrollText
+  ScrollText,
+  Radar,
+  Heart,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
-type AdminTab = 'souls' | 'controls' | 'narrative' | 'audit';
+type AdminTab = 'souls' | 'controls' | 'narrative' | 'audit' | 'live';
 type PlayerFilter = 'all' | 'ACTIVE' | 'PENDING' | 'INACTIVE';
 type SortKey = 'name' | 'createdAt' | 'journeys';
+
+function formatTimeAgo(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'agora mesmo';
+  if (mins < 60) return `há ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `há ${hours}h`;
+  return `há ${Math.floor(hours / 24)}d`;
+}
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
   PLAYER_STATUS_CHANGE: 'Alterou acesso',
@@ -99,6 +112,8 @@ export default function AdminDashboard() {
   const [isSavingNarrative, setIsSavingNarrative] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
+  const [liveSessions, setLiveSessions] = useState<any[]>([]);
+  const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
 
   const fetchPlayers = useCallback(async () => {
     setIsLoading(true);
@@ -165,6 +180,22 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchLiveSessions = useCallback(async (silent = false) => {
+    if (!silent) setIsLoadingLiveSessions(true);
+    try {
+      const res = await fetch('/api/admin/live-sessions');
+      if (res.ok) {
+        setLiveSessions(await res.json());
+      } else if (!silent) {
+        toast.error('Falha ao consultar sessões ao vivo.');
+      }
+    } catch (e) {
+      logger.error(e);
+    } finally {
+      if (!silent) setIsLoadingLiveSessions(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (status === 'unauthenticated' || (session && session.user.role !== 'ADMIN')) {
       router.push('/');
@@ -175,6 +206,15 @@ export default function AdminDashboard() {
       fetchAuditLogs();
     }
   }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig, fetchAuditLogs]);
+
+  // Radar leve: só faz polling enquanto a aba "Ao Vivo" está aberta, pra não gerar
+  // tráfego de fundo constante com o admin em outra aba do painel.
+  useEffect(() => {
+    if (activeTab !== 'live' || status !== 'authenticated') return;
+    fetchLiveSessions();
+    const interval = setInterval(() => fetchLiveSessions(true), 15000);
+    return () => clearInterval(interval);
+  }, [activeTab, status, fetchLiveSessions]);
 
   const handlePublishAnnouncement = async () => {
     if (!announcementDraft.trim()) {
@@ -355,6 +395,31 @@ export default function AdminDashboard() {
     router.push('/');
   };
 
+  // Igual ao handleSupervise, mas pulando a listagem de lendas: como o radar já
+  // sabe em qual jornada o jogador está, carrega ela direto no store e cai na cena atual.
+  const handleSuperviseSession = async (s: any) => {
+    try {
+      await fetch(`/api/admin/players/${s.playerId}/impersonate`, { method: 'POST' });
+    } catch (e) {
+      logger.error(e);
+    }
+    startImpersonation(s.playerId, s.playerName);
+    try {
+      const res = await fetch(`/api/journey?userId=${s.playerId}`);
+      if (res.ok) {
+        const journeys = await res.json();
+        const journey = journeys.find((j: any) => j.id === s.journeyId);
+        if (journey) {
+          useGameStore.getState().loadJourney(journey.id, journey);
+        }
+      }
+    } catch (e) {
+      logger.error(e);
+    }
+    toast.success(`Entrando na sessão de ${s.playerName}`);
+    router.push('/');
+  };
+
   const deletePlayer = async (id: string) => {
     if (!confirm('Deseja realmente banir permanentemente esta alma do portal?')) return;
     try {
@@ -459,6 +524,7 @@ export default function AdminDashboard() {
           <div className="flex p-2 bg-portal-bg/50 border-b border-portal-border gap-2">
             {([
               { id: 'souls',    label: 'Almas',     icon: Users,             badge: players.filter(p => p.accountStatus === 'PENDING').length || null },
+              { id: 'live',     label: 'Ao Vivo',   icon: Radar,             badge: null },
               { id: 'controls', label: 'Controles', icon: SlidersHorizontal, badge: null },
               { id: 'narrative', label: 'Narrativa', icon: Wand2,            badge: null },
               { id: 'audit',    label: 'Auditoria',  icon: ScrollText,       badge: null },
@@ -769,6 +835,71 @@ export default function AdminDashboard() {
                         );
                       })}
                     </AnimatePresence>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── TAB: AO VIVO ───────────────────────────────── */}
+            {activeTab === 'live' && (
+              <motion.div
+                key="live"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="p-6 md:p-10 space-y-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <Radar className="w-4 h-4 text-portal-text-muted" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-portal-text-muted">Radar de Sessões Ativas</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fetchLiveSessions()}
+                    disabled={isLoadingLiveSessions}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-portal-surface border border-portal-border text-portal-text-muted hover:text-portal-primary hover:border-portal-primary/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30"
+                  >
+                    <RefreshCcw className={`w-3 h-3 ${isLoadingLiveSessions ? 'animate-spin' : ''}`} /> Atualizar
+                  </button>
+                </div>
+
+                {isLoadingLiveSessions && liveSessions.length === 0 ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-portal-primary" /></div>
+                ) : liveSessions.length === 0 ? (
+                  <p className="text-center py-16 text-[11px] text-portal-text-muted uppercase font-bold">Nenhuma jornada ativa no momento.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {liveSessions.map((s) => (
+                      <div key={s.journeyId} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 p-4 bg-portal-surface border border-portal-border rounded-2xl">
+                        <div className="flex items-center gap-2 shrink-0 md:w-40">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${s.isLive ? 'bg-emerald-500 animate-pulse' : 'bg-portal-text-muted/40'}`} />
+                          <span className="text-[11px] text-portal-text font-bold truncate">{s.playerName}</span>
+                        </div>
+                        <span className="text-[9px] text-portal-primary font-black uppercase tracking-wide shrink-0 md:w-28">{s.genre}</span>
+                        <span className="text-[9px] text-portal-text-muted font-bold uppercase shrink-0 md:w-20">{s.sceneCount} cenas</span>
+                        <div className="flex items-center gap-3 shrink-0 md:w-28">
+                          {s.hp !== null && (
+                            <span className="flex items-center gap-1 text-[9px] text-red-400 font-bold"><Heart className="w-3 h-3" /> {s.hp}/{s.maxHp}</span>
+                          )}
+                          {s.sp !== null && (
+                            <span className="flex items-center gap-1 text-[9px] text-sky-400 font-bold"><Zap className="w-3 h-3" /> {s.sp}/{s.maxSp}</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-portal-text-muted italic truncate flex-1">{s.narrationPreview || '—'}</p>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-[9px] text-portal-text-muted font-bold uppercase">{formatTimeAgo(s.updatedAt)}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleSuperviseSession(s)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-portal-bg border border-portal-border text-portal-text-muted hover:text-white hover:bg-portal-surface-hover transition-all rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3" /> Ver
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </motion.div>
