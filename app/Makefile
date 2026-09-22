@@ -5,8 +5,9 @@ PROJECT_NAME=fantasy-portal
 COMPOSE_BASE=docker compose -p $(PROJECT_NAME)
 COMPOSE_DEV=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.dev.yml
 COMPOSE_PRD=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.prd.yml
+COMPOSE_LOCAL_AI=$(COMPOSE_BASE) -f docker-compose.local-ai.yml --profile local-ai
 
-.PHONY: dev dev-restart prd down status clean db-reset-dev db-reset-prd prisma-seed pgadmin-down test
+.PHONY: dev dev-restart prd down status clean db-reset-dev db-reset-prd prisma-seed pgadmin-down test local-ai-up local-ai-down local-ai-logs
 
 # --- Development ---
 dev:
@@ -28,6 +29,16 @@ prd:
 
 prd-logs:
 	$(COMPOSE_PRD) logs -f
+
+# --- Geração local (GPU/CPU do servidor) ---
+local-ai-up:
+	$(COMPOSE_LOCAL_AI) up -d --build
+
+local-ai-down:
+	$(COMPOSE_LOCAL_AI) down
+
+local-ai-logs:
+	$(COMPOSE_LOCAL_AI) logs -f
 
 # --- Management ---
 down:

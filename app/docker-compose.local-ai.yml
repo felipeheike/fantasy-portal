@@ -1,0 +1,22 @@
+services:
+  # Sidecar de TTS local (Kokoro + XTTS-v2, CPU). Fica no profile "local-ai" pra
+  # nunca subir junto com `make dev`/`make prd` sem pedir explicitamente — os
+  # toggles do admin já caem pra nuvem sozinhos se esse serviço não existir.
+  local_tts:
+    container_name: fantasy_portal_local_tts
+    build:
+      context: ../local-ai/tts
+    restart: unless-stopped
+    environment:
+      - HF_HOME=/cache/hf
+      - XDG_DATA_HOME=/cache/share
+    volumes:
+      - ./local-ai-models/tts:/cache
+    networks:
+      - duplecake-net
+    profiles:
+      - local-ai
+
+networks:
+  duplecake-net:
+    external: true

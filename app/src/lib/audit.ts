@@ -13,7 +13,9 @@ export type AdminAction =
   | 'NARRATIVE_CONFIG_UPDATED'
   | 'NARRATIVE_CONFIG_RESET'
   | 'MAINTENANCE_ENABLED'
-  | 'MAINTENANCE_DISABLED';
+  | 'MAINTENANCE_DISABLED'
+  | 'LOCAL_GEN_TOGGLED'
+  | 'LOCAL_TTS_ENGINE_CHANGED';
 
 interface LogAdminActionInput {
   actorId: string;

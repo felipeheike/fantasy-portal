@@ -170,3 +170,16 @@ model MaintenanceMode {
   message   String?
   updatedAt DateTime @updatedAt
 }
+
+// Singleton (id fixo "global") — 3 toggles independentes pra geração local (imagem,
+// texto, TTS) rodando na GPU/CPU do próprio servidor, como alternativa paralela à
+// nuvem configurada (o caminho de sempre continua sendo o padrão e o fallback).
+// Chave própria do jogador (BYOK) sempre tem prioridade sobre esses toggles.
+model LocalGenerationConfig {
+  id          String   @id
+  imageEnabled Boolean @default(false)
+  textEnabled  Boolean @default(false)
+  ttsEnabled   Boolean @default(false)
+  ttsEngine    String  @default("kokoro") // "kokoro" (rápido) | "xtts" (mais expressivo)
+  updatedAt    DateTime @updatedAt
+}

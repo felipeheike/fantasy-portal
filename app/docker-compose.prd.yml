@@ -17,6 +17,7 @@ services:
       - DATABASE_URL=postgresql://fp_user:fp_password@db_postgres_prd:5432/fantasy_portal_db?schema=public
       - REDIS_URL=redis://cache_redis_prd:6379
       - MINIO_ENDPOINT_INTERNAL=http://storage-minio-prd:9000
+      - LOCAL_TTS_URL=http://local_tts:8000
     networks:
       - duplecake-net
     depends_on:

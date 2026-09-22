@@ -39,7 +39,11 @@ import {
   Radar,
   Heart,
   Zap,
-  Wrench
+  Wrench,
+  Cpu,
+  Image as ImageIcon,
+  MessageSquare,
+  Mic2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
@@ -70,6 +74,8 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   NARRATIVE_CONFIG_RESET: 'Restaurou prompt do narrador',
   MAINTENANCE_ENABLED: 'Ativou modo manutenção',
   MAINTENANCE_DISABLED: 'Desativou modo manutenção',
+  LOCAL_GEN_TOGGLED: 'Alterou geração local',
+  LOCAL_TTS_ENGINE_CHANGED: 'Trocou motor de voz local',
 };
 
 function describeAuditLog(log: any): string {
@@ -84,6 +90,10 @@ function describeAuditLog(log: any): string {
       return `[${meta.variant || 'info'}] "${meta.messagePreview || ''}"`;
     case 'MAINTENANCE_ENABLED':
       return meta.messagePreview ? `"${meta.messagePreview}"` : '';
+    case 'LOCAL_GEN_TOGGLED':
+      return `${meta.kind || '?'} → ${meta.enabled ? 'ativado' : 'desativado'}`;
+    case 'LOCAL_TTS_ENGINE_CHANGED':
+      return meta.engine || '';
     default:
       return '';
   }
@@ -120,6 +130,9 @@ export default function AdminDashboard() {
   const [maintenance, setMaintenance] = useState<{ isActive: boolean; message: string | null } | null>(null);
   const [maintenanceDraft, setMaintenanceDraft] = useState('');
   const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
+  const [localGen, setLocalGen] = useState({ imageEnabled: false, textEnabled: false, ttsEnabled: false, ttsEngine: 'kokoro' as 'kokoro' | 'xtts' });
+  const [localGenHealth, setLocalGenHealth] = useState<{ image: boolean | null; text: boolean | null; tts: boolean | null }>({ image: null, text: null, tts: null });
+  const [isSavingLocalGen, setIsSavingLocalGen] = useState<string | null>(null);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
 
@@ -164,6 +177,19 @@ export default function AdminDashboard() {
         setMaintenance(data);
         setMaintenanceDraft(data.message || '');
       }
+    } catch (e) {
+      logger.error(e);
+    }
+  }, []);
+
+  const fetchLocalGen = useCallback(async () => {
+    try {
+      const [cfgRes, healthRes] = await Promise.all([
+        fetch('/api/admin/local-generation'),
+        fetch('/api/admin/local-generation/health'),
+      ]);
+      if (cfgRes.ok) setLocalGen(await cfgRes.json());
+      if (healthRes.ok) setLocalGenHealth(await healthRes.json());
     } catch (e) {
       logger.error(e);
     }
@@ -226,8 +252,9 @@ export default function AdminDashboard() {
       fetchNarrativeConfig();
       fetchAuditLogs();
       fetchMaintenance();
+      fetchLocalGen();
     }
-  }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig, fetchAuditLogs, fetchMaintenance]);
+  }, [status, session, router, fetchPlayers, fetchAnnouncement, fetchNarrativeConfig, fetchAuditLogs, fetchMaintenance, fetchLocalGen]);
 
   // Radar leve: só faz polling enquanto a aba "Ao Vivo" está aberta, pra não gerar
   // tráfego de fundo constante com o admin em outra aba do painel.
@@ -316,6 +343,50 @@ export default function AdminDashboard() {
       toast.error('Erro de conexão com o mestre.');
     } finally {
       setIsSavingMaintenance(false);
+    }
+  };
+
+  const handleToggleLocalGen = async (kind: 'image' | 'text' | 'tts') => {
+    const field = `${kind}Enabled` as const;
+    const nextValue = !localGen[field];
+    setIsSavingLocalGen(kind);
+    try {
+      const res = await fetch('/api/admin/local-generation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: nextValue }),
+      });
+      if (res.ok) {
+        setLocalGen(await res.json());
+        toast.success(`Geração local de ${kind === 'image' ? 'imagem' : kind === 'text' ? 'texto' : 'voz'} ${nextValue ? 'ativada' : 'desativada'}.`);
+      } else {
+        toast.error('Falha ao atualizar a geração local.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingLocalGen(null);
+    }
+  };
+
+  const handleChangeTtsEngine = async (engine: 'kokoro' | 'xtts') => {
+    setIsSavingLocalGen('tts-engine');
+    try {
+      const res = await fetch('/api/admin/local-generation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ttsEngine: engine }),
+      });
+      if (res.ok) {
+        setLocalGen(await res.json());
+        toast.success(`Motor de voz local: ${engine === 'xtts' ? 'XTTS-v2 (qualidade)' : 'Kokoro (velocidade)'}.`);
+      } else {
+        toast.error('Falha ao trocar o motor de voz.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingLocalGen(null);
     }
   };
 
@@ -1127,6 +1198,82 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
+
+                {/* Geração Local (GPU/CPU do servidor) */}
+                <div className="flex items-center gap-3 mt-2 mb-1">
+                  <Cpu className="w-4 h-4 text-portal-text-muted" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-portal-text-muted">Geração Local (paralela à nuvem)</span>
+                </div>
+                <p className="text-[9px] text-portal-text-muted uppercase font-bold -mt-2 mb-2">
+                  Chave própria do jogador sempre tem prioridade — esses toggles só afetam o tráfego que hoje usa a chave do sistema.
+                </p>
+
+                {([
+                  { kind: 'image' as const, icon: ImageIcon, label: 'Imagem Local', enabled: localGen.imageEnabled, health: localGenHealth.image },
+                  { kind: 'text' as const, icon: MessageSquare, label: 'Texto Local', enabled: localGen.textEnabled, health: localGenHealth.text },
+                  { kind: 'tts' as const, icon: Mic2, label: 'Voz (TTS) Local', enabled: localGen.ttsEnabled, health: localGenHealth.tts },
+                ]).map(({ kind, icon: Icon, label, enabled, health }) => (
+                  <div key={kind} className="p-5 bg-portal-bg/50 border-2 border-portal-border rounded-3xl flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-2xl transition-colors ${enabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-portal-surface text-portal-text-muted'}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-black uppercase tracking-widest text-portal-text">{label}</p>
+                            <span
+                              className={`w-2 h-2 rounded-full shrink-0 ${health === true ? 'bg-emerald-500 animate-pulse' : health === false ? 'bg-red-500' : 'bg-portal-text-muted/40'}`}
+                              title={health === true ? 'Servidor local online' : health === false ? 'Servidor local offline' : 'Servidor local não configurado'}
+                            />
+                          </div>
+                          <p className="text-[9px] text-portal-text-muted uppercase font-bold mt-0.5">
+                            {health === null ? 'Servidor local não configurado' : health ? 'Servidor local online' : 'Servidor local offline — cai pra nuvem'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleLocalGen(kind)}
+                        disabled={isSavingLocalGen === kind}
+                        className={`flex items-center gap-3 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 cursor-pointer shrink-0 disabled:opacity-50 ${
+                          enabled
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
+                            : 'bg-portal-bg border-portal-border text-portal-text-muted hover:border-primary/40 hover:text-primary'
+                        }`}
+                      >
+                        <span className={`w-9 h-5 rounded-full relative flex items-center transition-colors ${enabled ? 'bg-emerald-500' : 'bg-portal-surface-hover'}`}>
+                          <span className={`absolute w-3 h-3 bg-white rounded-full shadow-md transition-all ${enabled ? 'left-[20px]' : 'left-[3px]'}`} />
+                        </span>
+                        {enabled ? 'Ativado' : 'Desativado'}
+                      </button>
+                    </div>
+
+                    {kind === 'tts' && enabled && (
+                      <div className="flex items-center gap-2 pt-3 border-t border-portal-border/30">
+                        <span className="text-[9px] font-black uppercase text-portal-text-muted mr-1">Motor:</span>
+                        <div className="flex p-1 bg-portal-surface rounded-2xl border border-portal-border">
+                          {([
+                            { id: 'kokoro' as const, label: 'Kokoro (velocidade)' },
+                            { id: 'xtts' as const, label: 'XTTS-v2 (qualidade)' },
+                          ]).map((e) => (
+                            <button
+                              key={e.id}
+                              type="button"
+                              onClick={() => handleChangeTtsEngine(e.id)}
+                              disabled={isSavingLocalGen === 'tts-engine'}
+                              className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 ${
+                                localGen.ttsEngine === e.id ? 'bg-portal-bg text-portal-text shadow-sm' : 'text-portal-text-muted hover:text-portal-text'
+                              }`}
+                            >
+                              {e.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
 
                 {/* Placeholder cards for future controls */}
                 {[

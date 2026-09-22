@@ -5,6 +5,7 @@ import { spawn } from 'child_process';
 import { Readable } from 'stream';
 import { decrypt } from './security';
 import { logger } from '@/lib/logger';
+import { shouldUseLocal, getLocalGenerationConfig, fetchLocal } from './ai/localGeneration';
 
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -87,6 +88,20 @@ async function generateGoogleSpeech(text: string, gender: string, apiKey: string
   return encodePcmToMp3(rawPcmBuffer);
 }
 
+/**
+ * Generates speech using the local TTS sidecar (Kokoro or XTTS-v2, CPU).
+ * O sidecar já devolve MP3 pronto — nada de ffmpeg no lado do app pra esse caminho.
+ */
+async function generateLocalSpeech(text: string, gender: string, engine: 'kokoro' | 'xtts'): Promise<Buffer> {
+  const baseUrl = process.env.LOCAL_TTS_URL;
+  const res = await fetchLocal(`${baseUrl}/v1/speech`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, gender, engine }),
+  }, 120000);
+  return Buffer.from(await res.arrayBuffer());
+}
+
 export async function generateSpeech(
   text: string, 
   journeyId: string, 
@@ -99,10 +114,28 @@ export async function generateSpeech(
   const apiEnabled = userConfig?.apiEnabled || {};
   
   const ttsProvider = preferences.ttsVoice || 'gemini-audio';
-  let audioBuffer: Buffer;
+  let audioBuffer: Buffer | null = null;
+
+  // Chave própria do jogador sempre tem prioridade sobre o toggle de geração local
+  // (a mesma checagem de "useUserKey" usada mais abaixo pra cada provider de nuvem).
+  const hasOwnTtsKey = ttsProvider.startsWith('openai')
+    ? !!(userKeys.openai && apiEnabled.openai !== false)
+    : !!(userKeys.gemini && apiEnabled.gemini !== false);
+
+  if (await shouldUseLocal('tts', hasOwnTtsKey)) {
+    try {
+      const { ttsEngine } = await getLocalGenerationConfig();
+      logger.log(`LOG: Generating local TTS (${ttsEngine})`);
+      audioBuffer = await generateLocalSpeech(text, gender, ttsEngine);
+    } catch (err) {
+      logger.warn('LOCAL_TTS_FAILED_FALLBACK_TO_CLOUD:', err);
+    }
+  }
 
   try {
-    if (ttsProvider.startsWith('openai')) {
+    if (audioBuffer) {
+      // já gerado localmente acima, segue direto pro upload
+    } else if (ttsProvider.startsWith('openai')) {
       const useUserKey = userKeys.openai && apiEnabled.openai !== false;
       const apiKey = useUserKey ? decrypt(userKeys.openai) : OPENAI_API_KEY;
       

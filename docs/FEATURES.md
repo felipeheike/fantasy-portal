@@ -59,3 +59,9 @@ A funcionalidade mais inovadora do sistema:
 ## 🔧 Modo Manutenção
 *   **Toggle na Câmara do Mestre:** O admin ativa uma tela de manutenção (com mensagem customizável) pra todo jogador não-admin, sem precisar reiniciar ou derrubar o app — o servidor continua rodando o tempo todo, só muda o que renderiza.
 *   **Sempre Acessível:** Login e o painel admin continuam abertos durante a manutenção; o `/api/chat` também recusa gerar cena nova nesse período, evitando gasto de IA numa aba esquecida aberta. Links de espectador continuam funcionando normalmente.
+
+## 🖥️ Geração Local (GPU/CPU do servidor)
+*   **3 Toggles Independentes:** Imagem, Texto e Voz (TTS) podem rodar num modelo local (SD 1.5, um LLM pequeno, XTTS-v2/Kokoro) em vez da nuvem configurada — cada um liga/desliga sozinho na Câmara do Mestre, com um indicador de saúde do servidor local.
+*   **Chave Própria Sempre Vence:** um jogador com sua própria chave de API nunca é redirecionado pra geração local — os toggles só afetam quem hoje usa a chave do sistema.
+*   **Fallback Automático:** se o servidor local não responder a tempo, a geração cai pra nuvem no mesmo pedido, sem quebrar a cena do jogador.
+*   **Voz local com dois motores:** Kokoro (rápido) e XTTS-v2 (mais expressivo), trocáveis a qualquer momento pelo próprio painel.
