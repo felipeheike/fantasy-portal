@@ -205,3 +205,43 @@ export function getAIConfigMetadata(userConfig?: UserAIConfig) {
     },
   };
 }
+
+/**
+ * Diz se o jogador tem uma chave própria (BYOK) configurada e habilitada pro
+ * modelo de texto que ele escolheu — usado pela geração local pra nunca
+ * desviar o tráfego de quem já tem seu próprio provedor de nuvem.
+ */
+export function hasOwnTextKey(userConfig?: UserAIConfig): boolean {
+  const preferences = userConfig?.aiPreferences || {};
+  const userKeys = userConfig?.apiKeys || {};
+  const apiEnabled = userConfig?.apiEnabled || {};
+  const userModelId = preferences.textModel;
+  if (!userModelId) return false;
+
+  let provider: TextProvider = 'google';
+  if (userModelId.startsWith('gpt-') || userModelId.startsWith('o1-') || userModelId.startsWith('o3-')) {
+    provider = 'openai';
+  } else if (userModelId.startsWith('claude-')) {
+    provider = 'anthropic';
+  }
+
+  return provider === 'google'
+    ? !!userKeys.gemini && apiEnabled.gemini !== false
+    : provider === 'openai'
+    ? !!userKeys.openai && apiEnabled.openai !== false
+    : !!userKeys.anthropic && apiEnabled.anthropic !== false;
+}
+
+/** Mesma ideia de `hasOwnTextKey`, só que pro modelo de imagem. */
+export function hasOwnImageKey(userConfig?: UserAIConfig): boolean {
+  const preferences = userConfig?.aiPreferences || {};
+  const userKeys = userConfig?.apiKeys || {};
+  const apiEnabled = userConfig?.apiEnabled || {};
+  const userModelId = preferences.imageModel;
+  if (!userModelId) return false;
+
+  const provider = userModelId.startsWith('dall-e') ? 'openai' : 'google';
+  return provider === 'openai'
+    ? !!userKeys.openai && apiEnabled.openai !== false
+    : !!userKeys.gemini && apiEnabled.gemini !== false;
+}

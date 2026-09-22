@@ -21,6 +21,8 @@ services:
       - REDIS_URL=redis://cache_redis_dev:6379
       - MINIO_ENDPOINT_INTERNAL=http://storage-minio-dev:9000
       - LOCAL_TTS_URL=http://local_tts:8000
+      - LOCAL_IMAGE_URL=http://local_image:8000
+      - LOCAL_TEXT_URL=http://local_text:8080
     networks:
       - duplecake-net
     depends_on:

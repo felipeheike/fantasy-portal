@@ -359,6 +359,13 @@ export default function AdminDashboard() {
       if (res.ok) {
         setLocalGen(await res.json());
         toast.success(`Geração local de ${kind === 'image' ? 'imagem' : kind === 'text' ? 'texto' : 'voz'} ${nextValue ? 'ativada' : 'desativada'}.`);
+        // Imagem + Texto juntos passam de 4GB de VRAM nessa GPU — não é bloqueado
+        // (o fallback pra nuvem cobre uma falha), só um aviso pro admin não
+        // estranhar se um dos dois começar a cair pra nuvem sob uso simultâneo.
+        const other = kind === 'image' ? 'text' : kind === 'text' ? 'image' : null;
+        if (nextValue && other && localGen[`${other}Enabled` as const]) {
+          toast.warning('Imagem e Texto local ligados ao mesmo tempo podem disputar a VRAM da GPU (4GB) — se faltar memória, a geração cai pra nuvem automaticamente.', { duration: 8000 });
+        }
       } else {
         toast.error('Falha ao atualizar a geração local.');
       }
@@ -1205,7 +1212,7 @@ export default function AdminDashboard() {
                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-portal-text-muted">Geração Local (paralela à nuvem)</span>
                 </div>
                 <p className="text-[9px] text-portal-text-muted uppercase font-bold -mt-2 mb-2">
-                  Chave própria do jogador sempre tem prioridade — esses toggles só afetam o tráfego que hoje usa a chave do sistema.
+                  Chave própria do jogador sempre tem prioridade — esses toggles só afetam o tráfego que hoje usa a chave do sistema. Imagem e Texto disputam a mesma GPU (4GB); ligar os dois ao mesmo tempo pode fazer um deles cair pra nuvem sob uso simultâneo.
                 </p>
 
                 {([

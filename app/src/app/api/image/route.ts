@@ -1,10 +1,12 @@
 import { experimental_generateImage as generateImage } from 'ai';
-import { getImageModel } from '@/lib/ai/providers';
+import { createOpenAI } from '@ai-sdk/openai';
+import { getImageModel, hasOwnImageKey } from '@/lib/ai/providers';
 import { uploadBuffer } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { shouldUseLocal } from '@/lib/ai/localGeneration';
 
 export const maxDuration = 60;
 
@@ -29,10 +31,22 @@ export async function POST(req: Request) {
 
     logger.log(`LOG: Generating Image [Prompt: ${prompt.substring(0, 50)}...]`);
 
-    const { image } = await generateImage({
-      model: getImageModel(userConfig),
-      prompt,
-    });
+    // Geração local (SD 1.5 + LCM-LoRA): mesmo endpoint /images/generations da
+    // OpenAI, então basta trocar o model. Diferente do texto (que faz stream),
+    // aqui dá pra tentar local e cair pra nuvem no mesmo pedido se falhar.
+    let image;
+    if (await shouldUseLocal('image', hasOwnImageKey(userConfig))) {
+      try {
+        logger.log('LOG: Generating local image (SD 1.5 + LCM-LoRA)');
+        const localOpenai = createOpenAI({ baseURL: `${process.env.LOCAL_IMAGE_URL}/v1`, apiKey: 'not-needed' });
+        ({ image } = await generateImage({ model: localOpenai.image('dreamshaper'), prompt }));
+      } catch (err) {
+        logger.warn('LOCAL_IMAGE_FAILED_FALLBACK_TO_CLOUD:', err);
+      }
+    }
+    if (!image) {
+      ({ image } = await generateImage({ model: getImageModel(userConfig), prompt }));
+    }
 
     // Caminho amigável no MinIO
     const timestamp = Date.now();

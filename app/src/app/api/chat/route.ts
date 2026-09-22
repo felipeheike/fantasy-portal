@@ -1,11 +1,13 @@
-import { getTextModel } from '@/lib/ai/providers';
+import { getTextModel, hasOwnTextKey } from '@/lib/ai/providers';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { streamObject } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { NARRATIVE_DEFAULTS } from '@/lib/narrativeDefaults';
+import { shouldUseLocal } from '@/lib/ai/localGeneration';
 
 export const maxDuration = 60;
 
@@ -105,6 +107,28 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: "O portal está em manutenção no momento. Tente novamente em instantes." }), { status: 503 });
     }
 
+    // Geração de texto local (llama.cpp): mesmo protocolo da OpenAI, então basta
+    // trocar o model — o resto do streamObject/schema não muda em nada. BYOK do
+    // jogador sempre vence, independente do toggle do admin.
+    //
+    // streamObject já manda a resposta em streaming pro cliente, então não dá
+    // pra "tentar local, cair pra nuvem" no meio do caminho como no áudio/imagem
+    // (single-shot, fácil de repetir) — por isso o health check acontece ANTES
+    // de decidir o model, nunca depois de começar a stream.
+    let useLocalText = await shouldUseLocal('text', hasOwnTextKey(player || undefined));
+    if (useLocalText) {
+      try {
+        const health = await fetch(`${process.env.LOCAL_TEXT_URL}/health`, { signal: AbortSignal.timeout(2000) });
+        useLocalText = health.ok;
+      } catch {
+        useLocalText = false;
+      }
+    }
+    const textModel = useLocalText
+      ? createOpenAI({ baseURL: `${process.env.LOCAL_TEXT_URL}/v1`, apiKey: 'not-needed' }).chat('qwen2.5-3b')
+      : getTextModel();
+    if (useLocalText) logger.log('LOG: Using local text generation (Qwen2.5-3B)');
+
     // Total de cenas reais no histórico do banco
     const actualSceneCount = playerContext?.sceneCount ?? 0;
 
@@ -171,7 +195,7 @@ export async function POST(req: Request) {
     );
 
     const result = await streamObject({
-      model: getTextModel(),
+      model: textModel,
       schema: sceneSchema,
       output: 'object',
       system: `

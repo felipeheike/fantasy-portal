@@ -61,7 +61,8 @@ A funcionalidade mais inovadora do sistema:
 *   **Sempre Acessível:** Login e o painel admin continuam abertos durante a manutenção; o `/api/chat` também recusa gerar cena nova nesse período, evitando gasto de IA numa aba esquecida aberta. Links de espectador continuam funcionando normalmente.
 
 ## 🖥️ Geração Local (GPU/CPU do servidor)
-*   **3 Toggles Independentes:** Imagem, Texto e Voz (TTS) podem rodar num modelo local (SD 1.5, um LLM pequeno, XTTS-v2/Kokoro) em vez da nuvem configurada — cada um liga/desliga sozinho na Câmara do Mestre, com um indicador de saúde do servidor local.
+*   **3 Toggles Independentes:** Imagem (SD 1.5 + LCM-LoRA), Texto (Qwen2.5-3B via llama.cpp) e Voz/TTS (XTTS-v2/Kokoro) podem rodar num modelo local em vez da nuvem configurada — cada um liga/desliga sozinho na Câmara do Mestre, com um indicador de saúde do servidor local.
 *   **Chave Própria Sempre Vence:** um jogador com sua própria chave de API nunca é redirecionado pra geração local — os toggles só afetam quem hoje usa a chave do sistema.
-*   **Fallback Automático:** se o servidor local não responder a tempo, a geração cai pra nuvem no mesmo pedido, sem quebrar a cena do jogador.
+*   **Fallback Automático:** se o servidor local não responder a tempo (ou falhar no meio do pedido, no caso de imagem), a geração cai pra nuvem, sem quebrar a cena do jogador. Pro texto — que transmite a resposta aos poucos — essa checagem acontece antes de começar a gerar, já que não dá pra trocar de provedor no meio de uma transmissão em andamento.
 *   **Voz local com dois motores:** Kokoro (rápido) e XTTS-v2 (mais expressivo), trocáveis a qualquer momento pelo próprio painel.
+*   **Limite de hardware conhecido:** numa GPU de 4GB, Imagem e Texto local disputam a mesma VRAM — ligar os dois ao mesmo tempo funciona, mas sob uso simultâneo um deles pode cair pra nuvem por falta de memória. O painel avisa quando isso é possível.

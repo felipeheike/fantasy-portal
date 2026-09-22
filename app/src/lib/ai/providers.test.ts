@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getAIConfigMetadata } from './providers';
+import { getAIConfigMetadata, hasOwnTextKey, hasOwnImageKey } from './providers';
 
 describe('getAIConfigMetadata', () => {
   const originalEnv = { ...process.env };
@@ -64,5 +64,34 @@ describe('getAIConfigMetadata', () => {
     });
     expect(meta.image.model).toBe('dall-e-3');
     expect(meta.image.isCustomKey).toBe(true);
+  });
+});
+
+describe('hasOwnTextKey', () => {
+  it('is false when the player has no textModel preference', () => {
+    expect(hasOwnTextKey()).toBe(false);
+    expect(hasOwnTextKey({ apiKeys: { openai: 'key' } })).toBe(false);
+  });
+
+  it('is true when the matching provider key is present and enabled', () => {
+    expect(hasOwnTextKey({ aiPreferences: { textModel: 'gpt-4o' }, apiKeys: { openai: 'key' }, apiEnabled: {} })).toBe(true);
+  });
+
+  it('is false when the provider is explicitly disabled', () => {
+    expect(hasOwnTextKey({ aiPreferences: { textModel: 'gpt-4o' }, apiKeys: { openai: 'key' }, apiEnabled: { openai: false } })).toBe(false);
+  });
+});
+
+describe('hasOwnImageKey', () => {
+  it('is false when the player has no imageModel preference', () => {
+    expect(hasOwnImageKey()).toBe(false);
+  });
+
+  it('is true when the matching provider key is present and enabled', () => {
+    expect(hasOwnImageKey({ aiPreferences: { imageModel: 'dall-e-3' }, apiKeys: { openai: 'key' }, apiEnabled: {} })).toBe(true);
+  });
+
+  it('is false when the key is missing', () => {
+    expect(hasOwnImageKey({ aiPreferences: { imageModel: 'dall-e-3' }, apiKeys: {}, apiEnabled: {} })).toBe(false);
   });
 });
