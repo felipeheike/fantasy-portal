@@ -26,7 +26,9 @@ import {
   Sparkles,
   Zap,
   Loader2,
-  Music
+  Music,
+  Info,
+  X
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { exportJourneyToMarkdown, downloadMarkdown } from '@/lib/exportUtils';
@@ -69,6 +71,7 @@ export default function NarrativePanel({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [audioTimes, setAudioTimes] = useState<Record<string, { current: number, duration: number }>>({});
+  const [visibleDescriptionSceneId, setVisibleDescriptionSceneId] = useState<string | null>(null);
   const isAdmin = session?.user?.role === 'ADMIN';
 
   // State mapping for Punishment System
@@ -400,11 +403,40 @@ export default function NarrativePanel({
                       </div>
                     )}
                     
-                    <div className="absolute bottom-4 left-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <p className="text-[9px] uppercase tracking-wider text-portal-text-muted font-mono">
-                         Prompt: {scene.visualDescription.substring(0, 60)}...
-                       </p>
-                    </div>
+                    {/* Botão de info: consulta a descrição usada pra gerar a imagem — disponível
+                        sempre (imagem gerada, com erro ou omitida), não só no hover, pois é útil
+                        pra descrever o ambiente mesmo quando a geração local está ativa. */}
+                    <button
+                      onClick={() => setVisibleDescriptionSceneId(prev => prev === scene.sceneId ? null : scene.sceneId)}
+                      className="absolute top-3 right-3 z-30 p-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-full border border-white/10 transition-colors"
+                      title="Ver descrição usada na imagem"
+                    >
+                      <Info className="w-3.5 h-3.5 text-white" />
+                    </button>
+
+                    <AnimatePresence>
+                      {visibleDescriptionSceneId === scene.sceneId && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute inset-0 z-40 bg-black/85 backdrop-blur-sm flex flex-col p-6 overflow-y-auto"
+                        >
+                          <div className="flex items-center justify-between mb-3 shrink-0">
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Descrição Visual da Cena</span>
+                            <button
+                              onClick={() => setVisibleDescriptionSceneId(null)}
+                              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                            >
+                              <X className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-zinc-200 leading-relaxed font-body italic">
+                            {scene.visualDescription}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 )}
 
