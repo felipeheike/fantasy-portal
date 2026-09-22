@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     // OpenAI, então basta trocar o model. Diferente do texto (que faz stream),
     // aqui dá pra tentar local e cair pra nuvem no mesmo pedido se falhar.
     let image;
-    if (await shouldUseLocal('image', hasOwnImageKey(userConfig, session?.user.role))) {
+    if (await shouldUseLocal('image', hasOwnImageKey(userConfig), session?.user.role)) {
       try {
         logger.log('LOG: Generating local image (SD 1.5 + LCM-LoRA)');
         const localOpenai = createOpenAI({ baseURL: `${process.env.LOCAL_IMAGE_URL}/v1`, apiKey: 'not-needed' });

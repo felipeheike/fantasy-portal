@@ -62,7 +62,7 @@ A funcionalidade mais inovadora do sistema:
 
 ## 🖥️ Geração Local (GPU/CPU do servidor)
 *   **3 Toggles Independentes:** Imagem (SD 1.5 + LCM-LoRA), Texto (Qwen2.5-3B via llama.cpp) e Voz/TTS (XTTS-v2/Kokoro) podem rodar num modelo local em vez da nuvem configurada — cada um liga/desliga sozinho na Câmara do Mestre, com um indicador de saúde do servidor local.
-*   **Chave Própria Sempre Vence:** um jogador com sua própria chave de API nunca é redirecionado pra geração local — os toggles só afetam quem hoje usa a chave do sistema.
+*   **Chave Própria Sempre Vence (exceto para ADMIN):** um jogador comum com sua própria chave de API nunca é redirecionado pra geração local — os toggles só afetam quem hoje usa a chave do sistema. Contas ADMIN são a exceção: o toggle geral já basta pra usar local na própria conta, mesmo com chave própria configurada, sem precisar de um controle separado.
 *   **Fallback Automático:** se o servidor local não responder a tempo (ou falhar no meio do pedido, no caso de imagem), a geração cai pra nuvem, sem quebrar a cena do jogador. Pro texto — que transmite a resposta aos poucos — essa checagem acontece antes de começar a gerar, já que não dá pra trocar de provedor no meio de uma transmissão em andamento.
 *   **Voz local com dois motores:** Kokoro (rápido) e XTTS-v2 (mais expressivo), trocáveis a qualquer momento pelo próprio painel.
 *   **Limite de hardware conhecido:** numa GPU de 4GB, Imagem e Texto local disputam a mesma VRAM — ligar os dois ao mesmo tempo funciona, mas sob uso simultâneo um deles pode cair pra nuvem por falta de memória. O painel avisa quando isso é possível.

@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     // pra "tentar local, cair pra nuvem" no meio do caminho como no áudio/imagem
     // (single-shot, fácil de repetir) — por isso o health check acontece ANTES
     // de decidir o model, nunca depois de começar a stream.
-    let useLocalText = await shouldUseLocal('text', hasOwnTextKey(player || undefined, session.user.role));
+    let useLocalText = await shouldUseLocal('text', hasOwnTextKey(player || undefined), session.user.role);
     if (useLocalText) {
       try {
         const health = await fetch(`${process.env.LOCAL_TEXT_URL}/health`, { signal: AbortSignal.timeout(2000) });

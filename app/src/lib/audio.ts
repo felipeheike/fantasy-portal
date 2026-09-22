@@ -118,16 +118,13 @@ export async function generateSpeech(
   let audioBuffer: Buffer | null = null;
 
   // Chave própria do jogador sempre tem prioridade sobre o toggle de geração local
-  // (a mesma checagem de "useUserKey" usada mais abaixo pra cada provider de nuvem).
-  // Exceção: admin com o override pessoal ligado (ver hasOwnTextKey em providers.ts
-  // pro comentário completo sobre por que isso não vale pra jogadores comuns).
-  const hasOwnTtsKey = role === 'ADMIN' && preferences.forceLocalTts
-    ? false
-    : ttsProvider.startsWith('openai')
+  // (a mesma checagem de "useUserKey" usada mais abaixo pra cada provider de nuvem)
+  // — exceto pra ADMIN, ver o comentário em resolveLocalUsage (localGeneration.ts).
+  const hasOwnTtsKey = ttsProvider.startsWith('openai')
     ? !!(userKeys.openai && apiEnabled.openai !== false)
     : !!(userKeys.gemini && apiEnabled.gemini !== false);
 
-  if (await shouldUseLocal('tts', hasOwnTtsKey)) {
+  if (await shouldUseLocal('tts', hasOwnTtsKey, role)) {
     try {
       const { ttsEngine } = await getLocalGenerationConfig();
       logger.log(`LOG: Generating local TTS (${ttsEngine})`);

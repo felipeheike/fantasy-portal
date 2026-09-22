@@ -50,23 +50,29 @@ export function invalidateLocalGenerationCache() {
 
 /**
  * Decisão pura (sem I/O) de usar local ou nuvem — testável sem mocks.
- * BYOK sempre vence: se o jogador tem chave própria configurada e habilitada
- * pra esse tipo de geração, a geração local nunca entra no caminho dele.
+ *
+ * BYOK sempre vence pra jogadores comuns: é a estratégia deles poderem escolher
+ * entre nossa IA e a própria, e essa escolha nunca é atropelada pelo toggle do
+ * admin. Um ADMIN é uma exceção deliberada — ele é quem liga o toggle geral, e
+ * ligar já expressa a intenção de usar local, inclusive na própria conta. Por
+ * isso, pra role === 'ADMIN', o toggle sozinho basta: não existe um controle
+ * pessoal separado, o comportamento já muda junto com o toggle de sistema.
  */
 export function resolveLocalUsage(input: {
   enabled: boolean;
   hasOwnKey: boolean;
   localUrlConfigured: boolean;
+  isAdmin: boolean;
 }): boolean {
-  return input.enabled && !input.hasOwnKey && input.localUrlConfigured;
+  return input.enabled && input.localUrlConfigured && (input.isAdmin || !input.hasOwnKey);
 }
 
-export async function shouldUseLocal(kind: LocalGenerationKind, hasOwnKey: boolean): Promise<boolean> {
+export async function shouldUseLocal(kind: LocalGenerationKind, hasOwnKey: boolean, role?: string): Promise<boolean> {
   const config = await getLocalGenerationConfig();
   const enabled = kind === 'image' ? config.imageEnabled : kind === 'text' ? config.textEnabled : config.ttsEnabled;
   const urlEnvKey = kind === 'image' ? 'LOCAL_IMAGE_URL' : kind === 'text' ? 'LOCAL_TEXT_URL' : 'LOCAL_TTS_URL';
   const localUrlConfigured = !!process.env[urlEnvKey];
-  return resolveLocalUsage({ enabled, hasOwnKey, localUrlConfigured });
+  return resolveLocalUsage({ enabled, hasOwnKey, localUrlConfigured, isAdmin: role === 'ADMIN' });
 }
 
 /**
