@@ -132,6 +132,7 @@ export default function AdminDashboard() {
   const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
   const [localGen, setLocalGen] = useState({ imageEnabled: false, textEnabled: false, ttsEnabled: false, ttsEngine: 'kokoro' as 'kokoro' | 'xtts' });
   const [localGenHealth, setLocalGenHealth] = useState<{ image: boolean | null; text: boolean | null; tts: boolean | null }>({ image: null, text: null, tts: null });
+  const [localGenSelfOverride, setLocalGenSelfOverride] = useState({ forceLocalImage: false, forceLocalText: false, forceLocalTts: false });
   const [isSavingLocalGen, setIsSavingLocalGen] = useState<string | null>(null);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
@@ -184,12 +185,14 @@ export default function AdminDashboard() {
 
   const fetchLocalGen = useCallback(async () => {
     try {
-      const [cfgRes, healthRes] = await Promise.all([
+      const [cfgRes, healthRes, overrideRes] = await Promise.all([
         fetch('/api/admin/local-generation'),
         fetch('/api/admin/local-generation/health'),
+        fetch('/api/admin/local-generation/self-override'),
       ]);
       if (cfgRes.ok) setLocalGen(await cfgRes.json());
       if (healthRes.ok) setLocalGenHealth(await healthRes.json());
+      if (overrideRes.ok) setLocalGenSelfOverride(await overrideRes.json());
     } catch (e) {
       logger.error(e);
     }
@@ -389,6 +392,29 @@ export default function AdminDashboard() {
         toast.success(`Motor de voz local: ${engine === 'xtts' ? 'XTTS-v2 (qualidade)' : 'Kokoro (velocidade)'}.`);
       } else {
         toast.error('Falha ao trocar o motor de voz.');
+      }
+    } catch (e) {
+      toast.error('Erro de conexão com o mestre.');
+    } finally {
+      setIsSavingLocalGen(null);
+    }
+  };
+
+  const handleToggleSelfOverride = async (kind: 'image' | 'text' | 'tts') => {
+    const field = `forceLocal${kind === 'image' ? 'Image' : kind === 'text' ? 'Text' : 'Tts'}` as const;
+    const nextValue = !localGenSelfOverride[field];
+    setIsSavingLocalGen(`override-${kind}`);
+    try {
+      const res = await fetch('/api/admin/local-generation/self-override', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: nextValue }),
+      });
+      if (res.ok) {
+        setLocalGenSelfOverride(await res.json());
+        toast.success(nextValue ? 'Sua conta vai ignorar sua chave própria pra este tipo — geração local prioritária.' : 'Sua conta voltou a respeitar sua chave própria pra este tipo.');
+      } else {
+        toast.error('Falha ao atualizar o override.');
       }
     } catch (e) {
       toast.error('Erro de conexão com o mestre.');
@@ -1279,6 +1305,19 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     )}
+
+                    <label className="flex items-center gap-2 pt-3 border-t border-portal-border/30 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localGenSelfOverride[`forceLocal${kind === 'image' ? 'Image' : kind === 'text' ? 'Text' : 'Tts'}` as const]}
+                        onChange={() => handleToggleSelfOverride(kind)}
+                        disabled={isSavingLocalGen === `override-${kind}`}
+                        className="w-3.5 h-3.5 accent-portal-primary disabled:opacity-50"
+                      />
+                      <span className="text-[9px] text-portal-text-muted uppercase font-bold">
+                        Ignorar minha chave própria (só afeta a sua conta de admin)
+                      </span>
+                    </label>
                   </div>
                 ))}
 

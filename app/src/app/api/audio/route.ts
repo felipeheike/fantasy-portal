@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       if (player) userConfig = player;
     }
     
-    const audioUrl = await generateSpeech(text, journeyId, sceneId, gender, userConfig);
+    const audioUrl = await generateSpeech(text, journeyId, sceneId, gender, userConfig, session?.user.role);
 
     return new Response(JSON.stringify({ audioUrl }), {
       headers: { 'Content-Type': 'application/json' },

@@ -210,9 +210,16 @@ export function getAIConfigMetadata(userConfig?: UserAIConfig) {
  * Diz se o jogador tem uma chave própria (BYOK) configurada e habilitada pro
  * modelo de texto que ele escolheu — usado pela geração local pra nunca
  * desviar o tráfego de quem já tem seu próprio provedor de nuvem.
+ *
+ * Exceção: um admin pode ligar um override pessoal (`aiPreferences.forceLocalText`)
+ * pra testar a geração local na própria conta sem precisar apagar as chaves reais.
+ * Só vale pra role === 'ADMIN' — a regra "chave própria sempre vence" continua
+ * absoluta pros jogadores comuns, mesmo que esse campo apareça no JSON deles.
  */
-export function hasOwnTextKey(userConfig?: UserAIConfig): boolean {
+export function hasOwnTextKey(userConfig?: UserAIConfig, role?: string): boolean {
   const preferences = userConfig?.aiPreferences || {};
+  if (role === 'ADMIN' && preferences.forceLocalText) return false;
+
   const userKeys = userConfig?.apiKeys || {};
   const apiEnabled = userConfig?.apiEnabled || {};
   const userModelId = preferences.textModel;
@@ -232,9 +239,11 @@ export function hasOwnTextKey(userConfig?: UserAIConfig): boolean {
     : !!userKeys.anthropic && apiEnabled.anthropic !== false;
 }
 
-/** Mesma ideia de `hasOwnTextKey`, só que pro modelo de imagem. */
-export function hasOwnImageKey(userConfig?: UserAIConfig): boolean {
+/** Mesma ideia de `hasOwnTextKey` (incluindo o override de admin), só que pro modelo de imagem. */
+export function hasOwnImageKey(userConfig?: UserAIConfig, role?: string): boolean {
   const preferences = userConfig?.aiPreferences || {};
+  if (role === 'ADMIN' && preferences.forceLocalImage) return false;
+
   const userKeys = userConfig?.apiKeys || {};
   const apiEnabled = userConfig?.apiEnabled || {};
   const userModelId = preferences.imageModel;

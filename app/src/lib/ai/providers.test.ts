@@ -80,6 +80,14 @@ describe('hasOwnTextKey', () => {
   it('is false when the provider is explicitly disabled', () => {
     expect(hasOwnTextKey({ aiPreferences: { textModel: 'gpt-4o' }, apiKeys: { openai: 'key' }, apiEnabled: { openai: false } })).toBe(false);
   });
+
+  it('ignores a real own key when an ADMIN has the personal override on', () => {
+    expect(hasOwnTextKey({ aiPreferences: { textModel: 'gpt-4o', forceLocalText: true }, apiKeys: { openai: 'key' }, apiEnabled: {} }, 'ADMIN')).toBe(false);
+  });
+
+  it('does not honor the override for a non-admin role, even if the field is present', () => {
+    expect(hasOwnTextKey({ aiPreferences: { textModel: 'gpt-4o', forceLocalText: true }, apiKeys: { openai: 'key' }, apiEnabled: {} }, 'PLAYER')).toBe(true);
+  });
 });
 
 describe('hasOwnImageKey', () => {
@@ -93,5 +101,9 @@ describe('hasOwnImageKey', () => {
 
   it('is false when the key is missing', () => {
     expect(hasOwnImageKey({ aiPreferences: { imageModel: 'dall-e-3' }, apiKeys: {}, apiEnabled: {} })).toBe(false);
+  });
+
+  it('ignores a real own key when an ADMIN has the personal override on', () => {
+    expect(hasOwnImageKey({ aiPreferences: { imageModel: 'dall-e-3', forceLocalImage: true }, apiKeys: { openai: 'key' }, apiEnabled: {} }, 'ADMIN')).toBe(false);
   });
 });

@@ -62,16 +62,16 @@ async function generateOpenAISpeech(text: string, voice: string, apiKey: string)
 /**
  * Generates speech using Google Gemini TTS
  */
-async function generateGoogleSpeech(text: string, gender: string, apiKey: string): Promise<Buffer> {
+async function generateGoogleSpeech(text: string, gender: string, apiKey: string, model: string = AUDIO_MODEL): Promise<Buffer> {
   const ai = new GoogleGenAI({ apiKey });
 
-  const prompt = `Gere uma narração cinematográfica de um Mestre de RPG para o seguinte texto. 
+  const prompt = `Gere uma narração cinematográfica de um Mestre de RPG para o seguinte texto.
   Use uma voz ${gender === 'female' ? 'feminina' : 'masculina'} e expressiva.
-  
+
   Texto: "${text}"`;
 
   const response = await ai.models.generateContent({
-    model: AUDIO_MODEL,
+    model,
     contents: prompt,
     config: {
       responseModalities: ["audio"]
@@ -103,22 +103,27 @@ async function generateLocalSpeech(text: string, gender: string, engine: 'kokoro
 }
 
 export async function generateSpeech(
-  text: string, 
-  journeyId: string, 
-  sceneId: string, 
+  text: string,
+  journeyId: string,
+  sceneId: string,
   gender: 'male' | 'female' = 'male',
-  userConfig?: { apiKeys?: any, apiEnabled?: any, aiPreferences?: any }
+  userConfig?: { apiKeys?: any, apiEnabled?: any, aiPreferences?: any },
+  role?: string
 ): Promise<string> {
   const preferences = userConfig?.aiPreferences || {};
   const userKeys = userConfig?.apiKeys || {};
   const apiEnabled = userConfig?.apiEnabled || {};
-  
+
   const ttsProvider = preferences.ttsVoice || 'gemini-audio';
   let audioBuffer: Buffer | null = null;
 
   // Chave própria do jogador sempre tem prioridade sobre o toggle de geração local
   // (a mesma checagem de "useUserKey" usada mais abaixo pra cada provider de nuvem).
-  const hasOwnTtsKey = ttsProvider.startsWith('openai')
+  // Exceção: admin com o override pessoal ligado (ver hasOwnTextKey em providers.ts
+  // pro comentário completo sobre por que isso não vale pra jogadores comuns).
+  const hasOwnTtsKey = role === 'ADMIN' && preferences.forceLocalTts
+    ? false
+    : ttsProvider.startsWith('openai')
     ? !!(userKeys.openai && apiEnabled.openai !== false)
     : !!(userKeys.gemini && apiEnabled.gemini !== false);
 
@@ -128,7 +133,8 @@ export async function generateSpeech(
       logger.log(`LOG: Generating local TTS (${ttsEngine})`);
       audioBuffer = await generateLocalSpeech(text, gender, ttsEngine);
     } catch (err) {
-      logger.warn('LOCAL_TTS_FAILED_FALLBACK_TO_CLOUD:', err);
+      // .error() de propósito — ver o mesmo comentário em api/image/route.ts.
+      logger.error('LOCAL_TTS_FAILED_FALLBACK_TO_CLOUD:', err);
     }
   }
 
@@ -148,8 +154,12 @@ export async function generateSpeech(
       const apiKey = useUserKey ? decrypt(userKeys.gemini) : GOOGLE_API_KEY;
 
       if (!apiKey) throw new Error("API Key do Google para áudio não configurada.");
-      logger.log(`LOG: Generating Gemini TTS ${useUserKey ? '(User Key)' : '(Global Key)'}`);
-      audioBuffer = await generateGoogleSpeech(text, gender, apiKey);
+      // "gemini-audio" é só o valor sentinela de "nenhuma escolha específica" — um
+      // modelo real escolhido pelo jogador (ex: "gemini-2.5-pro-preview-tts")
+      // precisa ser respeitado, e não silenciosamente trocado pelo padrão do sistema.
+      const geminiModel = ttsProvider !== 'gemini-audio' ? ttsProvider : AUDIO_MODEL;
+      logger.log(`LOG: Generating Gemini TTS (${geminiModel}) ${useUserKey ? '(User Key)' : '(Global Key)'}`);
+      audioBuffer = await generateGoogleSpeech(text, gender, apiKey, geminiModel);
     }
 
     const fileName = `journeys/${journeyId}/audio_${sceneId}.mp3`;

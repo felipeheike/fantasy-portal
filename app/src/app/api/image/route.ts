@@ -35,13 +35,16 @@ export async function POST(req: Request) {
     // OpenAI, então basta trocar o model. Diferente do texto (que faz stream),
     // aqui dá pra tentar local e cair pra nuvem no mesmo pedido se falhar.
     let image;
-    if (await shouldUseLocal('image', hasOwnImageKey(userConfig))) {
+    if (await shouldUseLocal('image', hasOwnImageKey(userConfig, session?.user.role))) {
       try {
         logger.log('LOG: Generating local image (SD 1.5 + LCM-LoRA)');
         const localOpenai = createOpenAI({ baseURL: `${process.env.LOCAL_IMAGE_URL}/v1`, apiKey: 'not-needed' });
         ({ image } = await generateImage({ model: localOpenai.image('dreamshaper'), prompt }));
       } catch (err) {
-        logger.warn('LOCAL_IMAGE_FAILED_FALLBACK_TO_CLOUD:', err);
+        // .error() de propósito (não .warn()): warn é silenciado em produção, e uma
+        // falha local que cai pra nuvem é exatamente o tipo de coisa que precisa
+        // aparecer no log de produção pra alguém notar antes de virar hábito.
+        logger.error('LOCAL_IMAGE_FAILED_FALLBACK_TO_CLOUD:', err);
       }
     }
     if (!image) {
