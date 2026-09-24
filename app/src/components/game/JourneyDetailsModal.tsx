@@ -22,7 +22,8 @@ import {
   Share2,
   Copy,
   Ban,
-  Check
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGameStore } from '@/store/gameStore';
@@ -75,6 +76,9 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
   const { updateSettings } = useGameStore();
   const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
   const [hasBYOK, setHasBYOK] = useState(false);
+  // Só uma seção de parâmetros aberta por vez — mantém o modal compacto por padrão
+  // (edição é ocasional, diferente do wizard de criação, que exibe tudo expandido).
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [creatingLink, setCreatingLink] = useState(false);
   // URLs só existem em memória, nunca no banco (só o hash é persistido) — por isso só
@@ -134,13 +138,20 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
     navigator.clipboard?.writeText(url).then(() => setCopiedId(id)).catch(() => {});
   };
 
+  // Fecha o acordeão um instante depois da escolha, só pra dar tempo do
+  // destaque da opção selecionada aparecer antes de recolher.
+  const pickAndCollapse = (apply: () => void) => {
+    apply();
+    setTimeout(() => setExpandedSection(null), 350);
+  };
+
   const handleJourneyLengthChange = (id: string) => {
     const target = JOURNEY_LENGTH_OPTIONS.find(o => o.id === id);
     if (target && target.sceneLimit < historyCount) {
       toast.error(`Já são ${historyCount} cenas — não dá pra encolher a jornada pra "${target.label}".`);
       return;
     }
-    updateSettings({ journeyLength: id as any });
+    pickAndCollapse(() => updateSettings({ journeyLength: id as any }));
   };
 
   const handleRevokeShareLink = async (shareId: string) => {
@@ -154,6 +165,12 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
   };
 
   if (!settings) return null;
+
+  const genreLabel = GENRE_OPTIONS.find(o => o.id === settings.genre)?.label || settings.genre;
+  const visualStyleLabel = VISUAL_STYLE_OPTIONS.find(o => o.id === settings.visualStyle)?.label || settings.visualStyle;
+  const readStyleLabel = READ_STYLE_OPTIONS.find(o => o.id === settings.readStyle)?.label || settings.readStyle;
+  const magnitudeLabel = MAGNITUDE_OPTIONS.find(o => o.id === (settings.narrativeDetail || 'medium'))?.label || 'Médio';
+  const journeyLengthLabel = JOURNEY_LENGTH_OPTIONS.find(o => o.id === settings.journeyLength)?.label || settings.journeyLength;
 
   const stats = [
     { label: 'Protagonista', value: settings.playerName, icon: User },
@@ -213,72 +230,172 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
                 ))}
               </div>
 
-              {/* Parâmetros editáveis da jornada */}
-              <div className="space-y-6 pt-4 border-t border-portal-border">
-                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
-                    <Palette className="w-3 h-3" /> Estética do Mundo
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2">
-                      <OptionPicker
-                        options={GENRE_OPTIONS}
-                        value={settings.genre}
-                        onChange={(id) => updateSettings({ genre: id as any })}
-                        hasBYOK={hasBYOK}
-                        variant="pills"
-                        accent="neutral"
-                      />
+              {/* Parâmetros editáveis da jornada (acordeão — só uma seção expandida por vez) */}
+              <div className="space-y-2 pt-4 border-t border-portal-border">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-1">Parâmetros da Jornada</h3>
+
+                {/* Estética do Mundo */}
+                <div className="rounded-2xl border border-portal-border/50 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedSection(s => s === 'aesthetics' ? null : 'aesthetics')}
+                    className="w-full flex items-center justify-between p-3 bg-portal-surface/50 hover:bg-portal-surface transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Palette className="w-3 h-3 text-primary/70" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Estética do Mundo</span>
                     </div>
-                    <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2 border-t border-portal-border/50 pt-3">
-                      <OptionPicker
-                        options={VISUAL_STYLE_OPTIONS}
-                        value={settings.visualStyle}
-                        onChange={(id) => updateSettings({ visualStyle: id as any })}
-                        hasBYOK={hasBYOK}
-                        variant="pills"
-                      />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-300 uppercase truncate max-w-[160px]">{genreLabel} · {visualStyleLabel}</span>
+                      <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform shrink-0 ${expandedSection === 'aesthetics' ? 'rotate-180' : ''}`} />
                     </div>
-                  </div>
+                  </button>
+                  <AnimatePresence>
+                    {expandedSection === 'aesthetics' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 pt-1 space-y-3">
+                          <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2">
+                            <OptionPicker
+                              options={GENRE_OPTIONS}
+                              value={settings.genre}
+                              onChange={(id) => pickAndCollapse(() => updateSettings({ genre: id as any }))}
+                              hasBYOK={hasBYOK}
+                              variant="pills"
+                              accent="neutral"
+                            />
+                          </div>
+                          <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2 border-t border-portal-border/50 pt-3">
+                            <OptionPicker
+                              options={VISUAL_STYLE_OPTIONS}
+                              value={settings.visualStyle}
+                              onChange={(id) => pickAndCollapse(() => updateSettings({ visualStyle: id as any }))}
+                              hasBYOK={hasBYOK}
+                              variant="pills"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
-                    <Type className="w-3 h-3" /> Estilo Literário
-                  </h3>
-                  <OptionPicker
-                    options={READ_STYLE_OPTIONS}
-                    value={settings.readStyle}
-                    onChange={(id) => updateSettings({ readStyle: id as any })}
-                    hasBYOK={hasBYOK}
-                    variant="list"
-                  />
+                {/* Estilo Literário */}
+                <div className="rounded-2xl border border-portal-border/50 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedSection(s => s === 'readStyle' ? null : 'readStyle')}
+                    className="w-full flex items-center justify-between p-3 bg-portal-surface/50 hover:bg-portal-surface transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Type className="w-3 h-3 text-primary/70" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Estilo Literário</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-300 uppercase">{readStyleLabel}</span>
+                      <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform shrink-0 ${expandedSection === 'readStyle' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {expandedSection === 'readStyle' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 pt-1">
+                          <OptionPicker
+                            options={READ_STYLE_OPTIONS}
+                            value={settings.readStyle}
+                            onChange={(id) => pickAndCollapse(() => updateSettings({ readStyle: id as any }))}
+                            hasBYOK={hasBYOK}
+                            variant="list"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
-                    <Zap className="w-3 h-3" /> Magnitude Narrativa
-                  </h3>
-                  <OptionPicker
-                    options={MAGNITUDE_OPTIONS}
-                    value={settings.narrativeDetail || 'medium'}
-                    onChange={(id) => updateSettings({ narrativeDetail: id as any })}
-                    hasBYOK={hasBYOK}
-                    variant="list"
-                  />
+                {/* Magnitude Narrativa */}
+                <div className="rounded-2xl border border-portal-border/50 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedSection(s => s === 'magnitude' ? null : 'magnitude')}
+                    className="w-full flex items-center justify-between p-3 bg-portal-surface/50 hover:bg-portal-surface transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-3 h-3 text-primary/70" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Magnitude Narrativa</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-300 uppercase">{magnitudeLabel}</span>
+                      <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform shrink-0 ${expandedSection === 'magnitude' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {expandedSection === 'magnitude' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 pt-1">
+                          <OptionPicker
+                            options={MAGNITUDE_OPTIONS}
+                            value={settings.narrativeDetail || 'medium'}
+                            onChange={(id) => pickAndCollapse(() => updateSettings({ narrativeDetail: id as any }))}
+                            hasBYOK={hasBYOK}
+                            variant="list"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
-                    <Clock className="w-3 h-3" /> Tamanho da Jornada
-                  </h3>
-                  <OptionPicker
-                    options={JOURNEY_LENGTH_OPTIONS}
-                    value={settings.journeyLength}
-                    onChange={handleJourneyLengthChange}
-                    hasBYOK={hasBYOK}
-                    variant="cards"
-                  />
+                {/* Tamanho da Jornada */}
+                <div className="rounded-2xl border border-portal-border/50 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedSection(s => s === 'length' ? null : 'length')}
+                    className="w-full flex items-center justify-between p-3 bg-portal-surface/50 hover:bg-portal-surface transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3 h-3 text-primary/70" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Tamanho da Jornada</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-300 uppercase">{journeyLengthLabel}</span>
+                      <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform shrink-0 ${expandedSection === 'length' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {expandedSection === 'length' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 pt-1">
+                          <OptionPicker
+                            options={JOURNEY_LENGTH_OPTIONS}
+                            value={settings.journeyLength}
+                            onChange={handleJourneyLengthChange}
+                            hasBYOK={hasBYOK}
+                            variant="cards"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
