@@ -13,15 +13,20 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { 
-      history, 
-      playerStatus, 
+    const {
+      history,
+      playerStatus,
       inventory,
       flags,
       memories,
       settings,
       impersonatedPlayerId
     } = body;
+
+    // `settings.genre` é a fonte viva (lida pelo prompt da IA e pelo sync do Spotify);
+    // a coluna top-level `genre` só existe pro card da lista de jornadas (MainMenu.tsx)
+    // e precisa ser mantida em sincronia manualmente aqui.
+    const genre = settings?.genre;
 
     // SECURITY: ADMIN can patch anyone, PLAYER can only patch themselves
     const targetUserId = session.user.role === "ADMIN" && impersonatedPlayerId 
@@ -36,7 +41,8 @@ export async function PATCH(
         memories: memories || undefined,
         settings: settings || undefined,
         playerStatus: playerStatus || undefined,
-        playerInventory: inventory || undefined
+        playerInventory: inventory || undefined,
+        genre: genre || undefined
       },
     });
 

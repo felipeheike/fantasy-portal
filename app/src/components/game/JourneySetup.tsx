@@ -4,26 +4,32 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { JourneySettings } from '@/types';
-import { 
-  User, 
-  Map, 
-  Skull, 
-  Palette, 
-  BookOpen, 
+import { OptionPicker } from './OptionPicker';
+import {
+  GENRE_OPTIONS,
+  VISUAL_STYLE_OPTIONS,
+  READ_STYLE_OPTIONS,
+  PUNISH_SYSTEM_OPTIONS,
+  MAGNITUDE_OPTIONS,
+  JOURNEY_LENGTH_OPTIONS,
+} from '@/lib/journeyOptions';
+import {
+  User,
+  Map,
+  Skull,
+  Palette,
+  BookOpen,
   Sparkles,
   ChevronLeft,
   ChevronRight,
   X,
   Volume2,
   Type,
-  Target,
-  Lock,
   Crown,
   ScrollText,
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function JourneySetup() {
   const { setSettings, startGame, isSetupMode, setSetupMode } = useGameStore();
@@ -107,41 +113,13 @@ export default function JourneySetup() {
       desc: "Quão longe pretende ir?",
       icon: Map,
       content: (
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { id: 'preview', label: 'Preview', desc: '10 cenas', restricted: false },
-            { id: 'short', label: 'Curta', desc: '11-50 cenas', restricted: true },
-            { id: 'medium', label: 'Média', desc: '51-99 cenas', restricted: true },
-            { id: 'long', label: 'Longa', desc: '100+ cenas', restricted: true },
-          ].map((opt) => {
-            const isLocked = !hasBYOK && opt.restricted;
-            return (
-              <button
-                key={opt.id}
-                disabled={isLocked}
-                onClick={() => setForm({ ...form, journeyLength: opt.id as any })}
-                className={`p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${
-                  form.journeyLength === opt.id 
-                  ? 'border-primary bg-primary/10' 
-                  : isLocked ? 'border-zinc-900 bg-portal-bg opacity-40 cursor-not-allowed' : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
-                }`}
-              >
-                <div className="flex justify-between items-start">
-                   <div>
-                      <div className={`font-black uppercase tracking-tighter text-xs mb-1 ${form.journeyLength === opt.id ? 'text-primary' : 'text-zinc-400'}`}>{opt.label}</div>
-                      <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
-                   </div>
-                   {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
-                </div>
-                {isLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <span className="text-[7px] font-black uppercase text-zinc-400 bg-black/60 px-2 py-1 rounded text-center">Exige Canalização Pessoal</span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <OptionPicker
+          options={JOURNEY_LENGTH_OPTIONS}
+          value={form.journeyLength}
+          onChange={(id) => setForm({ ...form, journeyLength: id as any })}
+          hasBYOK={hasBYOK}
+          variant="cards"
+        />
       )
     },
     {
@@ -150,30 +128,15 @@ export default function JourneySetup() {
       desc: "A morte é o fim ou apenas um revés?",
       icon: Skull,
       content: (
-        <div className="space-y-3">
-          {[
-            { id: 'fail_tolerance_5', label: 'Tolerante', desc: 'IA perdoa até 5 falhas graves' },
-            { id: 'fail_tolerance_3', label: 'Moderado', desc: 'IA perdoa até 3 falhas graves' },
-            { id: 'no_fail_tolerance', label: 'Rigoroso', desc: 'Cada falha tem peso imediato' },
-            { id: 'permadeath', label: 'Morte Permanente', desc: 'Fim de jogo significa fim da sessão' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setForm({ ...form, punishSystem: opt.id as any })}
-              className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
-                form.punishSystem === opt.id 
-                ? 'border-red-500/50 bg-red-500/5' 
-                : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
-              }`}
-            >
-              <div>
-                <div className="font-black uppercase tracking-tighter text-xs">{opt.label}</div>
-                <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
-              </div>
-              <div className={`w-4 h-4 rounded-full border-2 ${form.punishSystem === opt.id ? 'border-red-500 bg-red-500' : 'border-zinc-700'}`} />
-            </button>
-          ))}
-        </div>
+        <OptionPicker
+          options={PUNISH_SYSTEM_OPTIONS}
+          value={form.punishSystem}
+          onChange={(id) => setForm({ ...form, punishSystem: id as any })}
+          hasBYOK={hasBYOK}
+          variant="list"
+          accent="red"
+          showRadio
+        />
       )
     },
     {
@@ -184,57 +147,24 @@ export default function JourneySetup() {
       content: (
         <div className="space-y-4">
           <div className="max-h-40 overflow-y-auto custom-scrollbar pr-2">
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'fantasy', label: 'Fantasia' },
-                { id: 'medieval-epic', label: 'Épico Medieval' },
-                { id: 'cyberpunk', label: 'Cyberpunk' },
-                { id: 'sci-fi', label: 'Ficção Científica' },
-                { id: 'steampunk', label: 'Steampunk' },
-                { id: 'gothic-horror', label: 'Terror Gótico' },
-                { id: 'post-apocalyptic', label: 'Pós-Apocalipse' },
-                { id: 'pirates', label: 'Piratas' },
-                { id: 'western', label: 'Velho Oeste' },
-                { id: 'real-world', label: 'Mundo Real' },
-              ].map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => setForm({ ...form, genre: g.id as any })}
-                  className={`py-2 px-3 rounded-xl border text-[10px] font-black uppercase transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
-                    form.genre === g.id ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-portal-border text-zinc-500'
-                  }`}
-                  title={g.label}
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
+            <OptionPicker
+              options={GENRE_OPTIONS}
+              value={form.genre}
+              onChange={(id) => setForm({ ...form, genre: id as any })}
+              hasBYOK={hasBYOK}
+              variant="pills"
+              accent="neutral"
+            />
           </div>
-          
+
           <div className="border-t border-portal-border pt-4 max-h-40 overflow-y-auto custom-scrollbar pr-2">
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'anime', label: 'Anime' },
-                { id: 'manga', label: 'Mangá' },
-                { id: 'pixel-art', label: 'Pixel Art' },
-                { id: 'dark-realism', label: 'Realismo' },
-                { id: 'baroque', label: 'Pintura Barroca' },
-                { id: 'noir', label: 'Noir Cinematográfico' },
-                { id: 'digital-art', label: 'Arte Digital' },
-                { id: 'sketch', label: 'Rascunho a Lápis' },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setForm({ ...form, visualStyle: s.id as any })}
-                  className={`py-2 px-3 rounded-xl border text-[10px] font-black uppercase transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
-                    form.visualStyle === s.id ? 'bg-portal-primary text-portal-primary-foreground border-portal-primary' : 'border-portal-border text-zinc-500'
-                  }`}
-                  title={s.label}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            <OptionPicker
+              options={VISUAL_STYLE_OPTIONS}
+              value={form.visualStyle}
+              onChange={(id) => setForm({ ...form, visualStyle: id as any })}
+              hasBYOK={hasBYOK}
+              variant="pills"
+            />
           </div>
         </div>
       )
@@ -245,27 +175,13 @@ export default function JourneySetup() {
       desc: "A profundidade da narração.",
       icon: BookOpen,
       content: (
-        <div className="space-y-3">
-          {[
-            { id: 'essential', label: 'Essencial', desc: 'Texto mínimo, foco na ação' },
-            { id: 'moderate', label: 'Moderado', desc: 'Equilíbrio e fluidez' },
-            { id: 'detailed', label: 'Detalhado', desc: 'Rico em ambientação' },
-            { id: 'literary', label: 'Literário', desc: 'Profundo, poético e complexo' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setForm({ ...form, readStyle: opt.id as any })}
-              className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
-                form.readStyle === opt.id 
-                ? 'border-primary bg-primary/10' 
-                : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
-              }`}
-            >
-              <div className="font-black uppercase tracking-tighter text-xs">{opt.label}</div>
-              <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
-            </button>
-          ))}
-        </div>
+        <OptionPicker
+          options={READ_STYLE_OPTIONS}
+          value={form.readStyle}
+          onChange={(id) => setForm({ ...form, readStyle: id as any })}
+          hasBYOK={hasBYOK}
+          variant="list"
+        />
       )
     },
     {
@@ -274,36 +190,13 @@ export default function JourneySetup() {
       desc: "A extensão dos relatos do Mestre.",
       icon: Type,
       content: (
-        <div className="space-y-3">
-          {[
-            { id: 'short', label: 'Curto', desc: '1-2 parágrafos. Foco na objetividade.', restricted: false },
-            { id: 'medium', label: 'Médio', desc: '3-4 parágrafos. Equilíbrio ideal.', restricted: false },
-            { id: 'long', label: 'Longo', desc: '5-7 parágrafos. Rico em detalhes.', restricted: true },
-            { id: 'epic', label: 'Épico', desc: '8+ parágrafos. Imersão literária.', restricted: true },
-          ].map((opt) => {
-            const isLocked = !hasBYOK && opt.restricted;
-            return (
-              <button
-                key={opt.id}
-                disabled={isLocked}
-                onClick={() => setForm({ ...form, narrativeDetail: opt.id as any })}
-                className={`w-full p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group ${
-                  form.narrativeDetail === opt.id 
-                  ? 'border-primary bg-primary/10' 
-                  : isLocked ? 'border-zinc-950 bg-portal-bg opacity-40 cursor-not-allowed' : 'border-portal-border bg-portal-surface/50 hover:border-zinc-700'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                   <div>
-                      <div className={`font-black uppercase tracking-tighter text-xs ${form.narrativeDetail === opt.id ? 'text-primary' : 'text-zinc-400'}`}>{opt.label}</div>
-                      <div className="text-[10px] text-zinc-500 font-bold uppercase">{opt.desc}</div>
-                   </div>
-                   {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <OptionPicker
+          options={MAGNITUDE_OPTIONS}
+          value={form.narrativeDetail}
+          onChange={(id) => setForm({ ...form, narrativeDetail: id as any })}
+          hasBYOK={hasBYOK}
+          variant="list"
+        />
       )
     },
     {

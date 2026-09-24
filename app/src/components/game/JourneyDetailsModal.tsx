@@ -2,13 +2,12 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { 
-  X, 
-  User, 
-  Palette, 
-  ScrollText, 
-  Target, 
-  BookOpen,
+import {
+  X,
+  User,
+  Palette,
+  ScrollText,
+  Target,
   Info,
   Clock,
   ShieldCheck,
@@ -25,7 +24,16 @@ import {
   Ban,
   Check
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useGameStore } from '@/store/gameStore';
+import { OptionPicker } from './OptionPicker';
+import {
+  GENRE_OPTIONS,
+  VISUAL_STYLE_OPTIONS,
+  READ_STYLE_OPTIONS,
+  MAGNITUDE_OPTIONS,
+  JOURNEY_LENGTH_OPTIONS,
+} from '@/lib/journeyOptions';
 
 interface JourneyDetailsModalProps {
   isOpen: boolean;
@@ -66,6 +74,7 @@ interface AIStatus {
 export default function JourneyDetailsModal({ isOpen, onClose, settings, historyCount, journeyId }: JourneyDetailsModalProps) {
   const { updateSettings } = useGameStore();
   const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
+  const [hasBYOK, setHasBYOK] = useState(false);
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [creatingLink, setCreatingLink] = useState(false);
   // URLs só existem em memória, nunca no banco (só o hash é persistido) — por isso só
@@ -87,6 +96,14 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
         .then(r => r.json())
         .then(setAiStatus)
         .catch(() => setAiStatus(null));
+      fetch('/api/auth/profile')
+        .then(r => r.json())
+        .then(data => {
+          const keys = data.apiKeys || {};
+          const enabled = data.apiEnabled || {};
+          setHasBYOK(Object.entries(keys).some(([p, k]) => k && k !== '' && enabled[p] !== false));
+        })
+        .catch(() => setHasBYOK(false));
       fetchShareLinks();
     } else {
       setLinkUrls({});
@@ -117,6 +134,15 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
     navigator.clipboard?.writeText(url).then(() => setCopiedId(id)).catch(() => {});
   };
 
+  const handleJourneyLengthChange = (id: string) => {
+    const target = JOURNEY_LENGTH_OPTIONS.find(o => o.id === id);
+    if (target && target.sceneLimit < historyCount) {
+      toast.error(`Já são ${historyCount} cenas — não dá pra encolher a jornada pra "${target.label}".`);
+      return;
+    }
+    updateSettings({ journeyLength: id as any });
+  };
+
   const handleRevokeShareLink = async (shareId: string) => {
     if (!journeyId) return;
     setLinkUrls((prev) => {
@@ -129,38 +155,9 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
 
   if (!settings) return null;
 
-  const journeyLengthMap: Record<string, string> = {
-    preview: 'Jornada Preview (1-10)',
-    short: 'Jornada Curta (11-50)',
-    medium: 'Jornada Média (51-99)',
-    long: 'Jornada Longa (100-249)',
-    epic: 'Jornada Épica (250-499)',
-    'life-long': 'Jornada Eterna (500+)'
-  };
-
-  const narrativeDetailMap: Record<string, string> = {
-    short: 'Curto (1-2 parágrafos)',
-    medium: 'Médio (3-4 parágrafos)',
-    long: 'Longo (5-7 parágrafos)',
-    epic: 'Épico (8+ parágrafos)'
-  };
-
-  const readStyleMap: Record<string, string> = {
-    essential: 'Essencial',
-    fast: 'Rápido',
-    moderate: 'Médio',
-    detailed: 'Detalhado',
-    literary: 'Literário'
-  };
-
   const stats = [
     { label: 'Protagonista', value: settings.playerName, icon: User },
-    { label: 'Estilo Visual', value: settings.visualStyle, icon: Palette },
-    { label: 'Gênero', value: settings.genre, icon: BookOpen },
     { label: 'Tom Narrativo', value: settings.tone, icon: Target },
-    { label: 'Estilo Literário', value: readStyleMap[settings.readStyle] || settings.readStyle, icon: Type },
-    { label: 'Magnitude', value: narrativeDetailMap[settings.narrativeDetail] || settings.narrativeDetail || 'Médio', icon: Zap },
-    { label: 'Tamanho Base', value: journeyLengthMap[settings.journeyLength] || settings.journeyLength, icon: Clock },
     { label: 'Cenas no Registro', value: historyCount.toString(), icon: ScrollText },
     { label: 'Sistema de Punição', value: settings.punishSystem?.replace(/_/g, ' ') || 'Não definido', icon: ShieldCheck },
   ];
@@ -214,6 +211,75 @@ export default function JourneyDetailsModal({ isOpen, onClose, settings, history
                     <p className="text-[11px] font-bold text-zinc-200 uppercase truncate pl-5">{stat.value}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* Parâmetros editáveis da jornada */}
+              <div className="space-y-6 pt-4 border-t border-portal-border">
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
+                    <Palette className="w-3 h-3" /> Estética do Mundo
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2">
+                      <OptionPicker
+                        options={GENRE_OPTIONS}
+                        value={settings.genre}
+                        onChange={(id) => updateSettings({ genre: id as any })}
+                        hasBYOK={hasBYOK}
+                        variant="pills"
+                        accent="neutral"
+                      />
+                    </div>
+                    <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2 border-t border-portal-border/50 pt-3">
+                      <OptionPicker
+                        options={VISUAL_STYLE_OPTIONS}
+                        value={settings.visualStyle}
+                        onChange={(id) => updateSettings({ visualStyle: id as any })}
+                        hasBYOK={hasBYOK}
+                        variant="pills"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
+                    <Type className="w-3 h-3" /> Estilo Literário
+                  </h3>
+                  <OptionPicker
+                    options={READ_STYLE_OPTIONS}
+                    value={settings.readStyle}
+                    onChange={(id) => updateSettings({ readStyle: id as any })}
+                    hasBYOK={hasBYOK}
+                    variant="list"
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
+                    <Zap className="w-3 h-3" /> Magnitude Narrativa
+                  </h3>
+                  <OptionPicker
+                    options={MAGNITUDE_OPTIONS}
+                    value={settings.narrativeDetail || 'medium'}
+                    onChange={(id) => updateSettings({ narrativeDetail: id as any })}
+                    hasBYOK={hasBYOK}
+                    variant="list"
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 mb-3">
+                    <Clock className="w-3 h-3" /> Tamanho da Jornada
+                  </h3>
+                  <OptionPicker
+                    options={JOURNEY_LENGTH_OPTIONS}
+                    value={settings.journeyLength}
+                    onChange={handleJourneyLengthChange}
+                    hasBYOK={hasBYOK}
+                    variant="cards"
+                  />
+                </div>
               </div>
 
               {/* AI Controls in Modal */}
