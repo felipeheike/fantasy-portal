@@ -32,7 +32,7 @@ services:
   # PostgreSQL (Dev)
   db_postgres_dev:
     container_name: fantasy_portal_db_dev
-    image: postgres:16-alpine
+    image: postgres:16.13-alpine3.23 # versão fixa (evita upgrade acidental ao recriar)
     ports:
       - "5434:5432"
     environment:

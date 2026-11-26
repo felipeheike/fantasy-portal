@@ -29,7 +29,7 @@ services:
   # PostgreSQL (Prd)
   db_postgres_prd:
     container_name: fantasy_portal_db_prd
-    image: postgres:16-alpine
+    image: postgres:16.13-alpine3.23 # versão fixa (evita upgrade acidental ao recriar)
     restart: unless-stopped
     ports:
       - "5433:5432"
