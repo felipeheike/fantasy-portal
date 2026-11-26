@@ -29,25 +29,56 @@ export default function LoginPage() {
   const [dbError, setDbError] = useState<string | null>(null);
   const [ssoAvailable, setSsoAvailable] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
+  // Origem canônica do portal (a do NEXTAUTH_URL), descoberta pelo signinUrl do provider.
+  const [ssoOrigin, setSsoOrigin] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
     // O botão do Authentik só aparece quando o provider está configurado no servidor.
     getProviders()
-      .then(providers => setSsoAvailable(Boolean(providers?.authentik)))
+      .then(providers => {
+        const sso = providers?.authentik;
+        setSsoAvailable(Boolean(sso));
+        if (!sso) return;
+        const origin = new URL(sso.signinUrl).origin;
+        setSsoOrigin(origin);
+        // Veio de um acesso local pelo botão do Authentik: já inicia o login aqui.
+        if (params.get('sso') === 'authentik' && origin === window.location.origin) {
+          window.history.replaceState(null, '', '/login');
+          setSsoLoading(true);
+          signIn('authentik', { callbackUrl: '/' });
+        }
+      })
       .catch(() => setSsoAvailable(false));
 
     // Erro vindo do retorno do login via Authentik (?error=...). Lido direto da URL
     // para não exigir um Suspense boundary só por causa do useSearchParams.
-    const error = new URLSearchParams(window.location.search).get('error');
+    const error = params.get('error');
     if (error) {
-      toast.error('Erro de Acesso', { description: SSO_ERRORS[error] ?? 'Não foi possível entrar.' });
+      const message = SSO_ERRORS[error] ?? 'Não foi possível entrar.';
+      // Aviso fixo na tela + toast adiado: o toast disparado no primeiro render pode
+      // se perder antes de o <Toaster /> montar.
+      setTimeout(() => {
+        setAuthError(message);
+        toast.error('Erro de Acesso', { description: message });
+      }, 300);
       window.history.replaceState(null, '', '/login');
     }
   }, []);
 
   const handleSsoLogin = () => {
     if (dbError) return;
+    setAuthError(null);
+    // O retorno do Authentik sempre cai na origem canônica (NEXTAUTH_URL). Iniciar o
+    // login em outra origem (ex.: IP da rede local) perderia o cookie de state, então
+    // levamos o navegador para a origem certa e o login começa lá.
+    if (ssoOrigin && ssoOrigin !== window.location.origin) {
+      window.location.href = `${ssoOrigin}/login?sso=authentik`;
+      return;
+    }
     setSsoLoading(true);
     // Login via Authentik não pede o código TOTP do portal: o MFA fica a cargo do Authentik.
     signIn('authentik', { callbackUrl: '/' });
@@ -69,6 +100,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password || dbError) return;
 
+    setAuthError(null);
     setIsLoading(true);
     try {
       const result = await signIn('credentials', {
@@ -141,6 +173,13 @@ export default function LoginPage() {
             {requiresMfa ? 'Escudo de Almas' : 'Identifique-se para cruzar o portal'}
           </p>
         </div>
+
+        {authError && (
+          <div role="alert" className="mb-6 flex items-start gap-3 bg-red-950/60 border border-red-500/40 p-4 rounded-2xl text-red-200">
+            <AlertCircle className="w-5 h-5 shrink-0 text-red-400 mt-0.5" />
+            <p className="text-xs font-bold leading-relaxed">{authError}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <AnimatePresence mode="wait">

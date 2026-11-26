@@ -107,7 +107,9 @@ export const authOptions: NextAuthOptions = {
       });
 
       if (decision.kind === "deny") {
-        logger.warn(`[auth] OIDC sign-in denied: ${decision.reason}`);
+        // console.warn on purpose (logger.warn is silenced in production): denied SSO
+        // attempts are security-relevant and must show up in the prod logs.
+        console.warn(`[auth] OIDC sign-in denied: ${decision.reason}`);
         return `/login?error=${decision.reason}`;
       }
 
