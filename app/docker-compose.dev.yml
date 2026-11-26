@@ -10,7 +10,7 @@ services:
       - "25039:3000"
     volumes:
       - .:/app
-      - /app/node_modules
+      - node_modules_dev:/app/node_modules  # volume nomeado: reaproveitado a cada recriação (o anônimo acumulava ~1 GB por restart)
     command: sh -c "npm install && npx prisma generate && npm run dev"
     environment:
       - NODE_ENV=development
@@ -72,3 +72,6 @@ services:
 networks:
   duplecake-net:
     external: true
+
+volumes:
+  node_modules_dev:

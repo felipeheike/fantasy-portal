@@ -11,7 +11,9 @@ services:
       - HF_HOME=/cache/hf
       - XDG_DATA_HOME=/cache/share
     volumes:
-      - ./local-ai-models/tts:/cache
+      # LOCAL_AI_MODELS_DIR (opcional, no .env) permite guardar os modelos fora do repo,
+      # ex.: num HDD. Sem ela, usa ./local-ai-models.
+      - ${LOCAL_AI_MODELS_DIR:-./local-ai-models}/tts:/cache
     networks:
       - duplecake-net
     profiles:
@@ -27,7 +29,7 @@ services:
     environment:
       - HF_HOME=/cache
     volumes:
-      - ./local-ai-models/image:/cache
+      - ${LOCAL_AI_MODELS_DIR:-./local-ai-models}/image:/cache
     networks:
       - duplecake-net
     profiles:
@@ -63,7 +65,7 @@ services:
     volumes:
       # llama.cpp é um binário C++ — não lê a env var HF_HOME (convenção do
       # ecossistema Python), então o cache do -hf vai sempre em ~/.cache/huggingface.
-      - ./local-ai-models/text:/root/.cache/huggingface
+      - ${LOCAL_AI_MODELS_DIR:-./local-ai-models}/text:/root/.cache/huggingface
     networks:
       - duplecake-net
     profiles:
