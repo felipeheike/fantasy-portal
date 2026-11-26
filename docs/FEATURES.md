@@ -50,6 +50,10 @@ A funcionalidade mais inovadora do sistema:
 *   **Aba "Narrativa":** O admin ajusta a persona do narrador e o tom das 4 magnitudes de cena (curto/médio/longo/épico), além de diretrizes extras de tom — tudo aplicado na próxima cena gerada, sem precisar de um novo deploy.
 *   **Contrato Protegido:** As regras ligadas ao formato JSON da cena (dado, puzzle, combate, mundo) continuam fixas em código, fora do alcance do editor.
 
+## 🔑 Login com Authentik (SSO)
+*   **Botão "Entrar com Authentik":** Aparece na tela de login quando o servidor tem o SSO configurado. Quem entra por ele não precisa do código do Escudo de Almas (TOTP), porque a proteção extra fica com o Authentik. Quem entra com e-mail e senha continua precisando do código, se tiver ativado.
+*   **Só para quem já é do portal:** O SSO não cria contas. Ele vincula pelo e-mail confirmado no primeiro acesso, ou por um vínculo feito pelo Mestre. As regras de aprovação de conta continuam valendo.
+
 ## 📋 Auditoria Administrativa
 *   **Aba "Auditoria":** Trilha das últimas ações do time de moderação — mudança de acesso, banimento, reset de senha, supervisão, avisos e edições do prompt narrativo — com quem fez, quando e em qual jogador.
 

@@ -1,11 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getProviders } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Mail, Lock, LogIn, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, ShieldAlert, Smartphone, ArrowLeft } from 'lucide-react';
+import { Sparkles, Mail, Lock, LogIn, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, ShieldAlert, Smartphone, ArrowLeft, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Erros devolvidos pelo login via Authentik (signIn callback em lib/auth.ts) ou pelo NextAuth.
+const SSO_ERRORS: Record<string, string> = {
+  NO_ACCOUNT: 'Nenhuma conta do portal usa esse e-mail. Peça acesso ao Mestre primeiro.',
+  INACTIVE: 'Sua conta está aguardando aprovação ou está inativa.',
+  EMAIL_NOT_VERIFIED: 'O provedor de login não confirmou seu e-mail.',
+  SUBJECT_MISMATCH: 'Esta conta já está vinculada a outra identidade do Authentik.',
+  MISSING_SUBJECT: 'O provedor de login não enviou sua identidade.',
+  AccessDenied: 'Acesso negado pelo provedor de login.',
+  OAuthCallback: 'Falha ao concluir o login pelo Authentik. Tente novamente.',
+  OAuthSignin: 'Não foi possível iniciar o login pelo Authentik.',
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +27,31 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [ssoAvailable, setSsoAvailable] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // O botão do Authentik só aparece quando o provider está configurado no servidor.
+    getProviders()
+      .then(providers => setSsoAvailable(Boolean(providers?.authentik)))
+      .catch(() => setSsoAvailable(false));
+
+    // Erro vindo do retorno do login via Authentik (?error=...). Lido direto da URL
+    // para não exigir um Suspense boundary só por causa do useSearchParams.
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error) {
+      toast.error('Erro de Acesso', { description: SSO_ERRORS[error] ?? 'Não foi possível entrar.' });
+      window.history.replaceState(null, '', '/login');
+    }
+  }, []);
+
+  const handleSsoLogin = () => {
+    if (dbError) return;
+    setSsoLoading(true);
+    // Login via Authentik não pede o código TOTP do portal: o MFA fica a cargo do Authentik.
+    signIn('authentik', { callbackUrl: '/' });
+  };
 
   useEffect(() => {
     // Verificar saúde do banco ao carregar
@@ -196,6 +232,24 @@ export default function LoginPage() {
             )}
           </button>
         </form>
+
+        {!requiresMfa && ssoAvailable && (
+          <div className="mt-6 space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="h-px flex-1 bg-portal-border" />
+              <span className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.3em]">ou</span>
+              <div className="h-px flex-1 bg-portal-border" />
+            </div>
+            <button
+              type="button"
+              onClick={handleSsoLogin}
+              disabled={ssoLoading || !!dbError}
+              className="w-full flex items-center justify-center gap-3 border-2 border-portal-border bg-portal-surface text-portal-text px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:border-primary hover:text-primary transition-all disabled:opacity-50"
+            >
+              {ssoLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><KeyRound className="w-5 h-5" /> Entrar com Authentik</>}
+            </button>
+          </div>
+        )}
 
         {!requiresMfa && (
           <div className="mt-8 pt-8 border-t border-portal-border text-center">

@@ -1,13 +1,34 @@
 import { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
+import AuthentikProvider from "next-auth/providers/authentik";
 import { prisma } from "./prisma";
 import bcrypt from "bcrypt";
 import { verifyMfaCode, decrypt } from "./security";
+import { decideOidcLink } from "./auth/oidcLink";
+import { logger } from "./logger";
 import { PlayerRole, PlayerAccountStatus } from "@/types/auth";
+
+// SSO is optional: only enabled when all three env vars are present, so dev/other
+// environments keep working with password login alone.
+// AUTHENTIK_ISSUER must NOT end with "/" (next-auth appends "/.well-known/...").
+const authentikEnabled = Boolean(
+  process.env.AUTHENTIK_ISSUER && process.env.AUTHENTIK_CLIENT_ID && process.env.AUTHENTIK_CLIENT_SECRET
+);
+
+const playerSelect = { id: true, email: true, oidcSubject: true, accountStatus: true, role: true } as const;
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    ...(authentikEnabled
+      ? [
+          AuthentikProvider({
+            issuer: process.env.AUTHENTIK_ISSUER!.replace(/\/+$/, ""),
+            clientId: process.env.AUTHENTIK_CLIENT_ID!,
+            clientSecret: process.env.AUTHENTIK_CLIENT_SECRET!,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -59,12 +80,63 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    // Password login is fully handled (incl. TOTP) in authorize(). This only gates SSO:
+    // existing players only, linked by verified email on first login, no TOTP here.
+    async signIn({ account, profile }) {
+      if (account?.provider !== "authentik") return true;
+
+      const claims = (profile ?? {}) as { sub?: string; email?: string; email_verified?: unknown };
+      const subject = claims.sub ?? account.providerAccountId;
+
+      const [bySubject, byEmail] = await Promise.all([
+        subject ? prisma.player.findUnique({ where: { oidcSubject: subject }, select: playerSelect }) : null,
+        claims.email
+          ? prisma.player.findFirst({
+              where: { email: { equals: claims.email, mode: "insensitive" } },
+              select: playerSelect,
+            })
+          : null,
+      ]);
+
+      const decision = decideOidcLink({
+        subject,
+        email: claims.email,
+        emailVerified: claims.email_verified,
+        bySubject,
+        byEmail,
+      });
+
+      if (decision.kind === "deny") {
+        logger.warn(`[auth] OIDC sign-in denied: ${decision.reason}`);
+        return `/login?error=${decision.reason}`;
+      }
+
+      if (decision.linkSubject) {
+        await prisma.player.update({ where: { id: decision.playerId }, data: { oidcSubject: subject } });
+        logger.log(`[auth] OIDC identity linked to player ${decision.playerId}`);
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (account?.provider === "authentik") {
+        // `user` here is the IdP profile (id = sub); load the real player instead.
+        const player = await prisma.player.findUnique({ where: { oidcSubject: account.providerAccountId } });
+        if (player) {
+          token.id = player.id;
+          token.role = player.role as PlayerRole;
+          token.accountStatus = player.accountStatus as PlayerAccountStatus;
+          // Password rotation doesn't apply to SSO sessions.
+          token.forcePasswordChange = false;
+          token.authMethod = "oidc";
+        }
+        return token;
+      }
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.accountStatus = user.accountStatus;
         token.forcePasswordChange = user.forcePasswordChange;
+        token.authMethod = "credentials";
       }
       return token;
     },
@@ -73,6 +145,7 @@ export const authOptions: NextAuthOptions = {
       session.user.role = token.role;
       session.user.accountStatus = token.accountStatus;
       session.user.forcePasswordChange = token.forcePasswordChange;
+      session.user.authMethod = token.authMethod;
       return session;
     }
   },

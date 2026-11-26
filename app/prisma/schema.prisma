@@ -20,6 +20,8 @@ model Player {
   apiKeys             Json?
   mfaEnabled          Boolean   @default(false)
   mfaSecret           String?
+  // OIDC (Authentik) subject linked to this player on first SSO login. Null = never used SSO.
+  oidcSubject         String?   @unique
   usageStats          Json?
   apiEnabled          Json?
   customThemes        Json?

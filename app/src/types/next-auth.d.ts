@@ -16,9 +16,13 @@ declare module "next-auth" {
       role: PlayerRole;
       accountStatus: PlayerAccountStatus;
       forcePasswordChange: boolean;
+      /** How this session was opened: password (+TOTP) or SSO via Authentik. */
+      authMethod?: AuthMethod;
     } & DefaultSession["user"];
   }
 }
+
+type AuthMethod = "credentials" | "oidc";
 
 declare module "next-auth/jwt" {
   interface JWT {
@@ -26,5 +30,6 @@ declare module "next-auth/jwt" {
     role: PlayerRole;
     accountStatus: PlayerAccountStatus;
     forcePasswordChange: boolean;
+    authMethod?: AuthMethod;
   }
 }
