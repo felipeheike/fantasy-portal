@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     volumes:
       - ./database/shared/pgadmin/servers.json:/pgadmin4/servers.json
