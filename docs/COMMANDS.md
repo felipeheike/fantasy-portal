@@ -11,6 +11,12 @@ O projeto utiliza um `Makefile` na pasta `/app` para simplificar as operações 
 *   `make clean`: Remove volumes, containers e limpa o sistema Docker (Cuidado!).
 *   `make dev-logs`: Acompanha os logs em tempo real do Next.js.
 
+## 🖥️ IA Local (recurso plus)
+*   `make local-ai-up`: Sobe os sidecars de texto, imagem e voz (profile `local-ai`). O primeiro start baixa os modelos.
+*   `make local-ai-logs`: Acompanha os logs dos sidecars.
+*   `make local-ai-down`: Desliga os sidecars.
+*   Depois de subir, ative cada tipo em **Admin → Dashboard → Geração Local**. Veja [IA Local](./LOCAL_AI.md).
+
 ## 🗄️ Banco de Dados (Prisma)
 *   `make prisma-migrate`: Aplica novas migrações e sincroniza o schema.
 *   `make prisma-gen`: Gera o cliente Prisma (necessário após mudar o schema).

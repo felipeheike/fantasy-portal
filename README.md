@@ -19,10 +19,11 @@ Explore a documentação detalhada para entender as camadas do sistema:
 2.  **[Instalação e Setup](./docs/SETUP.md)**: Como configurar suas chaves de API e subir os containers Docker.
 3.  **[Comandos Úteis](./docs/COMMANDS.md)**: Atalhos do Makefile para gerenciamento de banco e logs.
 4.  **[Arquitetura Técnica](./docs/ARCHITECTURE.md)**: Como o Next.js, MinIO e PostgreSQL trabalham em harmonia.
+5.  **[IA Local (recurso plus)](./docs/LOCAL_AI.md)**: Texto, imagem e voz gerados no próprio servidor, com volta automática para a nuvem.
 
 ## 🛠️ Stack Tecnológica
 *   **Frontend:** Next.js 16, Tailwind CSS, Framer Motion.
-*   **Inteligência:** Google Gemini (Texto/Visão), OpenAI (DALL-E/TTS).
+*   **Inteligência:** Google Gemini (Texto/Visão), OpenAI (DALL-E/TTS). Opcional: IA local (llama.cpp, Stable Diffusion, Kokoro/XTTS).
 *   **Infraestrutura:** Docker, PostgreSQL, MinIO (S3 Local).
 *   **Estado & Persistência:** Zustand e Prisma ORM.
 

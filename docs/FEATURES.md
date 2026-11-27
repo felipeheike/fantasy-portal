@@ -23,6 +23,11 @@ A funcionalidade mais inovadora do sistema:
 *   **Narração Imersiva:** Integração com OpenAI TTS e Gemini Audio para vozes naturais e atmosféricas.
 *   **Ambientação:** Descrições sonoras que mudam conforme o clima e a tensão da cena.
 
+## 🖥️ IA Local (recurso plus)
+*   **Geração no próprio servidor:** texto (Qwen2.5-3B via llama.cpp), imagem (Stable Diffusion 1.5 + LCM) e voz (Kokoro ou XTTS-v2), sem custo de API.
+*   **Opcional e seguro:** os containers só sobem com `make local-ai-up`, são ligados por tipo no painel admin, e qualquer falha volta sozinha para a nuvem. O BYOK do jogador sempre tem prioridade.
+*   Detalhes em **[IA Local](./LOCAL_AI.md)**.
+
 ## ⚔️ Orquestração Tática e Enigmas
 *   **Combate Dinâmico:** Interface que permite escolher alvos, armas e técnicas em confrontos gerados em tempo real.
 *   **Desafios Mentais:** Puzzles de forca, anagramas e riddles (enigmas) que bloqueiam o caminho do herói, exigindo raciocínio real do jogador.
