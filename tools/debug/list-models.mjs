@@ -1,6 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = "AIzaSyBCBc4m_tVwLL03ZIrvbm4Lb2Z93f526qA";
+// Lê a chave do ambiente (nunca deixe a chave escrita no código: este repo é público).
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+if (!apiKey) throw new Error("Defina GOOGLE_GENERATIVE_AI_API_KEY no ambiente.");
 const ai = new GoogleGenAI({
   apiKey: apiKey,
 });
