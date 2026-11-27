@@ -46,8 +46,9 @@ make prisma-migrate
 
 ### 5. Acesso ao Sistema
 O portal estará disponível em:
-*   **App:** `http://localhost:25035`
-*   **MinIO Console:** `http://localhost:9001` (Usuário: `minioadmin`, Senha: `minioadmin`)
+*   **App (dev):** `http://localhost:25039`
+*   **MinIO Console (dev):** `http://localhost:25042`. Usuário e senha são o `MINIO_ACCESS_KEY` e o `MINIO_SECRET_KEY` do `app/.env`. Os dois são obrigatórios: sem eles, a stack não sobe.
+*   **App (prd):** `http://localhost:25035`. Em produção, Postgres e MinIO não publicam portas no host.
 
 ---
 **Dica:** Para rodar em produção, utilize `make prd`.

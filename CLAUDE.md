@@ -24,6 +24,7 @@ All app commands run from the `app/` directory. The project runs inside Docker; 
 - `make dev-restart` — recreate the dev stack.
 - `make dev-logs` — tail Next.js dev logs.
 - `make prd` — start the production stack (builds image).
+- `make pgadmin-up` / `make pgadmin-down` — pgAdmin is in the `tools` Compose profile, so it is off by default; start it only when needed.
 - `make down` — stop and remove all containers.
 - `make status` — list running containers for this project.
 - `make test` — run the Vitest suite inside the (already running) dev container.
@@ -46,7 +47,9 @@ All app commands run from the `app/` directory. The project runs inside Docker; 
 
 Ad hoc/manual test and debug scripts live in `app/prisma/check_*.ts`, `app/prisma/seed_*.ts`, and `tools/debug/`, run individually with `npx tsx <path>` (or `tsx` if installed globally). These are separate from the Vitest suite above.
 
-Default dev URL: `http://localhost:25035`. MinIO console: `http://localhost:9001`.
+Dev URLs: app `http://localhost:25039`, MinIO console `http://localhost:25042`. Production app: `http://localhost:25035`. In production, Postgres and MinIO publish no host ports and are reached only over the Docker network.
+
+MinIO root credentials come from `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY` in `app/.env` (the same values the app uses). Both compose files refuse to start without them. The MinIO image is pinned to a local-only tag (`RELEASE.2025-09-07T16-13-09Z`) because upstream stopped publishing images.
 
 ## Architecture
 

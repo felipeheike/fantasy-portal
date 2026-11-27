@@ -19,9 +19,10 @@ O projeto utiliza um `Makefile` na pasta `/app` para simplificar as operações 
 
 ## 🛠️ Debug e Inspeção
 *   `make sh-dev`: Abre um terminal interativo dentro do container do App.
-*   `make pgadmin-down`: Para o serviço auxiliar de administração do Postgres.
+*   `make pgadmin-up`: Sobe o pgAdmin. Ele fica no profile `tools` e não sobe junto com as stacks.
+*   `make pgadmin-down`: Para e remove o pgAdmin.
 
 ---
 **Dica:** Sempre execute os comandos de dentro da pasta `/app`.
 
-**Atenção:** rode só uma stack por vez (`dev` ou `prd`). Elas compartilham o mesmo projeto Docker Compose (`fantasy-portal`) e algumas dependências (ex.: `pgadmin`), então subir as duas juntas gera containers órfãos e consumo de recursos desnecessário.
+**Atenção:** rode só uma stack por vez (`dev` ou `prd`). Elas compartilham o mesmo projeto Docker Compose (`fantasy-portal`) e algumas dependências, então subir as duas juntas gera containers órfãos e consumo de recursos desnecessário.

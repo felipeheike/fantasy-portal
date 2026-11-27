@@ -21,7 +21,7 @@ Explore a documentação detalhada para entender as camadas do sistema:
 4.  **[Arquitetura Técnica](./docs/ARCHITECTURE.md)**: Como o Next.js, MinIO e PostgreSQL trabalham em harmonia.
 
 ## 🛠️ Stack Tecnológica
-*   **Frontend:** Next.js 15, Tailwind CSS, Framer Motion.
+*   **Frontend:** Next.js 16, Tailwind CSS, Framer Motion.
 *   **Inteligência:** Google Gemini (Texto/Visão), OpenAI (DALL-E/TTS).
 *   **Infraestrutura:** Docker, PostgreSQL, MinIO (S3 Local).
 *   **Estado & Persistência:** Zustand e Prisma ORM.
