@@ -2,7 +2,10 @@ services:
   # pgAdmin (Compartilhado entre Dev e Prd)
   pgadmin:
     container_name: fantasy_portal_pgadmin
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:9.15
+    # Desligado por padrão (auditoria 2026-11-26, C3). Subir só quando precisar:
+    #   make pgadmin-up   |   make pgadmin-down
+    profiles: ["tools"]
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com

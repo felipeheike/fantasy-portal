@@ -7,7 +7,7 @@ COMPOSE_DEV=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.dev.yml
 COMPOSE_PRD=$(COMPOSE_BASE) -f docker-compose.yml -f docker-compose.prd.yml
 COMPOSE_LOCAL_AI=$(COMPOSE_BASE) -f docker-compose.local-ai.yml --profile local-ai
 
-.PHONY: dev dev-restart prd down status clean db-reset-dev db-reset-prd prisma-seed pgadmin-down test local-ai-up local-ai-down local-ai-logs
+.PHONY: dev dev-restart prd down status clean db-reset-dev db-reset-prd prisma-seed pgadmin-up pgadmin-down test local-ai-up local-ai-down local-ai-logs
 
 # --- Development ---
 dev:
@@ -43,6 +43,9 @@ local-ai-logs:
 # --- Management ---
 down:
 	$(COMPOSE_BASE) -f docker-compose.dev.yml -f docker-compose.prd.yml -f docker-compose.yml down
+
+pgadmin-up:
+	$(COMPOSE_BASE) -f docker-compose.yml --profile tools up -d pgadmin
 
 pgadmin-down:
 	$(COMPOSE_BASE) -f docker-compose.yml stop pgadmin

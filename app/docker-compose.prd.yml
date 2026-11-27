@@ -31,8 +31,7 @@ services:
     container_name: fantasy_portal_db_prd
     image: postgres:16.13-alpine3.23 # versão fixa (evita upgrade acidental ao recriar)
     restart: unless-stopped
-    ports:
-      - "5433:5432"
+    # Sem porta no host: o app acessa pela rede interna (auditoria 2026-11-26, M1).
     environment:
       POSTGRES_USER: fp_user
       POSTGRES_PASSWORD: fp_password
@@ -55,17 +54,18 @@ services:
   # MinIO (Prd)
   storage-minio-prd:
     container_name: fantasy_portal_minio_prd
-    image: minio/minio
+    # Versão fixa. O MinIO tirou as imagens do Docker Hub: esta tag só existe localmente.
+    # Se sumir: gunzip -c ../../backups/security-fixes-20261126/minio-image-RELEASE.2025-09-07.tar.gz | docker load
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      # Credenciais vêm do .env (as mesmas que o app usa)
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?defina MINIO_ACCESS_KEY no .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?defina MINIO_SECRET_KEY no .env}
     volumes:
       - ./database/prd/minio:/data
     command: server /data --console-address ":9001"
-    ports:
-      - "25037:9000"
-      - "25038:9001"
+    # Sem portas no host (auditoria 2026-11-26, A1). Console: abrir um túnel temporário se precisar.
     networks:
       - duplecake-net
 
